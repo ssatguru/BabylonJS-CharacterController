@@ -1,0 +1,27 @@
+{
+  "name": "babylonjs-editcontrol",
+  "version": "0.1.0",
+  "description" : "A CharacterController for BabylonJS",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/ssatguru/BabylonJS-CharacterController.git"
+  },
+  "keywords": [
+    "babylonjs","CharacterController"
+  ],
+  "author": "satguru <ssatguru@gmail.com>",
+  "license": "Apache-2.0",
+  "contributors": [],
+  "main": "dist/CharacterController.min.js",
+  "types": "dist/CharacterController.d.ts",   
+  "dependencies": {},
+  "devDependencies": {
+    "babylonjs": "^3.0.0",
+    "uglify-js": "^2.8.22"
+  },
+  "scripts": {
+    "compile": "tsc -p src",
+    "min": "uglifyjs dist/CharacterController.js -o dist/CharacterController.min.js -mc",
+    "build": "npm run compile && npm run min"
+  }
+}

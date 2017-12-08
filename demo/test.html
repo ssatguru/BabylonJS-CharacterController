@@ -1,0 +1,182 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>CharacterController Demo</title>
+        <style>
+            html, body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #controls {
+                position: absolute;
+                left: 10px;
+                top: 10px;
+            }
+
+            #renderCanvas {
+                position: absolute;
+                top: 0;
+                right: 0;
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+
+            #overlay {
+                visibility: hidden;
+                position: absolute;
+                left: 0px;
+                top: 0px;
+                width: 100%;
+                height: 100%;
+                text-align: center;
+                z-index: 1000;
+            }
+
+            #overlay div {
+                width: 400px;
+                margin: 100px auto;
+                background-color: #fff;
+                border: 1px solid #000;
+                padding: 15px;
+                text-align: center;
+            }
+        </style>
+        <script src="https://cdn.babylonjs.com/babylon.js"></script>
+        <!-- for demo -->
+        <!--<script src="https://github.com/ssatguru/BabylonJS-CharacterController/releases/download/v0.1.0/CharacterController.min.js"></script>-->
+        <!--for test-->
+        <script src="../dist/CharacterController.js"></script>
+    </head>
+
+    <body>
+        <canvas id="renderCanvas"></canvas>
+
+        <div id="controls">
+            <button id="help" >Help</button>
+        </div>
+
+
+        <script type="text/javascript">
+            var helpButton = document.getElementById("help");
+            var showHelp = function(){
+                var el = document.getElementById("overlay");
+                el.style.visibility = (el.style.visibility=="visible")?"hidden":"visible";
+            }
+            helpButton.onclick = showHelp;
+
+            function loadPlayer(){
+
+                BABYLON.SceneLoader.ImportMesh("","player/","Vincent.babylon",scene,(meshes,particleSystems,skeletons)=>{
+
+                    var playerSkeleton = skeletons[0];
+                    playerSkeleton.enableBlending(0.05);
+                    fixAnimationRanges(playerSkeleton);
+
+                    var player = meshes[0];
+                    player.position = new BABYLON.Vector3(0,12,0);
+                    player.checkCollisions = true;
+                    player.ellipsoid = new BABYLON.Vector3(0.5,1,0.5);
+                    player.ellipsoidOffset = new BABYLON.Vector3(0,2,0);
+                    player.isPickable = false;
+
+                    var alpha = -player.rotation.y-4.69;
+                    var beta = Math.PI/2.5;
+                    var target = new BABYLON.Vector3(player.position.x,player.position.y+1.5,player.position.z);
+                    var camera = new BABYLON.ArcRotateCamera("ArcRotateCamera",alpha,beta,5,target,scene);
+                    camera.wheelPrecision = 15;
+                    camera.checkCollisions = true;
+                    camera.attachControl(canvas,false);
+
+                    var CharacterControl = org.ssatguru.babylonjs.component.CharacterControl;
+                    var cc = new CharacterControl(player,playerSkeleton,camera,scene);
+                    cc.start();
+
+                    engine.runRenderLoop(function(){
+                        scene.render();
+                    });
+
+                });
+            }
+
+            /**
+             * workaround for bug in blender exporter 
+             * 5.3.0 animation ranges off by 1
+             */
+            function fixAnimationRanges(skel){
+                var ranges = skel.getAnimationRanges();
+                var l = ranges.length;
+                for(var i = 0;i<l;i++){
+                    ranges[i].from++;
+                }
+                skel.getAnimationRange("fall").to--;
+            }
+
+            function createGround(scene){
+                let groundMaterial = createGroundMaterial(scene);
+                BABYLON.MeshBuilder.CreateGroundFromHeightMap("ground","ground/ground_heightMap.png",{
+                    width:256,
+                    height:256,
+                    minHeight:0,
+                    maxHeight:20,
+                    subdivisions:32,
+                    onReady:(grnd)=>{
+                        grnd.material = groundMaterial;
+                        grnd.checkCollisions = true;
+                        grnd.isPickable = true;
+                        grnd.freezeWorldMatrix();
+                    }
+
+                },scene);
+            }
+
+            function createGroundMaterial(scene){
+                let groundMaterial = new BABYLON.StandardMaterial("groundMat",scene);
+                groundMaterial.diffuseTexture = new BABYLON.Texture("ground/ground.jpg",scene);
+                groundMaterial.diffuseTexture.uScale = 6.0;
+                groundMaterial.diffuseTexture.vScale = 6.0;
+                groundMaterial.diffuseColor = new BABYLON.Color3(0.9,0.6,0.4);
+                groundMaterial.specularColor = new BABYLON.Color3(0,0,0);
+                return groundMaterial;
+            }
+
+            /*
+             * The scene
+             */
+            var canvas = document.querySelector("#renderCanvas");
+            var engine = new BABYLON.Engine(canvas,true);
+            var scene = new BABYLON.Scene(engine);
+            scene.clearColor = new BABYLON.Color3(0.75,0.75,0.75);
+
+            var light = new BABYLON.HemisphericLight("light1",
+                    new BABYLON.Vector3(0,1,0),scene);
+            light.intensity = .7;
+
+            var ground = createGround(scene);
+            loadPlayer();
+
+            window.addEventListener("resize",function(){
+                engine.resize();
+            });
+        </script>
+
+        <div id="overlay">
+            <div>
+                <h2>Demo of CharacterController for Babylonjs</h2>
+                <p>
+                    For more information and source code head on over to <br>
+                    <a href="https://github.com/ssatguru/BabylonJS-CharacterController"
+                       target='link'>
+                        https://github.com/ssatguru/Babylonjs-CharacterController</a>
+                </p>
+                <button id="closehelp" onclick="showHelp();">close</button>
+            </div>
+        </div>
+        
+    </body>
+</html>

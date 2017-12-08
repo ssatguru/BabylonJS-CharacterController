@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "declaration":true,
+    "target": "ES5",
+    "module": "system",
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "removeComments": true,
+    "noImplicitAny": false,
+    "outDir":"../dist"
+  },
+  "include": ["../node_modules/**/*.d.ts","../src/**/*.ts"]
+}
+
