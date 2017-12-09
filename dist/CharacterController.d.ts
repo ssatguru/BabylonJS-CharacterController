@@ -7,7 +7,7 @@ declare namespace org.ssatguru.babylonjs.component {
     import Ray = BABYLON.Ray;
     class CharacterControl {
         private avatar;
-        private avatarSkeleton;
+        private skeleton;
         private camera;
         private scene;
         private walkSpeed;
@@ -23,7 +23,6 @@ declare namespace org.ssatguru.babylonjs.component {
         sl2: number;
         private walk;
         private walkBack;
-        private slideBack;
         private idle;
         private run;
         private jump;
@@ -32,6 +31,8 @@ declare namespace org.ssatguru.babylonjs.component {
         private turnRight;
         private strafeLeft;
         private strafeRight;
+        private slideBack;
+        private anims;
         private walkKey;
         private walkBackKey;
         private turnLeftKey;
@@ -47,8 +48,10 @@ declare namespace org.ssatguru.babylonjs.component {
         private strafeRightCode;
         private jumpCode;
         private elasticCamera;
+        private cameraTarget;
+        private noFirstPerson;
         setAvatar(avatar: Mesh): void;
-        setAvatarSkeleton(avatarSkeleton: Skeleton): void;
+        setAvatarSkeleton(skeleton: Skeleton): void;
         setSlopeLimit(minSlopeLimit: number, maxSlopeLimit: number): void;
         setWalkSpeed(n: number): void;
         setRunSpeed(n: number): void;
@@ -57,15 +60,18 @@ declare namespace org.ssatguru.babylonjs.component {
         setLeftSpeed(n: number): void;
         setRightSpeed(n: number): void;
         setGravity(n: number): void;
-        setWalkAnim(rangeName: string, rate: number): void;
-        setRunAnim(rangeName: string, rate: number): void;
-        setWalkBackAnim(rangeName: string, rate: number): void;
-        setSlideBackAnim(rangeName: string, rate: number): void;
-        setIdleAnim(rangeName: string, rate: number): void;
-        setStrafeRightAnim(rangeName: string, rate: number): void;
-        setSrafeLeftAnim(rangeName: string, rate: number): void;
-        setJumpAnim(rangeName: string, rate: number): void;
-        setFallAnim(rangeName: string, rate: number): void;
+        setAnim(anim: AnimData, rangeName: string, rate: number, loop: boolean): void;
+        setWalkAnim(rangeName: string, rate: number, loop: boolean): void;
+        setRunAnim(rangeName: string, rate: number, loop: boolean): void;
+        setWalkBackAnim(rangeName: string, rate: number, loop: boolean): void;
+        setSlideBackAnim(rangeName: string, rate: number, loop: boolean): void;
+        setIdleAnim(rangeName: string, rate: number, loop: boolean): void;
+        setTurnRightAnim(rangeName: string, rate: number, loop: boolean): void;
+        setTurnLeftAnim(rangeName: string, rate: number, loop: boolean): void;
+        setStrafeRightAnim(rangeName: string, rate: number, loop: boolean): void;
+        setSrafeLeftAnim(rangeName: string, rate: number, loop: boolean): void;
+        setJumpAnim(rangeName: string, rate: number, loop: boolean): void;
+        setFallAnim(rangeName: string, rate: number, loop: boolean): void;
         setWalkKey(key: string): void;
         setWalkBackKey(key: string): void;
         setTurnLeftKey(key: string): void;
@@ -81,10 +87,12 @@ declare namespace org.ssatguru.babylonjs.component {
         setStrafeRightCode(code: number): void;
         setJumpCode(code: number): void;
         setCameraElastic(b: boolean): void;
-        private initAnims(skel);
+        setCameraTarget(v: Vector3): void;
+        setNoFirstPerson(b: boolean): void;
+        private checkAnims(skel);
         private key;
         private renderer;
-        constructor(avatar: Mesh, avatarSkeleton: Skeleton, camera: ArcRotateCamera, scene: Scene);
+        constructor(avatar: Mesh, camera: ArcRotateCamera, scene: Scene);
         private started;
         start(): void;
         stop(): void;
@@ -114,6 +122,7 @@ declare namespace org.ssatguru.babylonjs.component {
         private groundFrameMax;
         private groundIt();
         private unGroundIt();
+        savedCameraCollision: boolean;
         private updateTargetValue();
         ray: Ray;
         rayDir: Vector3;
@@ -122,14 +131,13 @@ declare namespace org.ssatguru.babylonjs.component {
         anyMovement(): boolean;
         private onKeyDown(e);
         private onKeyUp(e);
-        private horizontalMove(v1, v2);
     }
     class AnimData {
         name: string;
         loop: boolean;
         rate: number;
         exist: boolean;
-        constructor(name: string, loop: boolean, rate: number, exist: boolean);
+        constructor(name: string);
     }
     class Key {
         forward: boolean;

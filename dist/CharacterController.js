@@ -9,7 +9,7 @@ var org;
                 var Vector3 = BABYLON.Vector3;
                 var Ray = BABYLON.Ray;
                 var CharacterControl = (function () {
-                    function CharacterControl(avatar, avatarSkeleton, camera, scene) {
+                    function CharacterControl(avatar, camera, scene) {
                         var _this = this;
                         this.walkSpeed = 3;
                         this.runSpeed = this.walkSpeed * 2;
@@ -22,6 +22,18 @@ var org;
                         this.maxSlopeLimit = 45;
                         this.sl = Math.PI * this.minSlopeLimit / 180;
                         this.sl2 = Math.PI * this.maxSlopeLimit / 180;
+                        this.walk = new AnimData("walk");
+                        this.walkBack = new AnimData("walkBack");
+                        this.idle = new AnimData("idle");
+                        this.run = new AnimData("run");
+                        this.jump = new AnimData("jump");
+                        this.fall = new AnimData("fall");
+                        this.turnLeft = new AnimData("turnLeft");
+                        this.turnRight = new AnimData("turnRight");
+                        this.strafeLeft = new AnimData("strafeLeft");
+                        this.strafeRight = new AnimData("strafeRight");
+                        this.slideBack = new AnimData("slideBack");
+                        this.anims = [this.walk, this.walkBack, this.idle, this.run, this.jump, this.fall, this.turnLeft, this.turnRight, this.strafeLeft, this.strafeRight, this.slideBack];
                         this.walkKey = "W";
                         this.walkBackKey = "S";
                         this.turnLeftKey = "A";
@@ -37,6 +49,8 @@ var org;
                         this.strafeRightCode = 0;
                         this.jumpCode = 32;
                         this.elasticCamera = true;
+                        this.cameraTarget = new Vector3(0, 0, 0);
+                        this.noFirstPerson = false;
                         this.started = false;
                         this.prevAnim = null;
                         this.avStartPos = new Vector3(0, 0, 0);
@@ -53,14 +67,16 @@ var org;
                         this.idleFallTime = 0;
                         this.groundFrameCount = 0;
                         this.groundFrameMax = 10;
+                        this.savedCameraCollision = true;
                         this.ray = new Ray(Vector3.Zero(), Vector3.One(), 1);
                         this.rayDir = Vector3.Zero();
                         this.move = false;
-                        this.avatarSkeleton = avatarSkeleton;
-                        this.initAnims(avatarSkeleton);
-                        this.camera = camera;
                         this.avatar = avatar;
                         this.scene = scene;
+                        this.skeleton = avatar.skeleton;
+                        this.checkAnims(this.skeleton);
+                        this.camera = camera;
+                        this.savedCameraCollision = this.camera.checkCollisions;
                         this.key = new Key();
                         window.addEventListener("keydown", function (e) { return _this.onKeyDown(e); }, false);
                         window.addEventListener("keyup", function (e) { return _this.onKeyUp(e); }, false);
@@ -69,8 +85,9 @@ var org;
                     CharacterControl.prototype.setAvatar = function (avatar) {
                         this.avatar = avatar;
                     };
-                    CharacterControl.prototype.setAvatarSkeleton = function (avatarSkeleton) {
-                        this.avatarSkeleton = avatarSkeleton;
+                    CharacterControl.prototype.setAvatarSkeleton = function (skeleton) {
+                        this.skeleton = skeleton;
+                        this.checkAnims(skeleton);
                     };
                     CharacterControl.prototype.setSlopeLimit = function (minSlopeLimit, maxSlopeLimit) {
                         this.minSlopeLimit = minSlopeLimit;
@@ -99,41 +116,49 @@ var org;
                     CharacterControl.prototype.setGravity = function (n) {
                         this.gravity = n;
                     };
-                    CharacterControl.prototype.setWalkAnim = function (rangeName, rate) {
-                        this.walk.name = rangeName;
-                        this.walk.rate = rate;
+                    CharacterControl.prototype.setAnim = function (anim, rangeName, rate, loop) {
+                        anim.name = rangeName;
+                        anim.rate = rate;
+                        anim.loop = loop;
+                        if (this.skeleton.getAnimationRange(anim.name) != null) {
+                            anim.exist = true;
+                        }
+                        else {
+                            anim.exist = false;
+                        }
                     };
-                    CharacterControl.prototype.setRunAnim = function (rangeName, rate) {
-                        this.run.name = rangeName;
-                        this.run.rate = rate;
+                    CharacterControl.prototype.setWalkAnim = function (rangeName, rate, loop) {
+                        this.setAnim(this.walk, rangeName, rate, loop);
                     };
-                    CharacterControl.prototype.setWalkBackAnim = function (rangeName, rate) {
-                        this.walkBack.name = rangeName;
-                        this.walkBack.rate = rate;
+                    CharacterControl.prototype.setRunAnim = function (rangeName, rate, loop) {
+                        this.setAnim(this.run, rangeName, rate, loop);
                     };
-                    CharacterControl.prototype.setSlideBackAnim = function (rangeName, rate) {
-                        this.slideBack.name = rangeName;
-                        this.slideBack.rate = rate;
+                    CharacterControl.prototype.setWalkBackAnim = function (rangeName, rate, loop) {
+                        this.setAnim(this.walkBack, rangeName, rate, loop);
                     };
-                    CharacterControl.prototype.setIdleAnim = function (rangeName, rate) {
-                        this.idle.name = rangeName;
-                        this.idle.rate = rate;
+                    CharacterControl.prototype.setSlideBackAnim = function (rangeName, rate, loop) {
+                        this.setAnim(this.slideBack, rangeName, rate, loop);
                     };
-                    CharacterControl.prototype.setStrafeRightAnim = function (rangeName, rate) {
-                        this.strafeRight.name = rangeName;
-                        this.strafeRight.rate = rate;
+                    CharacterControl.prototype.setIdleAnim = function (rangeName, rate, loop) {
+                        this.setAnim(this.idle, rangeName, rate, loop);
                     };
-                    CharacterControl.prototype.setSrafeLeftAnim = function (rangeName, rate) {
-                        this.strafeLeft.name = rangeName;
-                        this.strafeLeft.rate = rate;
+                    CharacterControl.prototype.setTurnRightAnim = function (rangeName, rate, loop) {
+                        this.setAnim(this.turnRight, rangeName, rate, loop);
                     };
-                    CharacterControl.prototype.setJumpAnim = function (rangeName, rate) {
-                        this.jump.name = rangeName;
-                        this.jump.rate = rate;
+                    CharacterControl.prototype.setTurnLeftAnim = function (rangeName, rate, loop) {
+                        this.setAnim(this.turnLeft, rangeName, rate, loop);
                     };
-                    CharacterControl.prototype.setFallAnim = function (rangeName, rate) {
-                        this.fall.name = rangeName;
-                        this.fall.rate = rate;
+                    CharacterControl.prototype.setStrafeRightAnim = function (rangeName, rate, loop) {
+                        this.setAnim(this.strafeRight, rangeName, rate, loop);
+                    };
+                    CharacterControl.prototype.setSrafeLeftAnim = function (rangeName, rate, loop) {
+                        this.setAnim(this.strafeLeft, rangeName, rate, loop);
+                    };
+                    CharacterControl.prototype.setJumpAnim = function (rangeName, rate, loop) {
+                        this.setAnim(this.jump, rangeName, rate, loop);
+                    };
+                    CharacterControl.prototype.setFallAnim = function (rangeName, rate, loop) {
+                        this.setAnim(this.fall, rangeName, rate, loop);
                     };
                     CharacterControl.prototype.setWalkKey = function (key) {
                         this.walkKey = key;
@@ -180,40 +205,18 @@ var org;
                     CharacterControl.prototype.setCameraElastic = function (b) {
                         this.elasticCamera = b;
                     };
-                    CharacterControl.prototype.initAnims = function (skel) {
-                        this.walk = new AnimData("walk", true, 1, true);
-                        this.walkBack = new AnimData("walkBack", true, 0.5, true);
-                        this.idle = new AnimData("idle", true, 1, true);
-                        this.run = new AnimData("run", true, 1, true);
-                        this.jump = new AnimData("jump", false, 2, true);
-                        this.fall = new AnimData("fall", false, 1, true);
-                        this.turnLeft = new AnimData("turnLeft", true, 0.5, true);
-                        this.turnRight = new AnimData("turnRight", true, 0.5, true);
-                        this.strafeLeft = new AnimData("strafeLeft", true, 1, true);
-                        this.strafeRight = new AnimData("strafeRight", true, 1, true);
-                        this.slideBack = new AnimData("slideBack", true, 1, true);
-                        if (skel.getAnimationRange("walk") == null)
-                            this.walk.exist = false;
-                        if (skel.getAnimationRange("walkBack") == null)
-                            this.walkBack.exist = false;
-                        if (skel.getAnimationRange("idle") == null)
-                            this.idle.exist = false;
-                        if (skel.getAnimationRange("run") == null)
-                            this.run.exist = false;
-                        if (skel.getAnimationRange("jump") == null)
-                            this.jump.exist = false;
-                        if (skel.getAnimationRange("fall") == null)
-                            this.fall.exist = false;
-                        if (skel.getAnimationRange("turnLeft") == null)
-                            this.turnLeft.exist = false;
-                        if (skel.getAnimationRange("turnRight") == null)
-                            this.turnRight.exist = false;
-                        if (skel.getAnimationRange("strafeLeft") == null)
-                            this.strafeLeft.exist = false;
-                        if (skel.getAnimationRange("strafeRight") == null)
-                            this.strafeRight.exist = false;
-                        if (skel.getAnimationRange("slideBack") == null)
-                            this.slideBack.exist = false;
+                    CharacterControl.prototype.setCameraTarget = function (v) {
+                        this.cameraTarget.copyFrom(v);
+                    };
+                    CharacterControl.prototype.setNoFirstPerson = function (b) {
+                        this.noFirstPerson = b;
+                    };
+                    CharacterControl.prototype.checkAnims = function (skel) {
+                        for (var _i = 0, _a = this.anims; _i < _a.length; _i++) {
+                            var anim = _a[_i];
+                            if (skel.getAnimationRange(anim.name) != null)
+                                anim.exist = true;
+                        }
                     };
                     CharacterControl.prototype.start = function () {
                         if (this.started)
@@ -251,10 +254,10 @@ var org;
                             anim = this.doIdle(dt);
                         }
                         if (anim != null) {
-                            if (this.avatarSkeleton !== null) {
+                            if (this.skeleton !== null) {
                                 if (this.prevAnim !== anim) {
                                     if (anim.exist) {
-                                        this.avatarSkeleton.beginAnimation(anim.name, anim.loop, anim.rate);
+                                        this.skeleton.beginAnimation(anim.name, anim.loop, anim.rate);
                                     }
                                     this.prevAnim = anim;
                                 }
@@ -482,18 +485,42 @@ var org;
                         this.groundFrameCount = 0;
                     };
                     CharacterControl.prototype.updateTargetValue = function () {
-                        this.camera.target.copyFromFloats(this.avatar.position.x, (this.avatar.position.y + 1.5), this.avatar.position.z);
-                        if (this.elasticCamera)
-                            this.snapCamera();
+                        this.avatar.position.addToRef(this.cameraTarget, this.camera.target);
+                        if (this.camera.radius > this.camera.lowerRadiusLimit) {
+                            if (this.elasticCamera)
+                                this.snapCamera();
+                        }
+                        if (this.camera.radius <= this.camera.lowerRadiusLimit) {
+                            if (!this.noFirstPerson) {
+                                this.avatar.visibility = 0;
+                                this.camera.checkCollisions = false;
+                            }
+                        }
+                        else {
+                            this.avatar.visibility = 1;
+                            this.camera.checkCollisions = this.savedCameraCollision;
+                        }
                     };
                     CharacterControl.prototype.snapCamera = function () {
+                        var _this = this;
                         this.camera.position.subtractToRef(this.camera.target, this.rayDir);
                         this.ray.origin = this.camera.target;
                         this.ray.length = this.rayDir.length();
                         this.ray.direction = this.rayDir.normalize();
-                        var pi = this.scene.pickWithRay(this.ray, null, true);
+                        var pi = this.scene.pickWithRay(this.ray, function (mesh) {
+                            if (mesh == _this.avatar || !mesh.isPickable)
+                                return false;
+                            else
+                                return true;
+                        }, true);
                         if (pi.hit) {
-                            this.camera.position = pi.pickedPoint;
+                            if (this.camera.checkCollisions) {
+                                this.camera.position = pi.pickedPoint;
+                            }
+                            else {
+                                var nr = pi.pickedPoint.subtract(this.camera.target).length();
+                                this.camera.radius = nr;
+                            }
                         }
                     };
                     CharacterControl.prototype.anyMovement = function () {
@@ -501,61 +528,56 @@ var org;
                     };
                     CharacterControl.prototype.onKeyDown = function (e) {
                         var event = e;
-                        var chr = String.fromCharCode(event.keyCode);
-                        if ((chr === this.jumpKey) || (event.keyCode === this.jumpCode))
+                        var code = event.keyCode;
+                        var chr = String.fromCharCode(code);
+                        if ((chr === this.jumpKey) || (code === this.jumpCode))
                             this.key.jump = true;
-                        else if (event.keyCode === 16)
+                        else if (code === 16)
                             this.key.shift = true;
-                        else if ((chr === this.walkKey) || (event.keyCode === this.walkCode))
+                        else if ((chr === this.walkKey) || (code === this.walkCode))
                             this.key.forward = true;
-                        else if ((chr === this.turnLeftKey) || (event.keyCode === this.turnLeftCode))
+                        else if ((chr === this.turnLeftKey) || (code === this.turnLeftCode))
                             this.key.turnLeft = true;
-                        else if ((chr === this.turnRightKey) || (event.keyCode === this.turnRightCode))
+                        else if ((chr === this.turnRightKey) || (code === this.turnRightCode))
                             this.key.turnRight = true;
-                        else if ((chr === this.walkBackKey) || (event.keyCode === this.walkBackCode))
+                        else if ((chr === this.walkBackKey) || (code === this.walkBackCode))
                             this.key.backward = true;
-                        else if ((chr === this.strafeLeftKey) || (event.keyCode === this.strafeLeftCode))
+                        else if ((chr === this.strafeLeftKey) || (code === this.strafeLeftCode))
                             this.key.stepLeft = true;
-                        else if ((chr === this.strafeRightKey) || (event.keyCode === this.strafeRightCode))
+                        else if ((chr === this.strafeRightKey) || (code === this.strafeRightCode))
                             this.key.stepRight = true;
                         this.move = this.anyMovement();
                     };
                     CharacterControl.prototype.onKeyUp = function (e) {
                         var event = e;
-                        var chr = String.fromCharCode(event.keyCode);
-                        if (event.keyCode === 16) {
+                        var code = event.keyCode;
+                        var chr = String.fromCharCode(code);
+                        if (code === 16) {
                             this.key.shift = false;
                         }
-                        else if ((chr === this.walkKey) || (event.keyCode === this.walkCode))
+                        else if ((chr === this.walkKey) || (code === this.walkCode))
                             this.key.forward = false;
-                        else if ((chr === this.turnLeftKey) || (event.keyCode === this.turnLeftCode))
+                        else if ((chr === this.turnLeftKey) || (code === this.turnLeftCode))
                             this.key.turnLeft = false;
-                        else if ((chr === this.turnRightKey) || (event.keyCode === this.turnRightCode))
+                        else if ((chr === this.turnRightKey) || (code === this.turnRightCode))
                             this.key.turnRight = false;
-                        else if ((chr === this.walkBackKey) || (event.keyCode === this.walkBackCode))
+                        else if ((chr === this.walkBackKey) || (code === this.walkBackCode))
                             this.key.backward = false;
-                        else if ((chr === this.strafeLeftKey) || (event.keyCode === this.strafeLeftCode))
+                        else if ((chr === this.strafeLeftKey) || (code === this.strafeLeftCode))
                             this.key.stepLeft = false;
-                        else if ((chr === this.strafeRightKey) || (event.keyCode === this.strafeRightCode))
+                        else if ((chr === this.strafeRightKey) || (code === this.strafeRightCode))
                             this.key.stepRight = false;
                         this.move = this.anyMovement();
-                    };
-                    CharacterControl.prototype.horizontalMove = function (v1, v2) {
-                        var dx = v1.x - v2.x;
-                        var dz = v1.z - v2.z;
-                        var d = Math.sqrt(dx * dx + dz * dz);
-                        return d;
                     };
                     return CharacterControl;
                 }());
                 component.CharacterControl = CharacterControl;
                 var AnimData = (function () {
-                    function AnimData(name, loop, rate, exist) {
+                    function AnimData(name) {
+                        this.loop = true;
+                        this.rate = 1;
                         this.exist = false;
                         this.name = name;
-                        this.loop = loop;
-                        this.rate = rate;
-                        this.exist = exist;
                     }
                     return AnimData;
                 }());
