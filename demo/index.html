@@ -73,21 +73,21 @@
             function loadPlayer(){
 
                 BABYLON.SceneLoader.ImportMesh("","player/","Vincent.babylon",scene,(meshes,particleSystems,skeletons)=>{
-
-                    var playerSkeleton = skeletons[0];
-                    playerSkeleton.enableBlending(0.1);
-                    setAnimationRanges(playerSkeleton);
+                    
+                    var skeleton = skeletons[0];
+                    skeleton.enableBlending(0.1);
+                    setAnimationRanges(skeleton);
 
                     var player = meshes[0];
+                    player.skeleton = skeleton;
                     player.position = new BABYLON.Vector3(0,12,0);
                     player.checkCollisions = true;
                     player.ellipsoid = new BABYLON.Vector3(0.5,1,0.5);
                     player.ellipsoidOffset = new BABYLON.Vector3(0,2,0);
-                    player.isPickable = false;
-
+                    
                     var sm = player.material;
                     if(sm.diffuseTexture!=null){
-                        sm.backFaceCulling = false;
+                        sm.backFaceCulling = true;
                         sm.ambientColor = new BABYLON.Color3(1,1,1);
                     }
 
@@ -98,10 +98,20 @@
                     camera.wheelPrecision = 15;
                     camera.checkCollisions = true;
                     camera.attachControl(canvas,false);
-
+                    
                     var CharacterControl = org.ssatguru.babylonjs.component.CharacterControl;
-                    var cc = new CharacterControl(player,playerSkeleton,camera,scene);
-                    cc.setIdleAnim("idle",0.5);
+                    var cc = new CharacterControl(player,camera,scene);
+                    cc.setCameraTarget(new BABYLON.Vector3(0,1.5,0));
+                    camera.lowerRadiusLimit=2;
+                    camera.upperRadiusLimit=20;
+                    cc.setNoFirstPerson(false);
+                    
+                    cc.setIdleAnim("idle",0.5,true);
+                    cc.setTurnLeftAnim("turnLeft",0.5,true);
+                    cc.setTurnRightAnim("turnRight",0.5,true);
+                    cc.setWalkBackAnim("walkBack",0.5,true);
+                    cc.setJumpAnim("jump",2,false);
+                    cc.setFallAnim("fall",2,false);
                     cc.start();
 
                     engine.runRenderLoop(function(){
