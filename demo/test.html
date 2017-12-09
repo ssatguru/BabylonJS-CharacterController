@@ -75,8 +75,8 @@
                 BABYLON.SceneLoader.ImportMesh("","player/","Vincent.babylon",scene,(meshes,particleSystems,skeletons)=>{
 
                     var playerSkeleton = skeletons[0];
-                    playerSkeleton.enableBlending(0.05);
-                    fixAnimationRanges(playerSkeleton);
+                    playerSkeleton.enableBlending(0.1);
+                    setAnimationRanges(playerSkeleton);
 
                     var player = meshes[0];
                     player.position = new BABYLON.Vector3(0,12,0);
@@ -84,6 +84,12 @@
                     player.ellipsoid = new BABYLON.Vector3(0.5,1,0.5);
                     player.ellipsoidOffset = new BABYLON.Vector3(0,2,0);
                     player.isPickable = false;
+
+                    var sm = player.material;
+                    if(sm.diffuseTexture!=null){
+                        sm.backFaceCulling = false;
+                        sm.ambientColor = new BABYLON.Color3(1,1,1);
+                    }
 
                     var alpha = -player.rotation.y-4.69;
                     var beta = Math.PI/2.5;
@@ -95,6 +101,7 @@
 
                     var CharacterControl = org.ssatguru.babylonjs.component.CharacterControl;
                     var cc = new CharacterControl(player,playerSkeleton,camera,scene);
+                    cc.setIdleAnim("idle",0.5);
                     cc.start();
 
                     engine.runRenderLoop(function(){
@@ -108,13 +115,18 @@
              * workaround for bug in blender exporter 
              * 5.3.0 animation ranges off by 1
              */
-            function fixAnimationRanges(skel){
-                var ranges = skel.getAnimationRanges();
-                var l = ranges.length;
-                for(var i = 0;i<l;i++){
-                    ranges[i].from++;
-                }
-                skel.getAnimationRange("fall").to--;
+            function setAnimationRanges(skel){
+                skel.createAnimationRange("fall",1,15);
+                skel.createAnimationRange("idle",32,74);
+                skel.createAnimationRange("jump",82,104);
+                skel.createAnimationRange("run",112,131);
+                skel.createAnimationRange("slideBack",141,142);
+                skel.createAnimationRange("strafeLeft",152,194);
+                skel.createAnimationRange("strafeRight",202,244);
+                skel.createAnimationRange("turnLeft",252,272);
+                skel.createAnimationRange("turnRight",282,302);
+                skel.createAnimationRange("walk",312,345);
+                skel.createAnimationRange("walkBack",352,376);
             }
 
             function createGround(scene){
@@ -152,6 +164,7 @@
             var engine = new BABYLON.Engine(canvas,true);
             var scene = new BABYLON.Scene(engine);
             scene.clearColor = new BABYLON.Color3(0.75,0.75,0.75);
+            scene.ambientColor = new BABYLON.Color3(1,1,1);
 
             var light = new BABYLON.HemisphericLight("light1",
                     new BABYLON.Vector3(0,1,0),scene);
@@ -172,11 +185,11 @@
                     For more information and source code head on over to <br>
                     <a href="https://github.com/ssatguru/BabylonJS-CharacterController"
                        target='link'>
-                        https://github.com/ssatguru/Babylonjs-CharacterController</a>
+                        https://github.com/ssatguru/BabylonJS-CharacterController</a>
                 </p>
                 <button id="closehelp" onclick="showHelp();">close</button>
             </div>
         </div>
-        
+
     </body>
 </html>
