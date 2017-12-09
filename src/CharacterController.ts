@@ -7,14 +7,15 @@ namespace org.ssatguru.babylonjs.component {
     import Mesh=BABYLON.Mesh;
     import Scene=BABYLON.Scene;
     import Ray=BABYLON.Ray;
-    import RayHelper=BABYLON.RayHelper;
     import PickingInfo=BABYLON.PickingInfo;
 
     export class CharacterControl {
+
         private avatar: Mesh;
-        private avatarSkeleton: Skeleton;
+        private skeleton: Skeleton;
         private camera: ArcRotateCamera;
         private scene: Scene;
+
         //avatar speed in meters/second
         private walkSpeed: number=3;
         private runSpeed: number=this.walkSpeed*2;
@@ -29,18 +30,22 @@ namespace org.ssatguru.babylonjs.component {
         //slopeLimit in radians
         sl: number=Math.PI*this.minSlopeLimit/180;
         sl2: number=Math.PI*this.maxSlopeLimit/180;
+
         //animations
-        private walk: AnimData;
-        private walkBack: AnimData;
-        private slideBack: AnimData;
-        private idle: AnimData;
-        private run: AnimData;
-        private jump: AnimData;
-        private fall: AnimData;
-        private turnLeft: AnimData;
-        private turnRight: AnimData;
-        private strafeLeft: AnimData;
-        private strafeRight: AnimData;
+        private walk: AnimData=new AnimData("walk");
+        private walkBack: AnimData=new AnimData("walkBack");
+        private idle: AnimData=new AnimData("idle");
+        private run: AnimData=new AnimData("run");
+        private jump: AnimData=new AnimData("jump");
+        private fall: AnimData=new AnimData("fall");
+        private turnLeft: AnimData=new AnimData("turnLeft");
+        private turnRight: AnimData=new AnimData("turnRight");
+        private strafeLeft: AnimData=new AnimData("strafeLeft");
+        private strafeRight: AnimData=new AnimData("strafeRight");
+        private slideBack: AnimData=new AnimData("slideBack");
+
+        private anims: AnimData[]=[this.walk,this.walkBack,this.idle,this.run,this.jump,this.fall,this.turnLeft,this.turnRight,this.strafeLeft,this.strafeRight,this.slideBack];
+
         //move keys
         private walkKey: string="W";
         private walkBackKey: string="S";
@@ -56,16 +61,19 @@ namespace org.ssatguru.babylonjs.component {
         private strafeLeftCode: number=0;
         private strafeRightCode: number=0;
         private jumpCode: number=32;
-        
-        private elasticCamera:boolean=true;
-        
+
+        private elasticCamera: boolean=true;
+        private cameraTarget: Vector3=new Vector3(0,0,0);
+        //should we go into first person view when camera is near avatar (radius is lowerradius limit)
+        private noFirstPerson: boolean=false;
 
         public setAvatar(avatar: Mesh) {
             this.avatar=avatar;
         }
 
-        public setAvatarSkeleton(avatarSkeleton: Skeleton) {
-            this.avatarSkeleton=avatarSkeleton;
+        public setAvatarSkeleton(skeleton: Skeleton) {
+            this.skeleton=skeleton;
+            this.checkAnims(skeleton);
         }
 
         public setSlopeLimit(minSlopeLimit: number,maxSlopeLimit: number) {
@@ -94,46 +102,55 @@ namespace org.ssatguru.babylonjs.component {
         public setRightSpeed(n: number) {
             this.rightSpeed=n;
         }
-        public setGravity(n:number){
+        public setGravity(n: number) {
             this.gravity=n;
         }
-        public setWalkAnim(rangeName: string,rate: number) {
-            this.walk.name=rangeName;
-            this.walk.rate=rate;
+
+        public setAnim(anim: AnimData,rangeName: string,rate: number,loop: boolean) {
+            anim.name=rangeName;
+            anim.rate=rate;
+            anim.loop=loop;
+            if(this.skeleton.getAnimationRange(anim.name)!=null) {
+                anim.exist=true;
+            } else {
+                anim.exist=false;
+            }
         }
-        public setRunAnim(rangeName: string,rate: number) {
-            this.run.name=rangeName;
-            this.run.rate=rate;
+
+        public setWalkAnim(rangeName: string,rate: number,loop: boolean) {
+            this.setAnim(this.walk,rangeName,rate,loop);
         }
-        public setWalkBackAnim(rangeName: string,rate: number) {
-            this.walkBack.name=rangeName;
-            this.walkBack.rate=rate;
+        public setRunAnim(rangeName: string,rate: number,loop: boolean) {
+            this.setAnim(this.run,rangeName,rate,loop);
         }
-        public setSlideBackAnim(rangeName: string,rate: number) {
-            this.slideBack.name=rangeName;
-            this.slideBack.rate=rate;
+        public setWalkBackAnim(rangeName: string,rate: number,loop: boolean) {
+            this.setAnim(this.walkBack,rangeName,rate,loop);
         }
-        public setIdleAnim(rangeName: string,rate: number) {
-            this.idle.name=rangeName;
-            this.idle.rate=rate;
+        public setSlideBackAnim(rangeName: string,rate: number,loop: boolean) {
+            this.setAnim(this.slideBack,rangeName,rate,loop);
         }
-        public setStrafeRightAnim(rangeName: string,rate: number) {
-            this.strafeRight.name=rangeName;
-            this.strafeRight.rate=rate;
+        public setIdleAnim(rangeName: string,rate: number,loop: boolean) {
+            this.setAnim(this.idle,rangeName,rate,loop);
         }
-        public setSrafeLeftAnim(rangeName: string,rate: number) {
-            this.strafeLeft.name=rangeName;
-            this.strafeLeft.rate=rate;
+        public setTurnRightAnim(rangeName: string,rate: number,loop: boolean) {
+            this.setAnim(this.turnRight,rangeName,rate,loop);
         }
-        public setJumpAnim(rangeName: string,rate: number) {
-            this.jump.name=rangeName;
-            this.jump.rate=rate;
+        public setTurnLeftAnim(rangeName: string,rate: number,loop: boolean) {
+            this.setAnim(this.turnLeft,rangeName,rate,loop);
         }
-        public setFallAnim(rangeName: string,rate: number) {
-            this.fall.name=rangeName;
-            this.fall.rate=rate;
+        public setStrafeRightAnim(rangeName: string,rate: number,loop: boolean) {
+            this.setAnim(this.strafeRight,rangeName,rate,loop);
         }
-        
+        public setSrafeLeftAnim(rangeName: string,rate: number,loop: boolean) {
+            this.setAnim(this.strafeLeft,rangeName,rate,loop);
+        }
+        public setJumpAnim(rangeName: string,rate: number,loop: boolean) {
+            this.setAnim(this.jump,rangeName,rate,loop);
+        }
+        public setFallAnim(rangeName: string,rate: number,loop: boolean) {
+            this.setAnim(this.fall,rangeName,rate,loop);
+        }
+
         public setWalkKey(key: string) {
             this.walkKey=key
         }
@@ -155,7 +172,7 @@ namespace org.ssatguru.babylonjs.component {
         public setJumpKey(key: string) {
             this.jumpKey=key
         }
-        
+
         public setWalkCode(code: number) {
             this.walkCode=code
         }
@@ -177,49 +194,35 @@ namespace org.ssatguru.babylonjs.component {
         public setJumpCode(code: number) {
             this.jumpCode=code
         }
-        
+
         public setCameraElastic(b:boolean){
             this.elasticCamera = b;
         }
-
-
-        private initAnims(skel: Skeleton) {
-            this.walk=new AnimData("walk",true,1,true);
-            this.walkBack=new AnimData("walkBack",true,0.5,true);
-            this.idle=new AnimData("idle",true,1,true);
-            this.run=new AnimData("run",true,1,true);
-            this.jump=new AnimData("jump",false,2,true);
-            this.fall=new AnimData("fall",false,1,true);
-            this.turnLeft=new AnimData("turnLeft",true,0.5,true);
-            this.turnRight=new AnimData("turnRight",true,0.5,true);
-            this.strafeLeft=new AnimData("strafeLeft",true,1,true);
-            this.strafeRight=new AnimData("strafeRight",true,1,true);
-            this.slideBack=new AnimData("slideBack",true,1,true);
-
-            if(skel.getAnimationRange("walk")==null) this.walk.exist=false;
-            if(skel.getAnimationRange("walkBack")==null) this.walkBack.exist=false;
-            if(skel.getAnimationRange("idle")==null) this.idle.exist=false;
-            if(skel.getAnimationRange("run")==null) this.run.exist=false;
-            if(skel.getAnimationRange("jump")==null) this.jump.exist=false;
-            if(skel.getAnimationRange("fall")==null) this.fall.exist=false;
-            if(skel.getAnimationRange("turnLeft")==null) this.turnLeft.exist=false;
-            if(skel.getAnimationRange("turnRight")==null) this.turnRight.exist=false;
-            if(skel.getAnimationRange("strafeLeft")==null) this.strafeLeft.exist=false;
-            if(skel.getAnimationRange("strafeRight")==null) this.strafeRight.exist=false;
-            if(skel.getAnimationRange("slideBack")==null) this.slideBack.exist=false;
-            
+        public setCameraTarget(v: Vector3) {
+            this.cameraTarget.copyFrom(v);
         }
-        
+        public setNoFirstPerson(b: boolean) {
+            this.noFirstPerson=b;
+        }
+
+        private checkAnims(skel: Skeleton) {
+            for(let anim of this.anims) {
+                if(skel.getAnimationRange(anim.name)!=null) anim.exist=true;
+            }
+        }
+
         private key: Key;
         private renderer: () => void;
-        constructor(avatar: Mesh,avatarSkeleton: Skeleton,camera: ArcRotateCamera,scene: Scene) {
-
-            this.avatarSkeleton=avatarSkeleton;
-            this.initAnims(avatarSkeleton);
-            this.camera=camera;
+        constructor(avatar: Mesh,camera: ArcRotateCamera,scene: Scene) {
 
             this.avatar=avatar;
             this.scene=scene;
+
+            this.skeleton=avatar.skeleton;
+            this.checkAnims(this.skeleton);
+            this.camera=camera;
+            this.savedCameraCollision=this.camera.checkCollisions;
+
             this.key=new Key();
 
             window.addEventListener("keydown",(e) => {return this.onKeyDown(e)},false);
@@ -289,10 +292,10 @@ namespace org.ssatguru.babylonjs.component {
             }
 
             if(anim!=null) {
-                if(this.avatarSkeleton!==null) {
+                if(this.skeleton!==null) {
                     if(this.prevAnim!==anim) {
                         if(anim.exist) {
-                            this.avatarSkeleton.beginAnimation(anim.name,anim.loop,anim.rate);
+                            this.skeleton.beginAnimation(anim.name,anim.loop,anim.rate);
                         }
                         this.prevAnim=anim;
                     }
@@ -582,10 +585,22 @@ namespace org.ssatguru.babylonjs.component {
             this.groundFrameCount=0;
         }
 
-
+        savedCameraCollision: boolean=true;
         private updateTargetValue() {
-            this.camera.target.copyFromFloats(this.avatar.position.x,(this.avatar.position.y+1.5),this.avatar.position.z);
-            if(this.elasticCamera) this.snapCamera();
+            this.avatar.position.addToRef(this.cameraTarget,this.camera.target);
+
+            if(this.camera.radius>this.camera.lowerRadiusLimit) {if(this.elasticCamera) this.snapCamera();}
+
+            if(this.camera.radius<=this.camera.lowerRadiusLimit) {
+                if(!this.noFirstPerson) {
+                    this.avatar.visibility=0;
+                    this.camera.checkCollisions=false;
+                }
+            } else {
+                this.avatar.visibility=1;
+                this.camera.checkCollisions=this.savedCameraCollision;
+            }
+
         }
 
         ray: Ray=new Ray(Vector3.Zero(),Vector3.One(),1);
@@ -598,10 +613,19 @@ namespace org.ssatguru.babylonjs.component {
             this.ray.length=this.rayDir.length();
             this.ray.direction=this.rayDir.normalize();
 
-            let pi: PickingInfo=this.scene.pickWithRay(this.ray,null,true);
+            let pi: PickingInfo=this.scene.pickWithRay(this.ray,(mesh) => {
+                if(mesh==this.avatar||!mesh.isPickable) return false;
+                else return true;
+            },true);
+
             if(pi.hit) {
                 //postion the camera in front of the mesh that is obstructing camera
-                this.camera.position=pi.pickedPoint;
+                if(this.camera.checkCollisions) {
+                    this.camera.position=pi.pickedPoint;
+                } else {
+                    let nr: number=pi.pickedPoint.subtract(this.camera.target).length();
+                    this.camera.radius=nr;
+                }
             }
         }
 
@@ -612,59 +636,47 @@ namespace org.ssatguru.babylonjs.component {
 
         private onKeyDown(e: Event) {
             var event: KeyboardEvent=<KeyboardEvent>e;
-            var chr: string=String.fromCharCode(event.keyCode);
+            var code: number=event.keyCode;
+            var chr: string=String.fromCharCode(code);
 
-            if((chr===this.jumpKey)||(event.keyCode===this.jumpCode))this.key.jump=true; 
-            else if(event.keyCode===16) this.key.shift=true;
+            if((chr===this.jumpKey)||(code===this.jumpCode)) this.key.jump=true;
+            else if(code===16) this.key.shift=true;
             //WASD or arrow keys
-            else if((chr===this.walkKey)||(event.keyCode===this.walkCode)) this.key.forward=true;
-            else if((chr===this.turnLeftKey) ||(event.keyCode===this.turnLeftCode)) this.key.turnLeft=true;
-            else if((chr===this.turnRightKey)||(event.keyCode===this.turnRightCode)) this.key.turnRight=true;
-            else if((chr===this.walkBackKey)||(event.keyCode===this.walkBackCode)) this.key.backward=true;
-            else if((chr===this.strafeLeftKey)||(event.keyCode===this.strafeLeftCode)) this.key.stepLeft=true;
-            else if((chr===this.strafeRightKey)||(event.keyCode===this.strafeRightCode)) this.key.stepRight=true;
+            else if((chr===this.walkKey)||(code===this.walkCode)) this.key.forward=true;
+            else if((chr===this.turnLeftKey)||(code===this.turnLeftCode)) this.key.turnLeft=true;
+            else if((chr===this.turnRightKey)||(code===this.turnRightCode)) this.key.turnRight=true;
+            else if((chr===this.walkBackKey)||(code===this.walkBackCode)) this.key.backward=true;
+            else if((chr===this.strafeLeftKey)||(code===this.strafeLeftCode)) this.key.stepLeft=true;
+            else if((chr===this.strafeRightKey)||(code===this.strafeRightCode)) this.key.stepRight=true;
             this.move=this.anyMovement();
-
         }
 
         private onKeyUp(e: Event) {
             var event: KeyboardEvent=<KeyboardEvent>e;
-            var chr: string=String.fromCharCode(event.keyCode);
-       
-            if(event.keyCode===16) {this.key.shift=false;}
+            var code: number=event.keyCode;
+            var chr: string=String.fromCharCode(code);
+
+            if(code===16) {this.key.shift=false;}
             //WASD or arrow keys
-            else if((chr===this.walkKey)||(event.keyCode===this.walkCode)) this.key.forward=false;
-            else if((chr===this.turnLeftKey) ||(event.keyCode===this.turnLeftCode)) this.key.turnLeft=false;
-            else if((chr===this.turnRightKey)||(event.keyCode===this.turnRightCode)) this.key.turnRight=false;
-            else if((chr===this.walkBackKey)||(event.keyCode===this.walkBackCode)) this.key.backward=false;
-            else if((chr===this.strafeLeftKey)||(event.keyCode===this.strafeLeftCode)) this.key.stepLeft=false;
-            else if((chr===this.strafeRightKey)||(event.keyCode===this.strafeRightCode)) this.key.stepRight=false;
+            else if((chr===this.walkKey)||(code===this.walkCode)) this.key.forward=false;
+            else if((chr===this.turnLeftKey)||(code===this.turnLeftCode)) this.key.turnLeft=false;
+            else if((chr===this.turnRightKey)||(code===this.turnRightCode)) this.key.turnRight=false;
+            else if((chr===this.walkBackKey)||(code===this.walkBackCode)) this.key.backward=false;
+            else if((chr===this.strafeLeftKey)||(code===this.strafeLeftCode)) this.key.stepLeft=false;
+            else if((chr===this.strafeRightKey)||(code===this.strafeRightCode)) this.key.stepRight=false;
 
             this.move=this.anyMovement();
-
-        }
-
-        //calc distance in horizontal plane
-        private horizontalMove(v1: Vector3,v2: Vector3): number {
-            let dx: number=v1.x-v2.x;
-            let dz: number=v1.z-v2.z;
-            let d: number=Math.sqrt(dx*dx+dz*dz);
-            return d;
-
         }
     }
 
     export class AnimData {
         public name: string;
-        public loop: boolean;
-        public rate: number;
+        public loop: boolean=true;
+        public rate: number=1;
         public exist: boolean=false;
 
-        public constructor(name: string,loop: boolean,rate: number,exist: boolean) {
+        public constructor(name: string) {
             this.name=name;
-            this.loop=loop;
-            this.rate=rate;
-            this.exist=exist;
         }
     }
 
