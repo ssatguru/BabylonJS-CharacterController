@@ -51,8 +51,12 @@ You can get the "CharacterController.min.js" from its git repository "dist" fold
 
 You can also install it from npm  
 ```
-npm install babylonjs-charactercontroller (TODO)
+npm install babylonjs-charactercontroller 
 ```
+  
+Note that even though this is available in npm it is not packaged as a node module or any other type of module.  
+For now, to keep it simple and avoid dependencies on module systems, the application is packaged as a simple javascript "namespaced" application.  
+In other words load it using the "script" tag and refer to it using the global name "org.ssatguru.babylonjs.component.EditControl".  
 
 ## API
 #### To Instantiate
