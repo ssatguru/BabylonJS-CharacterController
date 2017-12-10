@@ -5,7 +5,7 @@ declare namespace org.ssatguru.babylonjs.component {
     import Mesh = BABYLON.Mesh;
     import Scene = BABYLON.Scene;
     import Ray = BABYLON.Ray;
-    class CharacterControl {
+    class CharacterController {
         private avatar;
         private skeleton;
         private camera;
@@ -86,7 +86,7 @@ declare namespace org.ssatguru.babylonjs.component {
         setStrafeLeftCode(code: number): void;
         setStrafeRightCode(code: number): void;
         setJumpCode(code: number): void;
-        setCameraElastic(b: boolean): void;
+        setCameraElasticity(b: boolean): void;
         setCameraTarget(v: Vector3): void;
         setNoFirstPerson(b: boolean): void;
         private checkAnims(skel);

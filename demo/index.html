@@ -99,8 +99,8 @@
                     camera.checkCollisions = true;
                     camera.attachControl(canvas,false);
 
-                    var CharacterControl = org.ssatguru.babylonjs.component.CharacterControl;
-                    var cc = new CharacterControl(player,camera,scene);
+                    var CharacterController = org.ssatguru.babylonjs.component.CharacterController;
+                    var cc = new CharacterController(player,camera,scene);
                     cc.setCameraTarget(new BABYLON.Vector3(0,1.5,0));
                     camera.lowerRadiusLimit=2;
                     camera.upperRadiusLimit=20;

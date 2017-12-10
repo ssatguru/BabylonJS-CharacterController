@@ -8,8 +8,8 @@ var org;
             (function (component) {
                 var Vector3 = BABYLON.Vector3;
                 var Ray = BABYLON.Ray;
-                var CharacterControl = (function () {
-                    function CharacterControl(avatar, camera, scene) {
+                var CharacterController = (function () {
+                    function CharacterController(avatar, camera, scene) {
                         var _this = this;
                         this.walkSpeed = 3;
                         this.runSpeed = this.walkSpeed * 2;
@@ -83,41 +83,41 @@ var org;
                         window.addEventListener("keyup", function (e) { return _this.onKeyUp(e); }, false);
                         this.renderer = function () { _this.moveAVandCamera(); };
                     }
-                    CharacterControl.prototype.setAvatar = function (avatar) {
+                    CharacterController.prototype.setAvatar = function (avatar) {
                         this.avatar = avatar;
                     };
-                    CharacterControl.prototype.setAvatarSkeleton = function (skeleton) {
+                    CharacterController.prototype.setAvatarSkeleton = function (skeleton) {
                         this.skeleton = skeleton;
                         this.checkAnims(skeleton);
                     };
-                    CharacterControl.prototype.setSlopeLimit = function (minSlopeLimit, maxSlopeLimit) {
+                    CharacterController.prototype.setSlopeLimit = function (minSlopeLimit, maxSlopeLimit) {
                         this.minSlopeLimit = minSlopeLimit;
                         this.maxSlopeLimit = maxSlopeLimit;
                         this.sl = Math.PI * minSlopeLimit / 180;
                         this.sl2 = Math.PI * this.maxSlopeLimit / 180;
                     };
-                    CharacterControl.prototype.setWalkSpeed = function (n) {
+                    CharacterController.prototype.setWalkSpeed = function (n) {
                         this.walkSpeed = n;
                     };
-                    CharacterControl.prototype.setRunSpeed = function (n) {
+                    CharacterController.prototype.setRunSpeed = function (n) {
                         this.runSpeed = n;
                     };
-                    CharacterControl.prototype.setBackSpeed = function (n) {
+                    CharacterController.prototype.setBackSpeed = function (n) {
                         this.backSpeed = n;
                     };
-                    CharacterControl.prototype.setJumpSpeed = function (n) {
+                    CharacterController.prototype.setJumpSpeed = function (n) {
                         this.jumpSpeed = n;
                     };
-                    CharacterControl.prototype.setLeftSpeed = function (n) {
+                    CharacterController.prototype.setLeftSpeed = function (n) {
                         this.leftSpeed = n;
                     };
-                    CharacterControl.prototype.setRightSpeed = function (n) {
+                    CharacterController.prototype.setRightSpeed = function (n) {
                         this.rightSpeed = n;
                     };
-                    CharacterControl.prototype.setGravity = function (n) {
+                    CharacterController.prototype.setGravity = function (n) {
                         this.gravity = n;
                     };
-                    CharacterControl.prototype.setAnim = function (anim, rangeName, rate, loop) {
+                    CharacterController.prototype.setAnim = function (anim, rangeName, rate, loop) {
                         if (this.skeleton == null)
                             return;
                         anim.name = rangeName;
@@ -130,98 +130,98 @@ var org;
                             anim.exist = false;
                         }
                     };
-                    CharacterControl.prototype.setWalkAnim = function (rangeName, rate, loop) {
+                    CharacterController.prototype.setWalkAnim = function (rangeName, rate, loop) {
                         this.setAnim(this.walk, rangeName, rate, loop);
                     };
-                    CharacterControl.prototype.setRunAnim = function (rangeName, rate, loop) {
+                    CharacterController.prototype.setRunAnim = function (rangeName, rate, loop) {
                         this.setAnim(this.run, rangeName, rate, loop);
                     };
-                    CharacterControl.prototype.setWalkBackAnim = function (rangeName, rate, loop) {
+                    CharacterController.prototype.setWalkBackAnim = function (rangeName, rate, loop) {
                         this.setAnim(this.walkBack, rangeName, rate, loop);
                     };
-                    CharacterControl.prototype.setSlideBackAnim = function (rangeName, rate, loop) {
+                    CharacterController.prototype.setSlideBackAnim = function (rangeName, rate, loop) {
                         this.setAnim(this.slideBack, rangeName, rate, loop);
                     };
-                    CharacterControl.prototype.setIdleAnim = function (rangeName, rate, loop) {
+                    CharacterController.prototype.setIdleAnim = function (rangeName, rate, loop) {
                         this.setAnim(this.idle, rangeName, rate, loop);
                     };
-                    CharacterControl.prototype.setTurnRightAnim = function (rangeName, rate, loop) {
+                    CharacterController.prototype.setTurnRightAnim = function (rangeName, rate, loop) {
                         this.setAnim(this.turnRight, rangeName, rate, loop);
                     };
-                    CharacterControl.prototype.setTurnLeftAnim = function (rangeName, rate, loop) {
+                    CharacterController.prototype.setTurnLeftAnim = function (rangeName, rate, loop) {
                         this.setAnim(this.turnLeft, rangeName, rate, loop);
                     };
-                    CharacterControl.prototype.setStrafeRightAnim = function (rangeName, rate, loop) {
+                    CharacterController.prototype.setStrafeRightAnim = function (rangeName, rate, loop) {
                         this.setAnim(this.strafeRight, rangeName, rate, loop);
                     };
-                    CharacterControl.prototype.setSrafeLeftAnim = function (rangeName, rate, loop) {
+                    CharacterController.prototype.setSrafeLeftAnim = function (rangeName, rate, loop) {
                         this.setAnim(this.strafeLeft, rangeName, rate, loop);
                     };
-                    CharacterControl.prototype.setJumpAnim = function (rangeName, rate, loop) {
+                    CharacterController.prototype.setJumpAnim = function (rangeName, rate, loop) {
                         this.setAnim(this.jump, rangeName, rate, loop);
                     };
-                    CharacterControl.prototype.setFallAnim = function (rangeName, rate, loop) {
+                    CharacterController.prototype.setFallAnim = function (rangeName, rate, loop) {
                         this.setAnim(this.fall, rangeName, rate, loop);
                     };
-                    CharacterControl.prototype.setWalkKey = function (key) {
+                    CharacterController.prototype.setWalkKey = function (key) {
                         this.walkKey = key;
                     };
-                    CharacterControl.prototype.setWalkBackKey = function (key) {
+                    CharacterController.prototype.setWalkBackKey = function (key) {
                         this.walkBackKey = key;
                     };
-                    CharacterControl.prototype.setTurnLeftKey = function (key) {
+                    CharacterController.prototype.setTurnLeftKey = function (key) {
                         this.turnLeftKey = key;
                     };
-                    CharacterControl.prototype.setTurnRightKey = function (key) {
+                    CharacterController.prototype.setTurnRightKey = function (key) {
                         this.turnRightKey = key;
                     };
-                    CharacterControl.prototype.setStrafeLeftKey = function (key) {
+                    CharacterController.prototype.setStrafeLeftKey = function (key) {
                         this.strafeLeftKey = key;
                     };
-                    CharacterControl.prototype.setStrafeRightKey = function (key) {
+                    CharacterController.prototype.setStrafeRightKey = function (key) {
                         this.strafeRightKey = key;
                     };
-                    CharacterControl.prototype.setJumpKey = function (key) {
+                    CharacterController.prototype.setJumpKey = function (key) {
                         this.jumpKey = key;
                     };
-                    CharacterControl.prototype.setWalkCode = function (code) {
+                    CharacterController.prototype.setWalkCode = function (code) {
                         this.walkCode = code;
                     };
-                    CharacterControl.prototype.setWalkBackCode = function (code) {
+                    CharacterController.prototype.setWalkBackCode = function (code) {
                         this.walkBackCode = code;
                     };
-                    CharacterControl.prototype.setTurnLeftCode = function (code) {
+                    CharacterController.prototype.setTurnLeftCode = function (code) {
                         this.turnLeftCode = code;
                     };
-                    CharacterControl.prototype.setTurnRightCode = function (code) {
+                    CharacterController.prototype.setTurnRightCode = function (code) {
                         this.turnRightCode = code;
                     };
-                    CharacterControl.prototype.setStrafeLeftCode = function (code) {
+                    CharacterController.prototype.setStrafeLeftCode = function (code) {
                         this.strafeLeftCode = code;
                     };
-                    CharacterControl.prototype.setStrafeRightCode = function (code) {
+                    CharacterController.prototype.setStrafeRightCode = function (code) {
                         this.strafeRightCode = code;
                     };
-                    CharacterControl.prototype.setJumpCode = function (code) {
+                    CharacterController.prototype.setJumpCode = function (code) {
                         this.jumpCode = code;
                     };
-                    CharacterControl.prototype.setCameraElastic = function (b) {
+                    CharacterController.prototype.setCameraElasticity = function (b) {
                         this.elasticCamera = b;
                     };
-                    CharacterControl.prototype.setCameraTarget = function (v) {
+                    CharacterController.prototype.setCameraTarget = function (v) {
                         this.cameraTarget.copyFrom(v);
                     };
-                    CharacterControl.prototype.setNoFirstPerson = function (b) {
+                    CharacterController.prototype.setNoFirstPerson = function (b) {
                         this.noFirstPerson = b;
                     };
-                    CharacterControl.prototype.checkAnims = function (skel) {
+                    CharacterController.prototype.checkAnims = function (skel) {
                         for (var _i = 0, _a = this.anims; _i < _a.length; _i++) {
                             var anim = _a[_i];
                             if (skel.getAnimationRange(anim.name) != null)
                                 anim.exist = true;
                         }
                     };
-                    CharacterControl.prototype.start = function () {
+                    CharacterController.prototype.start = function () {
                         if (this.started)
                             return;
                         this.started = true;
@@ -233,13 +233,13 @@ var org;
                         this.scene.registerBeforeRender(this.renderer);
                         this.scene;
                     };
-                    CharacterControl.prototype.stop = function () {
+                    CharacterController.prototype.stop = function () {
                         if (!this.started)
                             return;
                         this.started = false;
                         this.scene.unregisterBeforeRender(this.renderer);
                     };
-                    CharacterControl.prototype.moveAVandCamera = function () {
+                    CharacterController.prototype.moveAVandCamera = function () {
                         this.avStartPos.copyFrom(this.avatar.position);
                         var anim = null;
                         var dt = this.scene.getEngine().getDeltaTime() / 1000;
@@ -269,7 +269,7 @@ var org;
                         this.updateTargetValue();
                         return;
                     };
-                    CharacterControl.prototype.doJump = function (dt) {
+                    CharacterController.prototype.doJump = function (dt) {
                         var anim = null;
                         anim = this.jump;
                         if (this.jumpTime === 0) {
@@ -314,19 +314,19 @@ var org;
                         }
                         return anim;
                     };
-                    CharacterControl.prototype.endJump = function () {
+                    CharacterController.prototype.endJump = function () {
                         this.key.jump = false;
                         this.jumpTime = 0;
                         this.wasWalking = false;
                         this.wasRunning = false;
                     };
-                    CharacterControl.prototype.areVectorsEqual = function (v1, v2, p) {
+                    CharacterController.prototype.areVectorsEqual = function (v1, v2, p) {
                         return ((Math.abs(v1.x - v2.x) < p) && (Math.abs(v1.y - v2.y) < p) && (Math.abs(v1.z - v2.z) < p));
                     };
-                    CharacterControl.prototype.verticalSlope = function (v) {
+                    CharacterController.prototype.verticalSlope = function (v) {
                         return Math.atan(Math.abs(v.y / Math.sqrt(v.x * v.x + v.z * v.z)));
                     };
-                    CharacterControl.prototype.doMove = function (dt) {
+                    CharacterController.prototype.doMove = function (dt) {
                         var u = this.movFallTime * this.gravity;
                         this.freeFallDist = u * dt + this.gravity * dt * dt / 2;
                         this.movFallTime = this.movFallTime + dt;
@@ -430,12 +430,12 @@ var org;
                         }
                         return anim;
                     };
-                    CharacterControl.prototype.endFreeFall = function () {
+                    CharacterController.prototype.endFreeFall = function () {
                         this.movFallTime = 0;
                         this.fallFrameCount = 0;
                         this.inFreeFall = false;
                     };
-                    CharacterControl.prototype.doIdle = function (dt) {
+                    CharacterController.prototype.doIdle = function (dt) {
                         if (this.grounded) {
                             return this.idle;
                         }
@@ -476,18 +476,18 @@ var org;
                         }
                         return anim;
                     };
-                    CharacterControl.prototype.groundIt = function () {
+                    CharacterController.prototype.groundIt = function () {
                         this.groundFrameCount++;
                         if (this.groundFrameCount > this.groundFrameMax) {
                             this.grounded = true;
                             this.idleFallTime = 0;
                         }
                     };
-                    CharacterControl.prototype.unGroundIt = function () {
+                    CharacterController.prototype.unGroundIt = function () {
                         this.grounded = false;
                         this.groundFrameCount = 0;
                     };
-                    CharacterControl.prototype.updateTargetValue = function () {
+                    CharacterController.prototype.updateTargetValue = function () {
                         this.avatar.position.addToRef(this.cameraTarget, this.camera.target);
                         if (this.camera.radius > this.camera.lowerRadiusLimit) {
                             if (this.elasticCamera)
@@ -504,7 +504,7 @@ var org;
                             this.camera.checkCollisions = this.savedCameraCollision;
                         }
                     };
-                    CharacterControl.prototype.snapCamera = function () {
+                    CharacterController.prototype.snapCamera = function () {
                         var _this = this;
                         this.camera.position.subtractToRef(this.camera.target, this.rayDir);
                         this.ray.origin = this.camera.target;
@@ -526,10 +526,10 @@ var org;
                             }
                         }
                     };
-                    CharacterControl.prototype.anyMovement = function () {
+                    CharacterController.prototype.anyMovement = function () {
                         return (this.key.forward || this.key.backward || this.key.turnLeft || this.key.turnRight || this.key.stepLeft || this.key.stepRight);
                     };
-                    CharacterControl.prototype.onKeyDown = function (e) {
+                    CharacterController.prototype.onKeyDown = function (e) {
                         var event = e;
                         var code = event.keyCode;
                         var chr = String.fromCharCode(code);
@@ -551,7 +551,7 @@ var org;
                             this.key.stepRight = true;
                         this.move = this.anyMovement();
                     };
-                    CharacterControl.prototype.onKeyUp = function (e) {
+                    CharacterController.prototype.onKeyUp = function (e) {
                         var event = e;
                         var code = event.keyCode;
                         var chr = String.fromCharCode(code);
@@ -572,9 +572,9 @@ var org;
                             this.key.stepRight = false;
                         this.move = this.anyMovement();
                     };
-                    return CharacterControl;
+                    return CharacterController;
                 }());
-                component.CharacterControl = CharacterControl;
+                component.CharacterController = CharacterController;
                 var AnimData = (function () {
                     function AnimData(name) {
                         this.loop = true;

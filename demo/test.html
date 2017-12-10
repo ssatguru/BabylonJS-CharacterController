@@ -74,20 +74,20 @@
 
                 BABYLON.SceneLoader.ImportMesh("","player/","Vincent.babylon",scene,(meshes,particleSystems,skeletons)=>{
 
-                    var playerSkeleton = skeletons[0];
-                    playerSkeleton.enableBlending(0.1);
-                    setAnimationRanges(playerSkeleton);
+                    var skeleton = skeletons[0];
+                    skeleton.enableBlending(0.2);
+                    setAnimationRanges(skeleton);
 
                     var player = meshes[0];
+                    player.skeleton = skeleton;
                     player.position = new BABYLON.Vector3(0,12,0);
                     player.checkCollisions = true;
                     player.ellipsoid = new BABYLON.Vector3(0.5,1,0.5);
                     player.ellipsoidOffset = new BABYLON.Vector3(0,2,0);
-                    player.isPickable = false;
 
                     var sm = player.material;
                     if(sm.diffuseTexture!=null){
-                        sm.backFaceCulling = false;
+                        sm.backFaceCulling = true;
                         sm.ambientColor = new BABYLON.Color3(1,1,1);
                     }
 
@@ -99,9 +99,20 @@
                     camera.checkCollisions = true;
                     camera.attachControl(canvas,false);
 
-                    var CharacterControl = org.ssatguru.babylonjs.component.CharacterControl;
-                    var cc = new CharacterControl(player,playerSkeleton,camera,scene);
-                    cc.setIdleAnim("idle",0.5);
+                    var CharacterController = org.ssatguru.babylonjs.component.CharacterController;
+                    var cc = new CharacterController(player,camera,scene);
+                    cc.setCameraTarget(new BABYLON.Vector3(0,1.5,0));
+                    camera.lowerRadiusLimit=2;
+                    camera.upperRadiusLimit=20;
+                    cc.setNoFirstPerson(false);
+
+                    cc.setIdleAnim("idle",0.1,true);
+                    cc.setTurnLeftAnim("turnLeft",0.5,true);
+                    cc.setTurnRightAnim("turnRight",0.5,true);
+                    cc.setWalkBackAnim("walkBack",0.5,true);
+                    cc.setJumpAnim("jump",4,false);
+                    cc.setFallAnim("fall",2,false);
+                    cc.setSlideBackAnim("slideBack",1,false)
                     cc.start();
 
                     engine.runRenderLoop(function(){
@@ -111,22 +122,30 @@
                 });
             }
 
-            /**
-             * workaround for bug in blender exporter 
-             * 5.3.0 animation ranges off by 1
-             */
+
             function setAnimationRanges(skel){
+                //printAnimRanges(skel);
                 skel.createAnimationRange("fall",1,15);
                 skel.createAnimationRange("idle",32,74);
                 skel.createAnimationRange("jump",82,104);
-                skel.createAnimationRange("run",112,131);
-                skel.createAnimationRange("slideBack",141,142);
+                skel.createAnimationRange("run",113,130);
+                skel.createAnimationRange("slideBack",143,145);
                 skel.createAnimationRange("strafeLeft",152,194);
                 skel.createAnimationRange("strafeRight",202,244);
                 skel.createAnimationRange("turnLeft",252,272);
                 skel.createAnimationRange("turnRight",282,302);
                 skel.createAnimationRange("walk",312,345);
                 skel.createAnimationRange("walkBack",352,376);
+            }
+
+            function printAnimRanges(skel){
+                let ars = skel.getAnimationRanges();
+                let l = ars.length;
+                for(let i = 0;i<l;i++){
+                    let ar = ars[i];
+                    console.log(ar.name+","+ar.from+","+ar.to);
+                }
+
             }
 
             function createGround(scene){
