@@ -1,18 +1,23 @@
 # BabylonJS-CharacterController
-A 3rd person characterController for use in [BabylonJS](http://www.babylonjs.com/) (a 3D HTML Webgl framework)  applications.
-DEMO - <a href="https://ssatguru.github.io/BabylonJS-CharacterController/demo/" target="_blank">https://ssatguru.github.io/BabylonJS-CharacterController/demo/</a>
+A 3rd person CharacterController for use in [BabylonJS](http://www.babylonjs.com/) (a 3D HTML Webgl framework)  applications.  
+For demo - <a href="https://ssatguru.github.io/BabylonJS-CharacterController/demo/" target="_blank">https://ssatguru.github.io/BabylonJS-CharacterController/demo/</a>
 
 ## About
 It currently supports  
 * walk 
 * walkback
 * run 
+* jump
 * fall
 * turn right 
 * turn left
 * strafe left
 * strafe right
 * slide down 
+
+It also supports camera "elasticity". In other words if a mesh comes between the camera and avatar/player the camera snaps to
+a position in front of the mesh. This way the avatar/player os always in view.  
+It can also enter first person view if the camera comes close to the avatar/player
 
 ## Quick start
 
@@ -21,7 +26,6 @@ It currently supports
 <script src="https://cdn.babylonjs.com/babylon.js"></script>
 <script src="CharacterController.min.js"></script>
 ```
-
 See INSTALL below to find where you can get "CharacterController.min.js".  
 
 2) a small javascript code snippet to get you up and running
@@ -67,6 +71,7 @@ The player skeleton should have the following animation ranges
 * walk 
 * walkBack
 * run 
+* jump
 * fall
 * turnRight 
 * turnLeft
@@ -74,7 +79,7 @@ The player skeleton should have the following animation ranges
 * strafeRight
 * slideDown
 
-If your animation range is named differently from those mentioned here then use the setWalkAnim(..),setWalkBackAnim(..) etc API to specify your animation rangename.
+If your animation range is named differently from those mentioned above then use the setWalkAnim(..),setWalkBackAnim(..) etc API to specify your animation range name.
 
 #### To start/stop controller
 ```
@@ -86,6 +91,7 @@ cc.stop();
 cc.setWalkAnim(name :string, playback rate:number,loop:boolean);
 cc.setWalkBackAnim(name :string, playback rate:number,loop:boolean);
 cc.setRunAnim(name :string, playback rate:number,loop:boolean);
+cc.setJumpAnim(name :string, playback rate:number,loop:boolean);
 cc.setFallAnim(name :string, playback rate:number,loop:boolean);
 cc.setTurnRightAnim(name :string, playback rate:number,loop:boolean);
 cc.setTurnLeftAnim(name :string, playback rate:number,loop:boolean);
@@ -98,7 +104,7 @@ So lets say your walk animation is called "myWalk" and you want to play it at ha
 cc.setWalkAnim("myWalk",0.5,true);
 ```
 #### To change key binding
-By default the controller uses WASDQE and arrow keys to controll your player/avatar.
+By default the controller uses WASDQE, space and arrow keys to controll your player/avatar.
 W-walk forward
 shit+W-run
 S-walk backward
@@ -106,6 +112,7 @@ A-turn left
 D-turn right
 Q-strafe left
 E-strafe right.
+space - jump
 To change these use
 ```
 cc.setWalkKey(string:key); or cc.setWalkCode(number:keyCode);
