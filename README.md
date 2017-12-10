@@ -3,6 +3,7 @@ A 3rd person CharacterController for use in [BabylonJS](http://www.babylonjs.com
 For demo - <a href="https://ssatguru.github.io/BabylonJS-CharacterController/demo/" target="_blank">https://ssatguru.github.io/BabylonJS-CharacterController/demo/</a>
 
 ## About
+
 It currently supports  
 * walk 
 * walkback
@@ -15,8 +16,11 @@ It currently supports
 * strafe right
 * slide down 
 
+It supports constraining avatar from traversing slopes inclined at certain angles.  
+  
 It also supports camera "elasticity". In other words if a mesh comes between the camera and avatar/player, the camera snaps to
 a position in front of the mesh. This way the avatar/player is always in view.  
+  
 It can also enter first person view if the camera comes very close to the avatar/player
 
 ## Quick start
@@ -122,20 +126,24 @@ cc.setTurnLeftKey(string:key); or cc.setTurnLefttCode(number:keyCode);
 cc.setTurnRightKey(string:key); or cc.setTurnRightCode(number:keyCode);
 cc.setStrafeLeftKey(string:key); or cc.setStrafeLefttCode(number:keyCode);
 cc.setStrafeRightKey(string:key); or cc.setStrafeRightCode(number:keyCode);
+cc.setJumpKey(string:key); or cc.setJumpCode(number:keyCode);
 ```
-#### To change speed at which avatar/player is moved or gravity
+You can specify both key or a keycode.
+
+#### To change gravity or speed at which avatar/player is moved
 
 Speed is specified in meters/second
+
 ```
+setGravity(n: number);    //default 9.8 m/s^2  
 setWalkSpeed(n: number);  //default 3 m/s
 setRunSpeed(n: number);   //default 6 m/s
 setBackSpeed(n: number);  //default 3 m/s
 setJumpSpeed(n: number);  //default 6 m/s
 setLeftSpeed(n: number);  //default 3 m/s
 setRightSpeed(n: number); //default 3 m/s
-setGravity(n: number);    //default 9.8 m/s^2  
 ```
-#### To change the slope the avatar can travel
+#### To change the slope the avatar can traverse
 ```
 setSlopeLimit(minSlopeLimit: number,maxSlopeLimit: number); //the slope is specified in degrees
 ```
@@ -143,7 +151,7 @@ Example
 ```
 setSlopeLimit(45,55); 
 ```
-Here if the avatar is on ground with slope between 45 and 55 then it will start sliding back when it stops moving.
+Here if the avatar is on a slope wiht angle between 45 and 55 degrees then it will start sliding back when it stops moving.  
 If the slope is 55 or more then avatar will not be able to move up on it.
 
 #### To change avatar  or skeleton at 
@@ -156,7 +164,7 @@ By default the camera focuses on the avatar/player origin. To focus on a differe
 ```
 setCameraTarget(v: Vector3);
 ```
-Lets say your avatar origin is at its feet and instead of focusing on its feet you would like camera to focus on its head then, assuming the the head is 1.5m above ground, you would do
+Lets say your avatar origin is at its feet but instead of focusing on its feet you would like camera to focus on its head then, assuming the the head is 1.5m above ground, you would do
 ```
 cc.setCameraTarget(new BABAYLON.Vector3(0,1.5,0);
 ```
@@ -164,16 +172,16 @@ By default the camera behaves "elastically". In other words if something comes b
 a position in front of that something. This way the avatar/player is always in view.
 To turn this off use
 ```
-setCameraElastic(false);
+setCameraElasticity(false);
 ```
-You can use the arc rotate camera lowerRadiusLimit and upperRadiusLimit property to controll how close or how far from the avatar the camera can get.  
+You can use the arc rotate camera's "lowerRadiusLimit" and "upperRadiusLimit" property to controll how close or how far away from the avatar the camera can get.  
 Example setting
 ```
 camera.lowerRadiusLimit=2;
 camera.upperRadiusLimit=20;
 ```
 will restrict the camera between 2 and 20m from the avatar/player.  
-When the camera comes to the "lowerRadiusLimit" the controller switches to first person view. In other words the avatar/player becomes invisible and the camera collision is disabled. Pulling camera back restores the third person view.
+When the camera comes to the "lowerRadiusLimit" the controller switches to first person view. In other words it makes the avatar/player invisible and the camera collision is disabled. Pulling camera back restores the third person view.
 To prevent this use
 ```
 setNoFirstPerson(true);
