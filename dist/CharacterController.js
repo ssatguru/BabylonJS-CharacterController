@@ -74,7 +74,8 @@ var org;
                         this.avatar = avatar;
                         this.scene = scene;
                         this.skeleton = avatar.skeleton;
-                        this.checkAnims(this.skeleton);
+                        if (this.skeleton != null)
+                            this.checkAnims(this.skeleton);
                         this.camera = camera;
                         this.savedCameraCollision = this.camera.checkCollisions;
                         this.key = new Key();
@@ -117,6 +118,8 @@ var org;
                         this.gravity = n;
                     };
                     CharacterControl.prototype.setAnim = function (anim, rangeName, rate, loop) {
+                        if (this.skeleton == null)
+                            return;
                         anim.name = rangeName;
                         anim.rate = rate;
                         anim.loop = loop;
