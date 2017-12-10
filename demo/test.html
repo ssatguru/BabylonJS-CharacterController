@@ -106,7 +106,7 @@
                     camera.upperRadiusLimit=20;
                     cc.setNoFirstPerson(false);
 
-                    cc.setIdleAnim("idle",0.1,true);
+                    cc.setIdleAnim("idle",1,true);
                     cc.setTurnLeftAnim("turnLeft",0.5,true);
                     cc.setTurnRightAnim("turnRight",0.5,true);
                     cc.setWalkBackAnim("walkBack",0.5,true);
@@ -124,11 +124,11 @@
 
 
             function setAnimationRanges(skel){
-                //printAnimRanges(skel);
-                skel.createAnimationRange("fall",1,15);
-                skel.createAnimationRange("idle",32,74);
-                skel.createAnimationRange("jump",82,104);
-                skel.createAnimationRange("run",113,130);
+                delAnimRanges(skel);
+                skel.createAnimationRange("fall",0,20);
+                skel.createAnimationRange("idle",30,80);
+                skel.createAnimationRange("jump",86,104);
+                skel.createAnimationRange("run",110,131);
                 skel.createAnimationRange("slideBack",143,145);
                 skel.createAnimationRange("strafeLeft",152,194);
                 skel.createAnimationRange("strafeRight",202,244);
@@ -137,13 +137,18 @@
                 skel.createAnimationRange("walk",312,345);
                 skel.createAnimationRange("walkBack",352,376);
             }
-
-            function printAnimRanges(skel){
+            /*
+             * delete all existing ranges
+             * @param {type} skel
+             * @returns {undefined}
+             */
+            function delAnimRanges(skel){
                 let ars = skel.getAnimationRanges();
                 let l = ars.length;
                 for(let i = 0;i<l;i++){
                     let ar = ars[i];
                     console.log(ar.name+","+ar.from+","+ar.to);
+                    skel.deleteAnimationRange(ar.name,false);
                 }
 
             }
