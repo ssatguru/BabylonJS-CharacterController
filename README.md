@@ -32,7 +32,7 @@ See INSTALL below to find where you can get "CharacterController.min.js".
   cc.start();
 ```
 
-see index.html in "demo" folder for a working example
+see index.html in "demo" folder for a working example  
 [https://github.com/ssatguru/BabylonJS-CharacterController/blob/master/demo/index.html](https://github.com/ssatguru/BabylonJS-CharacterController/blob/master/demo/index.html)
 
 ## INSTALL
@@ -60,7 +60,7 @@ let cc = new CharacterControl(player,camera,scene);
 ```
 Takes three parms
 * player - the player mesh containing a skeleton with appropriate animations listed below
-* camera - active camera
+* camera - arc rotate camera
 * scene - scene
 
 The player skeleton should have the following animation ranges
@@ -148,13 +148,18 @@ To turn this off use
 ```
 setCameraElastic(false);
 ```
-
+You can use the arc rotate camera lowerRadiusLimit and upperRadiusLimit property to controll how close or how far from the avatar can the camera get.  
+Example setting
 ```
-setCameraTarget(v: Vector3): void;
-setNoFirstPerson(b: boolean): void;
+camera.lowerRadiusLimit=2;
+camera.upperRadiusLimit=20;
+``
+will restrict the camera between 2 and 20m from the avatar/player.  
+When the camera comes to the "lowerRadiusLimit" the controller switches to first person view.In other words the avatar/player becomes invisible and the camera collision is disabled. Pulling camera back restores the third person view.
+To prevent this use
 ```
-
-
+setNoFirstPerson(true);
+```
 
 ## Build
 If not already installed, install node js and typescript.  
