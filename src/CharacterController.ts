@@ -107,6 +107,7 @@ namespace org.ssatguru.babylonjs.component {
         }
 
         public setAnim(anim: AnimData,rangeName: string,rate: number,loop: boolean) {
+            if (this.skeleton == null) return;
             anim.name=rangeName;
             anim.rate=rate;
             anim.loop=loop;
@@ -219,7 +220,7 @@ namespace org.ssatguru.babylonjs.component {
             this.scene=scene;
 
             this.skeleton=avatar.skeleton;
-            this.checkAnims(this.skeleton);
+            if (this.skeleton!=null) this.checkAnims(this.skeleton);
             this.camera=camera;
             this.savedCameraCollision=this.camera.checkCollisions;
 
