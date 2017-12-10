@@ -1,5 +1,5 @@
 {
-  "name": "babylonjs-editcontrol",
+  "name": "babylonjs-charactercontroller",
   "version": "0.1.0",
   "description" : "A CharacterController for BabylonJS",
   "repository": {
