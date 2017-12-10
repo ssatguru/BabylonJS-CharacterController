@@ -9,7 +9,7 @@ namespace org.ssatguru.babylonjs.component {
     import Ray=BABYLON.Ray;
     import PickingInfo=BABYLON.PickingInfo;
 
-    export class CharacterControl {
+    export class CharacterController {
 
         private avatar: Mesh;
         private skeleton: Skeleton;
@@ -196,7 +196,7 @@ namespace org.ssatguru.babylonjs.component {
             this.jumpCode=code
         }
 
-        public setCameraElastic(b:boolean){
+        public setCameraElasticity(b:boolean){
             this.elasticCamera = b;
         }
         public setCameraTarget(v: Vector3) {
