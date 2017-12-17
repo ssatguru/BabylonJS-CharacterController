@@ -70,6 +70,7 @@ var org;
                         this.savedCameraCollision = true;
                         this.ray = new Ray(Vector3.Zero(), Vector3.One(), 1);
                         this.rayDir = Vector3.Zero();
+                        this.cameraSkin = 0.5;
                         this.move = false;
                         this.avatar = avatar;
                         this.scene = scene;
@@ -522,7 +523,7 @@ var org;
                             }
                             else {
                                 var nr = pi.pickedPoint.subtract(this.camera.target).length();
-                                this.camera.radius = nr;
+                                this.camera.radius = nr - this.cameraSkin;
                             }
                         }
                     };

@@ -606,6 +606,9 @@ namespace org.ssatguru.babylonjs.component {
 
         ray: Ray=new Ray(Vector3.Zero(),Vector3.One(),1);
         rayDir: Vector3=Vector3.Zero();
+        //camera seems to get stuck into things
+        //should move camera away from things by a value of cameraSkin
+        cameraSkin:number=0.5;
         private snapCamera() {
             //get vector from av (camera.target) to camera
             this.camera.position.subtractToRef(this.camera.target,this.rayDir);
@@ -625,7 +628,7 @@ namespace org.ssatguru.babylonjs.component {
                     this.camera.position=pi.pickedPoint;
                 } else {
                     let nr: number=pi.pickedPoint.subtract(this.camera.target).length();
-                    this.camera.radius=nr;
+                    this.camera.radius=nr-this.cameraSkin;
                 }
             }
         }

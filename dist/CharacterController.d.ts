@@ -126,6 +126,7 @@ declare namespace org.ssatguru.babylonjs.component {
         private updateTargetValue();
         ray: Ray;
         rayDir: Vector3;
+        cameraSkin: number;
         private snapCamera();
         move: boolean;
         anyMovement(): boolean;
