@@ -97,6 +97,10 @@
                     var camera = new BABYLON.ArcRotateCamera("ArcRotateCamera",alpha,beta,5,target,scene);
                     camera.wheelPrecision = 15;
                     camera.checkCollisions = true;
+                    camera.keysLeft=[];
+                    camera.keysRight=[];
+                    camera.keysUp=[];
+                    camera.keysDown=[];                    
                     camera.attachControl(canvas,false);
 
                     var CharacterController = org.ssatguru.babylonjs.component.CharacterController;
