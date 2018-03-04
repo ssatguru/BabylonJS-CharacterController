@@ -71,6 +71,7 @@ var org;
                         this.ray = new Ray(Vector3.Zero(), Vector3.One(), 1);
                         this.rayDir = Vector3.Zero();
                         this.cameraSkin = 0.5;
+                        this.skip = 0;
                         this.move = false;
                         this.avatar = avatar;
                         this.scene = scene;
@@ -211,6 +212,9 @@ var org;
                     };
                     CharacterController.prototype.setCameraTarget = function (v) {
                         this.cameraTarget.copyFrom(v);
+                    };
+                    CharacterController.prototype.cameraCollisionChanged = function () {
+                        this.savedCameraCollision = this.camera.checkCollisions;
                     };
                     CharacterController.prototype.setNoFirstPerson = function (b) {
                         this.noFirstPerson = b;
@@ -507,19 +511,25 @@ var org;
                     };
                     CharacterController.prototype.snapCamera = function () {
                         var _this = this;
+                        if (this.skip < 120) {
+                            this.skip++;
+                            return;
+                        }
+                        this.skip = 0;
                         this.camera.position.subtractToRef(this.camera.target, this.rayDir);
                         this.ray.origin = this.camera.target;
                         this.ray.length = this.rayDir.length();
                         this.ray.direction = this.rayDir.normalize();
                         var pi = this.scene.pickWithRay(this.ray, function (mesh) {
-                            if (mesh == _this.avatar || !mesh.isPickable)
+                            if (mesh == _this.avatar || !mesh.isPickable || !mesh.checkCollisions)
                                 return false;
                             else
                                 return true;
                         }, true);
                         if (pi.hit) {
                             if (this.camera.checkCollisions) {
-                                this.camera.position = pi.pickedPoint;
+                                var newPos = this.camera.target.subtract(pi.pickedPoint).normalize().scale(this.cameraSkin);
+                                pi.pickedPoint.addToRef(newPos, this.camera.position);
                             }
                             else {
                                 var nr = pi.pickedPoint.subtract(this.camera.target).length();

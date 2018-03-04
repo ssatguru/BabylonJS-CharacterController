@@ -202,6 +202,14 @@ namespace org.ssatguru.babylonjs.component {
         public setCameraTarget(v: Vector3) {
             this.cameraTarget.copyFrom(v);
         }
+        /**
+         * user should call this whenever the user changes the camera checkCollision 
+         * property
+         * 
+         */
+        public cameraCollisionChanged(){
+            this.savedCameraCollision=this.camera.checkCollisions; 
+        }
         public setNoFirstPerson(b: boolean) {
             this.noFirstPerson=b;
         }
@@ -601,7 +609,6 @@ namespace org.ssatguru.babylonjs.component {
                 this.avatar.visibility=1;
                 this.camera.checkCollisions=this.savedCameraCollision;
             }
-
         }
 
         ray: Ray=new Ray(Vector3.Zero(),Vector3.One(),1);
@@ -609,7 +616,13 @@ namespace org.ssatguru.babylonjs.component {
         //camera seems to get stuck into things
         //should move camera away from things by a value of cameraSkin
         cameraSkin:number=0.5;
+        skip:number=0;
         private snapCamera() {
+            if (this.skip <120){
+                this.skip++;
+                return;
+            }
+            this.skip=0;
             //get vector from av (camera.target) to camera
             this.camera.position.subtractToRef(this.camera.target,this.rayDir);
             //start ray from av to camera
@@ -618,14 +631,15 @@ namespace org.ssatguru.babylonjs.component {
             this.ray.direction=this.rayDir.normalize();
 
             let pi: PickingInfo=this.scene.pickWithRay(this.ray,(mesh) => {
-                if(mesh==this.avatar||!mesh.isPickable) return false;
+                if(mesh==this.avatar||!mesh.isPickable||!mesh.checkCollisions) return false;
                 else return true;
             },true);
 
             if(pi.hit) {
                 //postion the camera in front of the mesh that is obstructing camera
                 if(this.camera.checkCollisions) {
-                    this.camera.position=pi.pickedPoint;
+                    let newPos: Vector3=this.camera.target.subtract(pi.pickedPoint).normalize().scale(this.cameraSkin);
+                    pi.pickedPoint.addToRef(newPos,this.camera.position);
                 } else {
                     let nr: number=pi.pickedPoint.subtract(this.camera.target).length();
                     this.camera.radius=nr-this.cameraSkin;
