@@ -97,6 +97,9 @@ declare namespace org.ssatguru.babylonjs.component {
         private started;
         start(): void;
         stop(): void;
+        private _stopAnim;
+        pauseAnim(): void;
+        resumeAnim(): void;
         private prevAnim;
         private avStartPos;
         private grounded;

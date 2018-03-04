@@ -52,6 +52,7 @@ var org;
                         this.cameraTarget = new Vector3(0, 0, 0);
                         this.noFirstPerson = false;
                         this.started = false;
+                        this._stopAnim = false;
                         this.prevAnim = null;
                         this.avStartPos = new Vector3(0, 0, 0);
                         this.grounded = false;
@@ -244,6 +245,12 @@ var org;
                         this.started = false;
                         this.scene.unregisterBeforeRender(this.renderer);
                     };
+                    CharacterController.prototype.pauseAnim = function () {
+                        this._stopAnim = true;
+                    };
+                    CharacterController.prototype.resumeAnim = function () {
+                        this._stopAnim = false;
+                    };
                     CharacterController.prototype.moveAVandCamera = function () {
                         this.avStartPos.copyFrom(this.avatar.position);
                         var anim = null;
@@ -261,13 +268,15 @@ var org;
                         else if (!this.inFreeFall) {
                             anim = this.doIdle(dt);
                         }
-                        if (anim != null) {
-                            if (this.skeleton !== null) {
-                                if (this.prevAnim !== anim) {
-                                    if (anim.exist) {
-                                        this.skeleton.beginAnimation(anim.name, anim.loop, anim.rate);
+                        if (!this._stopAnim) {
+                            if (anim != null) {
+                                if (this.skeleton !== null) {
+                                    if (this.prevAnim !== anim) {
+                                        if (anim.exist) {
+                                            this.skeleton.beginAnimation(anim.name, anim.loop, anim.rate);
+                                        }
+                                        this.prevAnim = anim;
                                     }
-                                    this.prevAnim = anim;
                                 }
                             }
                         }

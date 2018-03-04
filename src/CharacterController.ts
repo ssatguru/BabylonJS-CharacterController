@@ -107,7 +107,7 @@ namespace org.ssatguru.babylonjs.component {
         }
 
         public setAnim(anim: AnimData,rangeName: string,rate: number,loop: boolean) {
-            if (this.skeleton == null) return;
+            if(this.skeleton==null) return;
             anim.name=rangeName;
             anim.rate=rate;
             anim.loop=loop;
@@ -196,8 +196,8 @@ namespace org.ssatguru.babylonjs.component {
             this.jumpCode=code
         }
 
-        public setCameraElasticity(b:boolean){
-            this.elasticCamera = b;
+        public setCameraElasticity(b: boolean) {
+            this.elasticCamera=b;
         }
         public setCameraTarget(v: Vector3) {
             this.cameraTarget.copyFrom(v);
@@ -207,8 +207,8 @@ namespace org.ssatguru.babylonjs.component {
          * property
          * 
          */
-        public cameraCollisionChanged(){
-            this.savedCameraCollision=this.camera.checkCollisions; 
+        public cameraCollisionChanged() {
+            this.savedCameraCollision=this.camera.checkCollisions;
         }
         public setNoFirstPerson(b: boolean) {
             this.noFirstPerson=b;
@@ -228,7 +228,7 @@ namespace org.ssatguru.babylonjs.component {
             this.scene=scene;
 
             this.skeleton=avatar.skeleton;
-            if (this.skeleton!=null) this.checkAnims(this.skeleton);
+            if(this.skeleton!=null) this.checkAnims(this.skeleton);
             this.camera=camera;
             this.savedCameraCollision=this.camera.checkCollisions;
 
@@ -259,6 +259,26 @@ namespace org.ssatguru.babylonjs.component {
             if(!this.started) return;
             this.started=false;
             this.scene.unregisterBeforeRender(this.renderer);
+        }
+
+        /**
+         * use pauseAnim to stop the charactere controller from playing
+         * any animation on the character
+         * use this when you want to play your animation instead
+         * see also resumeAnim()
+         */
+        private _stopAnim: boolean=false;
+        public pauseAnim() {
+            this._stopAnim=true;
+        }
+        
+        /**
+         * use resumeAnim to resume the character controller playing
+         * animations on the character.
+         * see also pauseAnim()
+         */
+        public resumeAnim() {
+            this._stopAnim=false;
         }
 
         private prevAnim: AnimData=null;
@@ -299,14 +319,15 @@ namespace org.ssatguru.babylonjs.component {
 
                 anim=this.doIdle(dt);
             }
-
-            if(anim!=null) {
-                if(this.skeleton!==null) {
-                    if(this.prevAnim!==anim) {
-                        if(anim.exist) {
-                            this.skeleton.beginAnimation(anim.name,anim.loop,anim.rate);
+            if(!this._stopAnim) {
+                if(anim!=null) {
+                    if(this.skeleton!==null) {
+                        if(this.prevAnim!==anim) {
+                            if(anim.exist) {
+                                this.skeleton.beginAnimation(anim.name,anim.loop,anim.rate);
+                            }
+                            this.prevAnim=anim;
                         }
-                        this.prevAnim=anim;
                     }
                 }
             }
@@ -615,10 +636,10 @@ namespace org.ssatguru.babylonjs.component {
         rayDir: Vector3=Vector3.Zero();
         //camera seems to get stuck into things
         //should move camera away from things by a value of cameraSkin
-        cameraSkin:number=0.5;
-        skip:number=0;
+        cameraSkin: number=0.5;
+        skip: number=0;
         private snapCamera() {
-            if (this.skip <120){
+            if(this.skip<120) {
                 this.skip++;
                 return;
             }
