@@ -244,6 +244,7 @@ var org;
                             return;
                         this.started = false;
                         this.scene.unregisterBeforeRender(this.renderer);
+                        this.prevAnim = null;
                     };
                     CharacterController.prototype.pauseAnim = function () {
                         this._stopAnim = true;

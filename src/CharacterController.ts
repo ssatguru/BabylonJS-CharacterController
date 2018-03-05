@@ -259,6 +259,8 @@ namespace org.ssatguru.babylonjs.component {
             if(!this.started) return;
             this.started=false;
             this.scene.unregisterBeforeRender(this.renderer);
+            
+            this.prevAnim=null;
         }
 
         /**
