@@ -29,6 +29,8 @@ It can also enter first person view if the camera comes very close to the avatar
 1) add the following dependencies 
  ```
 <script src="https://cdn.babylonjs.com/babylon.js"></script>
+<!-- add "earcut.min.js" as show below if using babylonjs 3.2 and above -->
+<script src="https://cdn.babylonjs.com/earcut.min.js"></script>
 <script src="CharacterController.min.js"></script>
 ```
 See INSTALL below to find where you can get "CharacterController.min.js".  
