@@ -96,7 +96,7 @@
                     var target = new BABYLON.Vector3(player.position.x,player.position.y+1.5,player.position.z);
                     var camera = new BABYLON.ArcRotateCamera("ArcRotateCamera",alpha,beta,5,target,scene);
                     camera.wheelPrecision = 15;
-                    camera.checkCollisions = true;
+                    camera.checkCollisions = false;
                     camera.keysLeft=[];
                     camera.keysRight=[];
                     camera.keysUp=[];
@@ -110,6 +110,7 @@
                     camera.upperRadiusLimit=20;
                     cc.setNoFirstPerson(false);
                     cc.setStepOffset(0.4);
+                    cc.setSlopeLimit(30,60);
                     cc.setIdleAnim("idle",1,true);
                     cc.setTurnLeftAnim("turnLeft",0.5,true);
                     cc.setTurnRightAnim("turnRight",0.5,true);

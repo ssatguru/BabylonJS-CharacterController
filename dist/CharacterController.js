@@ -545,17 +545,12 @@ var org;
                     };
                     CharacterController.prototype.snapCamera = function () {
                         var _this = this;
-                        if (this.skip < 120) {
-                            this.skip++;
-                            return;
-                        }
-                        this.skip = 0;
                         this.camera.position.subtractToRef(this.camera.target, this.rayDir);
                         this.ray.origin = this.camera.target;
                         this.ray.length = this.rayDir.length();
                         this.ray.direction = this.rayDir.normalize();
                         var pi = this.scene.pickWithRay(this.ray, function (mesh) {
-                            if (mesh == _this.avatar || !mesh.isPickable || !mesh.checkCollisions)
+                            if (mesh == _this.avatar || !mesh.checkCollisions)
                                 return false;
                             else
                                 return true;

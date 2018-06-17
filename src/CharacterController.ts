@@ -680,11 +680,11 @@ namespace org.ssatguru.babylonjs.component {
         cameraSkin: number=0.5;
         skip: number=0;
         private snapCamera() {
-            if(this.skip<120) {
-                this.skip++;
-                return;
-            }
-            this.skip=0;
+//            if(this.skip<120) {
+//                this.skip++;
+//                return;
+//            }
+//            this.skip=0;
             //get vector from av (camera.target) to camera
             this.camera.position.subtractToRef(this.camera.target,this.rayDir);
             //start ray from av to camera
@@ -693,7 +693,8 @@ namespace org.ssatguru.babylonjs.component {
             this.ray.direction=this.rayDir.normalize();
 
             let pi: PickingInfo=this.scene.pickWithRay(this.ray,(mesh) => {
-                if(mesh==this.avatar||!mesh.isPickable||!mesh.checkCollisions) return false;
+                //if(mesh==this.avatar||!mesh.isPickable||!mesh.checkCollisions) return false;
+                if(mesh==this.avatar||!mesh.checkCollisions) return false;
                 else return true;
             },true);
 
