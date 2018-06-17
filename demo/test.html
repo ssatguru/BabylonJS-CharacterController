@@ -109,13 +109,14 @@
                     camera.lowerRadiusLimit=2;
                     camera.upperRadiusLimit=20;
                     cc.setNoFirstPerson(false);
-
+                    cc.setStepOffset(0.4);
                     cc.setIdleAnim("idle",1,true);
                     cc.setTurnLeftAnim("turnLeft",0.5,true);
                     cc.setTurnRightAnim("turnRight",0.5,true);
                     cc.setWalkBackAnim("walkBack",0.5,true);
-                    cc.setJumpAnim("jump",4,false);
-                    cc.setFallAnim("fall",2,false);
+                    //cc.setJumpAnim("jump",4,false);
+                    cc.setJumpAnim("jump",0.5,true);
+                    //cc.setFallAnim("fall",2,false);
                     cc.setSlideBackAnim("slideBack",1,false)
                     cc.start();
 
@@ -130,9 +131,10 @@
             function setAnimationRanges(skel){
                 delAnimRanges(skel);
                
-                skel.createAnimationRange("fall",0,16);
+                //skel.createAnimationRange("fall",0,16);
                 skel.createAnimationRange("idle",21,65);
-                skel.createAnimationRange("jump",70,94);
+                //skel.createAnimationRange("jump",70,94);
+                skel.createAnimationRange("jump",115,116);
                 skel.createAnimationRange("run",100,121);
                 skel.createAnimationRange("slideBack",125,129);
                 skel.createAnimationRange("strafeLeft",135,179);
@@ -208,6 +210,9 @@
             light2.intensity = .7;
 
             var ground = createGround(scene);
+            var steps = BABYLON.MeshBuilder.CreateBox("Steps",{"width":5,"height":0.25,"depth":5}, scene)
+            steps.position = new BABYLON.Vector3(0,6.25,5);
+            steps.checkCollisions = true;
             loadPlayer();
 
             window.addEventListener("resize",function(){

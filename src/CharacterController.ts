@@ -31,6 +31,13 @@ namespace org.ssatguru.babylonjs.component {
         sl: number=Math.PI*this.minSlopeLimit/180;
         sl2: number=Math.PI*this.maxSlopeLimit/180;
 
+        //The av will step up a stair only if it is closer to the ground than the indicated value.
+        private _stepOffset: number=0.25;
+        //toal amount by which the av has moved up
+        private _vMoveTot: number=0;
+        //position of av when it started moving up
+        private _vMovStartPos: Vector3=new Vector3(0,0,0);
+
         //animations
         private walk: AnimData=new AnimData("walk");
         private walkBack: AnimData=new AnimData("walkBack");
@@ -82,6 +89,14 @@ namespace org.ssatguru.babylonjs.component {
 
             this.sl=Math.PI*minSlopeLimit/180;
             this.sl2=Math.PI*this.maxSlopeLimit/180;
+        }
+
+        /**
+         * The av will step up a stair only if it is closer to the ground than the indicated value.
+         * Default value is 0.25 m
+         */
+        public setStepOffset(stepOffset: number) {
+            this._stepOffset=stepOffset;
         }
 
         public setWalkSpeed(n: number) {
@@ -259,7 +274,7 @@ namespace org.ssatguru.babylonjs.component {
             if(!this.started) return;
             this.started=false;
             this.scene.unregisterBeforeRender(this.renderer);
-            
+
             this.prevAnim=null;
         }
 
@@ -273,7 +288,7 @@ namespace org.ssatguru.babylonjs.component {
         public pauseAnim() {
             this._stopAnim=true;
         }
-        
+
         /**
          * use resumeAnim to resume the character controller playing
          * animations on the character.
@@ -497,15 +512,37 @@ namespace org.ssatguru.babylonjs.component {
                     //walking up a slope
                     if(this.avatar.position.y>this.avStartPos.y) {
                         let actDisp: Vector3=this.avatar.position.subtract(this.avStartPos);
-                        if(this.verticalSlope(actDisp)>this.sl2) {
-                            this.avatar.position.copyFrom(this.avStartPos);
-                            this.endFreeFall();
-                        } if(this.verticalSlope(actDisp)<this.sl) {
-                            this.endFreeFall();
+                        let _sl: number=this.verticalSlope(actDisp);
+                        if(_sl>=this.sl2) {
+                            //this._climbingSteps=true;
+                            //is av trying to go up steps
+                            if(this._stepOffset>0) {
+                                if(this._vMoveTot==0) {
+                                    //if just started climbing note down the position
+                                    this._vMovStartPos.copyFrom(this.avStartPos);
+                                }
+                                this._vMoveTot=this._vMoveTot+(this.avatar.position.y-this.avStartPos.y);
+                                if(this._vMoveTot>this._stepOffset) {
+                                    //move av back to its position at begining of steps
+                                    this._vMoveTot=0;
+                                    this.avatar.position.copyFrom(this._vMovStartPos);
+                                    this.endFreeFall();
+                                }
+                            } else {
+                                //move av back to old position
+                                this.avatar.position.copyFrom(this.avStartPos);
+                                this.endFreeFall();
+                            }
                         } else {
-                            //av is on a steep slope , continue increasing the moveFallTIme to deaccelerate it
-                            this.fallFrameCount=0;
-                            this.inFreeFall=false;
+                            this._vMoveTot=0;
+                            if(_sl>this.sl) {
+                                //av is on a steep slope , continue increasing the moveFallTIme to deaccelerate it
+                                this.fallFrameCount=0;
+                                this.inFreeFall=false;
+                            } else {
+                                //continue walking
+                                this.endFreeFall();
+                            }
                         }
                     } else if((this.avatar.position.y)<this.avStartPos.y) {
                         let actDisp: Vector3=this.avatar.position.subtract(this.avStartPos);
@@ -619,7 +656,9 @@ namespace org.ssatguru.babylonjs.component {
 
         savedCameraCollision: boolean=true;
         private updateTargetValue() {
-            this.avatar.position.addToRef(this.cameraTarget,this.camera.target);
+            //donot move camera if av is trying to clinb steps
+            if(this._vMoveTot==0)
+                this.avatar.position.addToRef(this.cameraTarget,this.camera.target);
 
             if(this.camera.radius>this.camera.lowerRadiusLimit) {if(this.elasticCamera) this.snapCamera();}
 

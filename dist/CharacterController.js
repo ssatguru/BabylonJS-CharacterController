@@ -22,6 +22,9 @@ var org;
                         this.maxSlopeLimit = 45;
                         this.sl = Math.PI * this.minSlopeLimit / 180;
                         this.sl2 = Math.PI * this.maxSlopeLimit / 180;
+                        this._stepOffset = 0.25;
+                        this._vMoveTot = 0;
+                        this._vMovStartPos = new Vector3(0, 0, 0);
                         this.walk = new AnimData("walk");
                         this.walkBack = new AnimData("walkBack");
                         this.idle = new AnimData("idle");
@@ -98,6 +101,9 @@ var org;
                         this.maxSlopeLimit = maxSlopeLimit;
                         this.sl = Math.PI * minSlopeLimit / 180;
                         this.sl2 = Math.PI * this.maxSlopeLimit / 180;
+                    };
+                    CharacterController.prototype.setStepOffset = function (stepOffset) {
+                        this._stepOffset = stepOffset;
                     };
                     CharacterController.prototype.setWalkSpeed = function (n) {
                         this.walkSpeed = n;
@@ -407,16 +413,33 @@ var org;
                                 this.avatar.moveWithCollisions(this.moveVector);
                                 if (this.avatar.position.y > this.avStartPos.y) {
                                     var actDisp = this.avatar.position.subtract(this.avStartPos);
-                                    if (this.verticalSlope(actDisp) > this.sl2) {
-                                        this.avatar.position.copyFrom(this.avStartPos);
-                                        this.endFreeFall();
-                                    }
-                                    if (this.verticalSlope(actDisp) < this.sl) {
-                                        this.endFreeFall();
+                                    var _sl = this.verticalSlope(actDisp);
+                                    if (_sl >= this.sl2) {
+                                        if (this._stepOffset > 0) {
+                                            if (this._vMoveTot == 0) {
+                                                this._vMovStartPos.copyFrom(this.avStartPos);
+                                            }
+                                            this._vMoveTot = this._vMoveTot + (this.avatar.position.y - this.avStartPos.y);
+                                            if (this._vMoveTot > this._stepOffset) {
+                                                this._vMoveTot = 0;
+                                                this.avatar.position.copyFrom(this._vMovStartPos);
+                                                this.endFreeFall();
+                                            }
+                                        }
+                                        else {
+                                            this.avatar.position.copyFrom(this.avStartPos);
+                                            this.endFreeFall();
+                                        }
                                     }
                                     else {
-                                        this.fallFrameCount = 0;
-                                        this.inFreeFall = false;
+                                        this._vMoveTot = 0;
+                                        if (_sl > this.sl) {
+                                            this.fallFrameCount = 0;
+                                            this.inFreeFall = false;
+                                        }
+                                        else {
+                                            this.endFreeFall();
+                                        }
                                     }
                                 }
                                 else if ((this.avatar.position.y) < this.avStartPos.y) {
@@ -503,7 +526,8 @@ var org;
                         this.groundFrameCount = 0;
                     };
                     CharacterController.prototype.updateTargetValue = function () {
-                        this.avatar.position.addToRef(this.cameraTarget, this.camera.target);
+                        if (this._vMoveTot == 0)
+                            this.avatar.position.addToRef(this.cameraTarget, this.camera.target);
                         if (this.camera.radius > this.camera.lowerRadiusLimit) {
                             if (this.elasticCamera)
                                 this.snapCamera();

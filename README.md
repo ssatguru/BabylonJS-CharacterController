@@ -158,8 +158,19 @@ Example
 ```
 setSlopeLimit(45,55); 
 ```
-Here if the avatar is on a slope wiht angle between 45 and 55 degrees then it will start sliding back when it stops moving.  
+Here if the avatar is on a slope with angle between 45 and 55 degrees then it will start sliding back when it stops moving.  
 If the slope is 55 or more then avatar will not be able to move up on it.
+
+#### To change the height of steps the avatar can climb
+```
+setStepOffset(stepOffset: number); 
+```
+Example
+```
+setStepOffset(0.5); 
+```
+The avatar can only move up a step if the height of the step is less than or equal to the "stepOffset".  
+By default the value is 0.25.
 
 #### To change avatar  or skeleton at 
 ```
