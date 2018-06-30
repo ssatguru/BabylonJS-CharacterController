@@ -390,7 +390,7 @@ namespace org.ssatguru.babylonjs.component {
             //moveWithCollision only seems to happen if length of displacment is atleast 0.001
             this.avatar.moveWithCollisions(disp);
             if(jumpDist<0) {
-                anim=this.fall;
+                //anim=this.fall;
                 //check if going up a slope or back on flat ground 
                 if((this.avatar.position.y>this.avStartPos.y)||((this.avatar.position.y===this.avStartPos.y)&&(disp.length()>0.001))) {
                     this.endJump();

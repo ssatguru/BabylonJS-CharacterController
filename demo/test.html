@@ -139,12 +139,12 @@
                     cc.setTurnLeftAnim("turnLeft",0.5,true);
                     cc.setTurnRightAnim("turnRight",0.5,true);
                     cc.setWalkBackAnim("walkBack",0.5,true);
-                    cc.setJumpAnim("jumpRun",0.6,false);
+                    cc.setJumpAnim("jumpRun",0.6,true);
                     //set the animation range name to "null" to prevent the controller from playing
                     //a player animation.
                     //here even though we have an animation range called "fall" we donot want to play 
                     //the fall animation
-                    cc.setFallAnim(null,2,false);
+                    cc.setFallAnim("fall" ,2,false);
                     cc.setSlideBackAnim("slideBack",1,false)
                     
                     cc.start();
