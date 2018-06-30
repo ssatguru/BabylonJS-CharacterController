@@ -1,7 +1,9 @@
 # BabylonJS-CharacterController
 A 3rd person CharacterController for use in [BabylonJS](http://www.babylonjs.com/) (a 3D HTML Webgl framework)  applications.  
 It uses the collider and moveWithCollision() function to move the character around. It uses some of the physics kinematic equations to calculate movements like jump, fall, slide. It does not use any physics engine. It does not react to or apply forces.  
-For demo see <a href="https://ssatguru.github.io/BabylonJS-CharacterController/demo/" target="_blank">https://ssatguru.github.io/BabylonJS-CharacterController/demo/</a>
+For demo see  
+<a href="https://ssatguru.github.io/BabylonJS-CharacterController/demo/" target="_blank">https://ssatguru.github.io/BabylonJS-CharacterController/demo/</a> or  
+<a href="https://ssatguru.github.io/BabylonJS-CharacterController/demo/test.html" target="_blank">https://ssatguru.github.io/BabylonJS-CharacterController/demo/test.html</a> for the latest
 
 ## About
 
