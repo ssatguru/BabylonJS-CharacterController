@@ -80,7 +80,8 @@ Takes three parms
 * camera - arc rotate camera
 * scene - scene
 
-The player skeleton should have the following animation ranges
+The player skeleton is expected to have the following animation ranges
+* idle
 * walk 
 * walkBack
 * run 
