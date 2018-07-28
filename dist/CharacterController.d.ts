@@ -27,8 +27,9 @@ declare namespace org.ssatguru.babylonjs.component {
         private walk;
         private walkBack;
         private idle;
+        private idleJump;
         private run;
-        private jump;
+        private runJump;
         private fall;
         private turnLeft;
         private turnRight;
@@ -74,7 +75,8 @@ declare namespace org.ssatguru.babylonjs.component {
         setTurnLeftAnim(rangeName: string, rate: number, loop: boolean): void;
         setStrafeRightAnim(rangeName: string, rate: number, loop: boolean): void;
         setSrafeLeftAnim(rangeName: string, rate: number, loop: boolean): void;
-        setJumpAnim(rangeName: string, rate: number, loop: boolean): void;
+        setIdleJumpAnim(rangeName: string, rate: number, loop: boolean): void;
+        setRunJumpAnim(rangeName: string, rate: number, loop: boolean): void;
         setFallAnim(rangeName: string, rate: number, loop: boolean): void;
         setWalkKey(key: string): void;
         setWalkBackKey(key: string): void;
@@ -97,6 +99,7 @@ declare namespace org.ssatguru.babylonjs.component {
         private checkAnims(skel);
         private key;
         private renderer;
+        private _ellipsoid;
         constructor(avatar: Mesh, camera: ArcRotateCamera, scene: Scene);
         private started;
         start(): void;

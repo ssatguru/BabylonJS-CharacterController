@@ -42,8 +42,9 @@ namespace org.ssatguru.babylonjs.component {
         private walk: AnimData=new AnimData("walk");
         private walkBack: AnimData=new AnimData("walkBack");
         private idle: AnimData=new AnimData("idle");
+        private idleJump: AnimData=new AnimData("idleJump");
         private run: AnimData=new AnimData("run");
-        private jump: AnimData=new AnimData("jump");
+        private runJump: AnimData=new AnimData("runJump");
         private fall: AnimData=new AnimData("fall");
         private turnLeft: AnimData=new AnimData("turnLeft");
         private turnRight: AnimData=new AnimData("turnRight");
@@ -51,7 +52,7 @@ namespace org.ssatguru.babylonjs.component {
         private strafeRight: AnimData=new AnimData("strafeRight");
         private slideBack: AnimData=new AnimData("slideBack");
 
-        private anims: AnimData[]=[this.walk,this.walkBack,this.idle,this.run,this.jump,this.fall,this.turnLeft,this.turnRight,this.strafeLeft,this.strafeRight,this.slideBack];
+        private anims: AnimData[]=[this.walk,this.walkBack,this.idle,this.run,this.runJump,this.fall,this.turnLeft,this.turnRight,this.strafeLeft,this.strafeRight,this.slideBack];
 
         //move keys
         private walkKey: string="W";
@@ -160,8 +161,11 @@ namespace org.ssatguru.babylonjs.component {
         public setSrafeLeftAnim(rangeName: string,rate: number,loop: boolean) {
             this.setAnim(this.strafeLeft,rangeName,rate,loop);
         }
-        public setJumpAnim(rangeName: string,rate: number,loop: boolean) {
-            this.setAnim(this.jump,rangeName,rate,loop);
+        public setIdleJumpAnim(rangeName: string,rate: number,loop: boolean) {
+            this.setAnim(this.idleJump,rangeName,rate,loop);
+        }
+        public setRunJumpAnim(rangeName: string,rate: number,loop: boolean) {
+            this.setAnim(this.runJump,rangeName,rate,loop);
         }
         public setFallAnim(rangeName: string,rate: number,loop: boolean) {
             this.setAnim(this.fall,rangeName,rate,loop);
@@ -237,10 +241,12 @@ namespace org.ssatguru.babylonjs.component {
 
         private key: Key;
         private renderer: () => void;
+        private _ellipsoid:Vector3;
         constructor(avatar: Mesh,camera: ArcRotateCamera,scene: Scene) {
 
             this.avatar=avatar;
             this.scene=scene;
+            this._ellipsoid=this.avatar.ellipsoid.clone();
 
             this.skeleton=avatar.skeleton;
             if(this.skeleton!=null) this.checkAnims(this.skeleton);
@@ -359,7 +365,7 @@ namespace org.ssatguru.babylonjs.component {
         private doJump(dt: number): AnimData {
 
             let anim: AnimData=null;
-            anim=this.jump;
+            anim=this.runJump;
             if(this.jumpTime===0) {
                 this.jumpStartPosY=this.avatar.position.y;
             }
@@ -386,10 +392,13 @@ namespace org.ssatguru.babylonjs.component {
                 disp.y=jumpDist;
             } else {
                 disp=new Vector3(0,jumpDist,0);
+                anim=this.idleJump;
+                //this.avatar.ellipsoid.y=this._ellipsoid.y/2;
             }
             //moveWithCollision only seems to happen if length of displacment is atleast 0.001
             this.avatar.moveWithCollisions(disp);
             if(jumpDist<0) {
+                //this.avatar.ellipsoid.y=this._ellipsoid.y;
                 //anim=this.fall;
                 //check if going up a slope or back on flat ground 
                 if((this.avatar.position.y>this.avStartPos.y)||((this.avatar.position.y===this.avStartPos.y)&&(disp.length()>0.001))) {
@@ -422,6 +431,7 @@ namespace org.ssatguru.babylonjs.component {
             this.jumpTime=0;
             this.wasWalking=false;
             this.wasRunning=false;
+            
         }
 
         /**

@@ -28,15 +28,16 @@ var org;
                         this.walk = new AnimData("walk");
                         this.walkBack = new AnimData("walkBack");
                         this.idle = new AnimData("idle");
+                        this.idleJump = new AnimData("idleJump");
                         this.run = new AnimData("run");
-                        this.jump = new AnimData("jump");
+                        this.runJump = new AnimData("runJump");
                         this.fall = new AnimData("fall");
                         this.turnLeft = new AnimData("turnLeft");
                         this.turnRight = new AnimData("turnRight");
                         this.strafeLeft = new AnimData("strafeLeft");
                         this.strafeRight = new AnimData("strafeRight");
                         this.slideBack = new AnimData("slideBack");
-                        this.anims = [this.walk, this.walkBack, this.idle, this.run, this.jump, this.fall, this.turnLeft, this.turnRight, this.strafeLeft, this.strafeRight, this.slideBack];
+                        this.anims = [this.walk, this.walkBack, this.idle, this.run, this.runJump, this.fall, this.turnLeft, this.turnRight, this.strafeLeft, this.strafeRight, this.slideBack];
                         this.walkKey = "W";
                         this.walkBackKey = "S";
                         this.turnLeftKey = "A";
@@ -79,6 +80,7 @@ var org;
                         this.move = false;
                         this.avatar = avatar;
                         this.scene = scene;
+                        this._ellipsoid = this.avatar.ellipsoid.clone();
                         this.skeleton = avatar.skeleton;
                         if (this.skeleton != null)
                             this.checkAnims(this.skeleton);
@@ -166,8 +168,11 @@ var org;
                     CharacterController.prototype.setSrafeLeftAnim = function (rangeName, rate, loop) {
                         this.setAnim(this.strafeLeft, rangeName, rate, loop);
                     };
-                    CharacterController.prototype.setJumpAnim = function (rangeName, rate, loop) {
-                        this.setAnim(this.jump, rangeName, rate, loop);
+                    CharacterController.prototype.setIdleJumpAnim = function (rangeName, rate, loop) {
+                        this.setAnim(this.idleJump, rangeName, rate, loop);
+                    };
+                    CharacterController.prototype.setRunJumpAnim = function (rangeName, rate, loop) {
+                        this.setAnim(this.runJump, rangeName, rate, loop);
                     };
                     CharacterController.prototype.setFallAnim = function (rangeName, rate, loop) {
                         this.setAnim(this.fall, rangeName, rate, loop);
@@ -292,7 +297,7 @@ var org;
                     };
                     CharacterController.prototype.doJump = function (dt) {
                         var anim = null;
-                        anim = this.jump;
+                        anim = this.runJump;
                         if (this.jumpTime === 0) {
                             this.jumpStartPosY = this.avatar.position.y;
                         }
@@ -317,6 +322,7 @@ var org;
                         }
                         else {
                             disp = new Vector3(0, jumpDist, 0);
+                            anim = this.idleJump;
                         }
                         this.avatar.moveWithCollisions(disp);
                         if (jumpDist < 0) {
