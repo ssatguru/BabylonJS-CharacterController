@@ -290,11 +290,9 @@ setNoFirstPerson(true);
 ## Build
 If not already installed, install node js and typescript.  
 Switch to the project folder.  
-Run "npm install", once, to install all the dependencies (these, for now, are babylonjs and uglify).  
+Run "npm install", once, to install all the dependencies.  
 To build anytime  
-Run "npm run compile" - this will compile the typescript file and store the javascript file in the "dist" folder.  
-Run "npm run min" - this will minify the javascript file and store the minified version in the "dist" folder.  
-Run "npm run build" - this will both compile and minify. 
-Use the "test.html" in demo folder to test your changes.  
+Run "npm build" - this will both compile, minify and store the build in "dist" folder.
+Use the "index.html" in "tst" folder to test your changes.  
 
 
