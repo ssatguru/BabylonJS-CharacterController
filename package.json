@@ -1,27 +1,29 @@
 {
   "name": "babylonjs-charactercontroller",
-  "version": "0.1.0",
-  "description" : "A CharacterController for BabylonJS",
+  "version": "0.2.0",
+  "description": "A CharacterController for BabylonJS",
   "repository": {
     "type": "git",
     "url": "git://github.com/ssatguru/BabylonJS-CharacterController.git"
   },
   "keywords": [
-    "babylonjs","CharacterController"
+    "babylonjs",
+    "CharacterController"
   ],
   "author": "satguru <ssatguru@gmail.com>",
   "license": "Apache-2.0",
   "contributors": [],
-  "main": "dist/CharacterController.min.js",
-  "types": "dist/CharacterController.d.ts",   
-  "dependencies": {},
+  "main": "dist/CharacterController.js",
+  "types": "dist/CharacterController.d.ts",
   "devDependencies": {
-    "babylonjs": "^3.0.0",
-    "uglify-js": "^2.8.22"
+    "babylonjs": "^3.3.0",
+    "terser-webpack-plugin": "^1.2.3",
+    "ts-loader": "^5.3.3",
+    "typescript": "^3.3.3333",
+    "webpack": "^4.29.6",
+    "webpack-cli": "^3.2.3"
   },
   "scripts": {
-    "compile": "tsc -p src",
-    "min": "uglifyjs dist/CharacterController.js -o dist/CharacterController.min.js -mc",
-    "build": "npm run compile && npm run min"
+    "build": "webpack --mode production"
   }
 }

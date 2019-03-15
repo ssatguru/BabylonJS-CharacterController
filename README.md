@@ -2,8 +2,8 @@
 A 3rd person CharacterController for use in [BabylonJS](http://www.babylonjs.com/) (a 3D HTML Webgl framework)  applications.  
 It uses the collider and moveWithCollision() function to move the character around. It uses some of the physics kinematic equations to calculate movements like jump, fall, slide. It does not use any physics engine. It does not react to or apply forces.  
 For demo see  
-<a href="https://ssatguru.github.io/BabylonJS-CharacterController/demo/" target="_blank">https://ssatguru.github.io/BabylonJS-CharacterController/demo/</a> or  
-<a href="https://ssatguru.github.io/BabylonJS-CharacterController/demo/test.html" target="_blank">https://ssatguru.github.io/BabylonJS-CharacterController/demo/test.html</a> for the latest
+<a href="https://ssatguru.github.io/BabylonJS-CharacterController-Samples/demo/" target="_blank">https://ssatguru.github.io/BabylonJS-CharacterController-Samples/demo/</a>
+
 
 ## About
 
@@ -26,27 +26,45 @@ a position in front of the mesh. This way the avatar/player is always in view.
   
 It can also enter first person view if the camera comes very close to the avatar/player
 
+### Breaking change with 0.2.0
+Version 0.2.0 converts the project from a plain vanilla JavaScript project to a module based JavaScript project.  
+With this change, the way to load the application has changed.  
+In JavaScript, instead of
+```
+var CharacterControl = org.ssatguru.babylonjs.component.CharacterController;
+var characterControl = new CharacterControl(player,camera,scene);
+```
+now do
+```
+var characterControl = new CharacterController(player,camera,scene);
+```
+In TypeScript, instead of
+```
+import CharacterController = org.ssatguru.babylonjs.component.CharacterController;
+```
+now do
+```
+import {CharacterController} from "babaylonjs-charactercontroller";
+```
+See below for more details.
+
 ## Quick start
 
 1) add the following dependencies 
  ```
 <script src="https://cdn.babylonjs.com/babylon.js"></script>
-<!-- add "earcut.min.js" as show below if using babylonjs 3.2 and above -->
-<script src="https://cdn.babylonjs.com/earcut.min.js"></script>
-<script src="CharacterController.min.js"></script>
+<script src="CharacterController.js"></script>
 ```
-See INSTALL below to find where you can get "CharacterController.min.js".  
+See INSTALL below to find where you can get "CharacterController.js".  
 
 2) a small javascript code snippet to get you up and running
 ```
   //------------------Character Controller -------------------------------------------------
-  var CharacterController = org.ssatguru.babylonjs.component.CharacterController;
-  var cc = new CharacterControl(player,camera,scene);
+    var cc = new CharacterController(player,camera,scene);
   cc.start();
 ```
 
-see index.html in "demo" folder for a working example  
-[https://github.com/ssatguru/BabylonJS-CharacterController/blob/master/demo/index.html](https://github.com/ssatguru/BabylonJS-CharacterController/blob/master/demo/index.html)
+see "BabylonJS-CharacterController-Samples" [https://github.com/ssatguru/BabylonJS-CharacterController-Samples](https://github.com/ssatguru/BabylonJS-CharacterController-Samples) for a few simple samples to help you get going
 
 ## INSTALL
 
@@ -59,21 +77,82 @@ You can also install it from npm
 npm install babylonjs-charactercontroller 
 ```
   
-Note that even though this is available in npm it is not packaged as a node module or any other type of module.  
-For now, to keep it simple and avoid dependencies on module systems, the application is packaged as a simple javascript "namespaced" application.  
-In other words load it using the "script" tag and refer to it using the global name "org.ssatguru.babylonjs.component.charactercontroller".  
+## Usage
+This has been built as an UMD module which means you can use it as a CommonJS/NodeJS module, AMD module or as a global object
+loaded using the script tag.  
+
+Project "BabylonJS-CharacterController-Samples" [https://github.com/ssatguru/BabylonJS-CharacterController-Samples](https://github.com/ssatguru/BabylonJS-CharacterController-Samples) has a 
+collection of sample projects to show how to use this from TypeScript, NodeJs, AMD or plain vanilla JavaScript applications.  
+  
+Below is a quick summary of how you can use this as different module types.  
+
+TypeScript
+```
+// TypeScript
+import * as BABYLON from "babylonjs";
+import {CharacterController} from "babylonjs-charactercontroller";
+...
+let engine = new BABYLON.Engine(canvas, true);
+...
+let cc = new CharacterController(player,camera,scene);
+```
+  
+CommonJS/NodeJS Module
+```
+let BABYLON = require("babylonjs");
+let CharacterController = require("babylonjs-CharacterController").CharacterController;
+...
+let engine = new BABYLON.Engine(canvas, true);
+...
+let characterController = new CharacterController(player,camera,scene);
+...
+
+```
+AMD Module
+```
+<script src="./lib/require.js"></script>
+<script>
+	require.config({
+		baseUrl: ".",
+		paths: {
+			"babylonjs": "./lib/babylon",
+			"ec": "./lib/CharacterController"
+		}
+	});
+
+	require(['babylonjs', 'cc'], function (BABYLON, cc) {
+		let CharacterController = ec.CharacterController;
+    ...
+		let engine = new BABYLON.Engine(canvas, true);
+		...
+		let characterController = new CharacterController(player,camera,scene);
+		...
+	});
+</script>
+```
+Global Module
+```
+<script src="./lib/babylon.js"></script>
+<script src="./lib/CharacterController.js"></script>
+<script>
+  ...
+	let engine = new BABYLON.Engine(canvas, true);
+	...
+	let characterController = new CharacterController(player,camera,scene);
+	...
+</script>
+```
 
 ## API
 #### To Instantiate
 ```
 // JavaScript
-var CharacterController = org.ssatguru.babylonjs.component.CharacterController;
 var cc = new CharacterController(player,camera,scene);
 ```
 ```
 // TypeScript
-import CharacterController = org.ssatguru.babylonjs.component.CharacterController;
-let cc = new CharacterControl(player,camera,scene);
+import {CharacterController} from "babylonjs-charactercontroller";
+let cc = new CharacterController(player,camera,scene);
 ```
 Takes three parms
 * player - the player mesh containing a skeleton with appropriate animations listed below
