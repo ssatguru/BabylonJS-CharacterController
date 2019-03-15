@@ -288,7 +288,7 @@ setNoFirstPerson(true);
 ```
 
 ## Build
-If not already installed, install node js and typescript.  
+If not already installed, install node js.  
 Switch to the project folder.  
 Run "npm install", once, to install all the dependencies.  
 To build anytime  
