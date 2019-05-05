@@ -240,6 +240,8 @@ export class CharacterController {
 
     private key: Key;
     private renderer: () => void;
+    private handleKeyUp: (e) => void;
+    private handleKeyDown: (e) => void;
     private _ellipsoid: Vector3;
     constructor(avatar: Mesh,camera: ArcRotateCamera,scene: Scene) {
 
@@ -254,9 +256,14 @@ export class CharacterController {
 
         this.key=new Key();
 
-        window.addEventListener("keydown",(e) => {return this.onKeyDown(e)},false);
-        window.addEventListener("keyup",(e) => {return this.onKeyUp(e)},false);
+       
         this.renderer=() => {this.moveAVandCamera()};
+        this.handleKeyUp=(e) => {this.onKeyUp(e)};
+        this.handleKeyDown=(e) => {this.onKeyDown(e)};
+
+        window.addEventListener("keyup",this.handleKeyUp,false);
+        window.addEventListener("keydown",this.handleKeyDown,false);
+        
 
     }
 
@@ -279,6 +286,10 @@ export class CharacterController {
         if(!this.started) return;
         this.started=false;
         this.scene.unregisterBeforeRender(this.renderer);
+        window.removeEventListener("keyup",this.handleKeyUp);
+        window.removeEventListener("keydown",this.handleKeyDown);
+       
+       
 
         this.prevAnim=null;
     }

@@ -93,6 +93,8 @@ export declare class CharacterController {
     private checkAnims;
     private key;
     private renderer;
+    private handleKeyUp;
+    private handleKeyDown;
     private _ellipsoid;
     constructor(avatar: Mesh, camera: ArcRotateCamera, scene: Scene);
     private started;

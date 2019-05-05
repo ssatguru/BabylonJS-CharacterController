@@ -8,16 +8,18 @@ For demo see
 ## About
 
 It currently supports  
+* idle
+* idleJump
 * walk 
-* walkback
+* walkBack
 * run 
-* jump
+* runJump
 * fall
-* turn right 
-* turn left
-* strafe left
-* strafe right
-* slide down 
+* turnRight 
+* turnLeft
+* strafeLeft
+* strafeRight
+* slideDown
 
 It supports constraining avatar from traversing slopes inclined at certain angles.  
   
@@ -27,6 +29,8 @@ a position in front of the mesh. This way the avatar/player is always in view.
 It can also enter first person view if the camera comes very close to the avatar/player
 
 ### Breaking change with 0.2.0
+Instead of "jump" animation it expects "idleJump" and "runJump" animations.  
+  
 Version 0.2.0 converts the project from a plain vanilla JavaScript project to a module based JavaScript project.  
 With this change, the way to load the application has changed.  
 In JavaScript, instead of
@@ -161,10 +165,11 @@ Takes three parms
 
 The player skeleton is expected to have the following animation ranges
 * idle
+* idleJump
 * walk 
 * walkBack
 * run 
-* jump
+* runJump
 * fall
 * turnRight 
 * turnLeft
@@ -181,15 +186,23 @@ cc.stop();
 ```
 #### To change animation range name or other parameters
 ```
+cc.setIdleAnim(rangeName: string,rate: number,loop: boolean);
+cc.setIdleJumpAnim(rangeName: string,rate: number,loop: boolean);
+
 cc.setWalkAnim(name :string, playback rate:number,loop:boolean);
 cc.setWalkBackAnim(name :string, playback rate:number,loop:boolean);
+
 cc.setRunAnim(name :string, playback rate:number,loop:boolean);
-cc.setJumpAnim(name :string, playback rate:number,loop:boolean);
+cc.setRunJumpAnim(rangeName: string,rate: number,loop: boolean)
+
 cc.setFallAnim(name :string, playback rate:number,loop:boolean);
+
 cc.setTurnRightAnim(name :string, playback rate:number,loop:boolean);
 cc.setTurnLeftAnim(name :string, playback rate:number,loop:boolean);
+
 cc.setStrafeRightAnim(name :string, playback rate:number,loop:boolean);
 cc.setStrafeLeftAnim(name :string, playback rate:number,loop:boolean);
+
 cc.setSlideBackAnim(name :string, playback rate:number,loop:boolean);
 ```
 So lets say your walk animation is called "myWalk" and you want to play it at half speed and loop it continuoulsy then
