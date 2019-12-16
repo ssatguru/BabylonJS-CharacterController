@@ -278,6 +278,9 @@ export class CharacterController {
         this.grounded=false;
         this.updateTargetValue();
 
+        window.addEventListener("keyup",this.handleKeyUp,false);
+        window.addEventListener("keydown",this.handleKeyDown,false);
+        
         this.scene.registerBeforeRender(this.renderer);
         this.scene
     }
@@ -286,11 +289,9 @@ export class CharacterController {
         if(!this.started) return;
         this.started=false;
         this.scene.unregisterBeforeRender(this.renderer);
-        window.removeEventListener("keyup",this.handleKeyUp);
-        window.removeEventListener("keydown",this.handleKeyDown);
-       
-       
-
+        window.removeEventListener("keyup",this.handleKeyUp,false);
+        window.removeEventListener("keydown",this.handleKeyDown,false);
+        
         this.prevAnim=null;
     }
 
