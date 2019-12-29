@@ -71,13 +71,25 @@ See below for more details.
 <script src="CharacterController.js"></script>
 ```
 
-See INSTALL below to find where you can get "CharacterController.js".
+See INSTALL below to find where you can get "CharacterController.js". 
 
-2. a small javascript code snippet to get you up and running
+2. if your mesh rotation is in quaternion then switch to euler.  
+NOTE: The GLTF/GLB files have rotation in quaternion
+```
+// character controller  needs rotation in euler.
+// if your mesh has rotation in quaternion then convert that to euler.
+player.rotation = player.rotationQuaternion.toEulerAngles();
+player.rotationQuaternion = null;
+
+```
+
+3. instantiate charcater controller and start it.
 
 ```
   //------------------Character Controller -------------------------------------------------
-    var cc = new CharacterController(player,camera,scene);
+  //fourth parm agMap is optional and is used when animation groups rather than animation ranges 
+  //are used.
+  var cc = new CharacterController(player,camera,scene,agMap);
   cc.start();
 ```
 
@@ -174,22 +186,47 @@ Global Module
 
 ```
 // JavaScript
+
+// if using animation ranges
 var cc = new CharacterController(player,camera,scene);
+
+// if using animation groups
+var cc = new CharacterController(player,camera,scene,agMap);
+//agMap is a Map of animation name to animationGroup
 ```
 
 ```
 // TypeScript
+
 import {CharacterController} from "babylonjs-charactercontroller";
+
+// if using animation ranges
 let cc = new CharacterController(player,camera,scene);
+
+// if using animation groups
+var cc = new CharacterController(player,camera,scene,agMap);
+
 ```
 
-Takes three parms
+Takes four parms
 
 - player - the player mesh containing a skeleton with appropriate animations listed below
 - camera - arc rotate camera
 - scene - scene
+- agMap - This is optional and only needed if using animation groups instead of animation ranges.
+    It is a Map of animation name to animationGroup
+	In this Map the key would be the character controller animation name and
+    the key value would be the animationGroup.  
+     example:
+```	 
+   	let myWalkAnimationGroup:AnimationGroup = ...;
+    let agMap:{} = {
+    	"walk":myWalkAnimationGroup,
+     	"run": ...,
+    }
+```	 
 
-The player skeleton is expected to have the following animation ranges
+If using animation ranges the player skeleton is expected to have the following animation ranges named as follows
 
 - idle
 - idleJump
@@ -206,6 +243,15 @@ The player skeleton is expected to have the following animation ranges
 
 If your animation range is named differently from those mentioned above then use the setWalkAnim(..),setWalkBackAnim(..) etc API to specify your animation range name.
 
+NOTE : 
+If your mesh rotation is in quaternion then switch to euler before creating character controller.
+The GLTF/GLB files have rotation in quaternion.  
+
+```
+player.rotation = player.rotationQuaternion.toEulerAngles();
+player.rotationQuaternion = null;
+```
+
 #### To start/stop controller
 
 ```
@@ -213,33 +259,37 @@ cc.start();
 cc.stop();
 ```
 
-#### To change animation range name or other parameters
+#### To change animation range name / animation group and their parameters
+rangeName can be the name of your animation range corresponding to the character controller animation  
+or it could be the animation group corresponding to the character controller animation 
 
 ```
-cc.setIdleAnim(rangeName: string,rate: number,loop: boolean);
+cc.setIdleAnim(rangeName: string|AnimationGroup ,rate: number,loop: boolean);
 cc.setIdleJumpAnim(rangeName: string,rate: number,loop: boolean);
 
-cc.setWalkAnim(name :string, playback rate:number,loop:boolean);
+cc.setWalkAnim(name :string|AnimationGroup , playback rate:number,loop:boolean);
 cc.setWalkBackAnim(name :string, playback rate:number,loop:boolean);
 
-cc.setRunAnim(name :string, playback rate:number,loop:boolean);
+cc.setRunAnim(name :string|AnimationGroup , playback rate:number,loop:boolean);
 cc.setRunJumpAnim(rangeName: string,rate: number,loop: boolean)
 
-cc.setFallAnim(name :string, playback rate:number,loop:boolean);
+cc.setFallAnim(name :string|AnimationGroup , playback rate:number,loop:boolean);
 
-cc.setTurnRightAnim(name :string, playback rate:number,loop:boolean);
-cc.setTurnLeftAnim(name :string, playback rate:number,loop:boolean);
+cc.setTurnRightAnim(name :string|AnimationGroup , playback rate:number,loop:boolean);
+cc.setTurnLeftAnim(name :string|AnimationGroup , playback rate:number,loop:boolean);
 
-cc.setStrafeRightAnim(name :string, playback rate:number,loop:boolean);
-cc.setStrafeLeftAnim(name :string, playback rate:number,loop:boolean);
+cc.setStrafeRightAnim(name :string|AnimationGroup , playback rate:number,loop:boolean);
+cc.setStrafeLeftAnim(name :string|AnimationGroup , playback rate:number,loop:boolean);
 
-cc.setSlideBackAnim(name :string, playback rate:number,loop:boolean);
+cc.setSlideBackAnim(name :string|AnimationGroup , playback rate:number,loop:boolean);
 ```
 
 So lets say your walk animation is called "myWalk" and you want to play it at half speed and loop it continuoulsy then
 
 ```
 cc.setWalkAnim("myWalk",0.5,true);
+//if you donot want to change the name or the rate the use below instead
+cc.setWalkAnim(null,null,true);
 ```
 
 #### To change key binding
@@ -363,7 +413,18 @@ setNoFirstPerson(true);
 If not already installed, install node js.  
 Switch to the project folder.  
 Run "npm install", once, to install all the dependencies.  
-To build anytime  
-Run "npm build" - this will both compile, minify and store the build in "dist" folder.
-Use the "index.html" in "tst" folder to test your changes.  
-example : start a http server from root folder and then goto http://localhost:8080/tst
+### To build   
+Run "npm build"  
+This will both compile, minify and store the build in "dist" folder.  
+### To test
+1) start the development server  
+"npm run dev"  
+This will start the live dev server on port 8080.  
+This will live compile your code any time you make changes and make your library available at
+http://localhost:8080  
+
+2) start another http server from the project root folder say on port 8181.  
+goto http://localhost:8181/tst
+to serve the index.html file for testing.  
+The test html files pulls the library from http://localhost:8080 as shown in previous step.
+

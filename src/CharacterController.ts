@@ -5,7 +5,8 @@ import {
     Mesh,
     Scene,
     Ray,
-    PickingInfo
+    PickingInfo,
+    AnimationGroup
 } from "babylonjs"
 
 export class CharacterController {
@@ -51,7 +52,7 @@ export class CharacterController {
     private strafeRight: AnimData = new AnimData("strafeRight");
     private slideBack: AnimData = new AnimData("slideBack");
 
-    private anims: AnimData[] = [this.walk, this.walkBack, this.idle, this.run, this.runJump, this.fall, this.turnLeft, this.turnRight, this.strafeLeft, this.strafeRight, this.slideBack];
+    private anims: AnimData[] = [this.walk, this.walkBack, this.idle, this.idleJump, this.run, this.runJump, this.fall, this.turnLeft, this.turnRight, this.strafeLeft, this.strafeRight, this.slideBack];
 
     //move keys
     private walkKey: string = "W";
@@ -121,52 +122,150 @@ export class CharacterController {
         this.gravity = n;
     }
 
-    public setAnim(anim: AnimData, rangeName: string, rate: number, loop: boolean) {
-        if (this.skeleton == null) return;
-        anim.name = rangeName;
-        anim.rate = rate;
-        anim.loop = loop;
-        if (this.skeleton.getAnimationRange(anim.name) != null) {
-            anim.exist = true;
-        } else {
-            anim.exist = false;
+    /**
+     * Use this to provide animationGroups to the character controller.
+     * Provide the AnimationGroups using a Map
+     * In this Map the key would be the character controller animation name and
+     * the key value would be the animationGroup.
+     * Example:
+     * let myWalkAnimationGroup:AnimationGroup = ...;
+     * let agMap:{} = {
+     *  "walk":myWalkAnimationGroup,
+     *   ....
+     * }
+     * 
+     * @param agMap a map of character controller animation name to animationGroup
+     */
+    public setAnimationGroups(agMap: {}) {
+        this._isAG = true;
+        for (let anim of this.anims) {
+            if (agMap[anim.name] != null) {
+                anim.ag = agMap[anim.name];
+                anim.exist = true;
+            }
+        }
+    }
+    /**
+     * Use this to provide AnimationRanges to the character controller.
+     * Provide the AnimationRanges using a Map
+     * In this Map the key would be the character controller animation name and
+     * the key value would be the animation range name or an object with animation range data.
+     * example:
+     * let arMap = {
+     *  "walk":"myWalk",
+     *  "run" : {"name":"myRun","rate":1},
+     *  "idle" : {"name":"myIdle","loop":true,"rate":1},
+     *  ....
+     * }
+     * 
+     * @param arMap a map of character controller animation name to animationRange data
+     */
+
+    public setAnimationRanges(arMap: {}) {
+        this._isAG = false;
+        let arData: string | {};
+        for (let anim of this.anims) {
+            arData = arMap[anim.name];
+            if (arData != null) {
+                if (arData instanceof Object) {
+                    if (arData["name"]) anim.name = arData["name"];
+                    if (arData["loop"]) anim.loop = arData["loop"];
+                    if (arData["rate"]) anim.loop = arData["rate"];
+                } else {
+                    anim.name = arData;
+                }
+                anim.exist = true;
+            }
         }
     }
 
-    public setWalkAnim(rangeName: string, rate: number, loop: boolean) {
+    private setAnim(anim: AnimData, rangeName?: string | AnimationGroup, rate?: number, loop?: boolean) {
+        if (!this._isAG && this.skeleton == null) return;
+        if (loop != null) anim.loop = loop;
+        if (!this._isAG) {
+            if (rangeName != null) anim.name = <string>rangeName;
+            if (rate != null) anim.rate = rate;
+            if (this.skeleton.getAnimationRange(anim.name) != null) {
+                anim.exist = true;
+            } else {
+                anim.exist = false;
+            }
+        } else {
+            if (rangeName != null) {
+                anim.ag = <AnimationGroup>rangeName;
+                anim.exist = true;
+            }
+            if (rate != null && anim.exist) {
+                anim.rate = rate;
+                anim.ag.speedRatio = rate;
+            }
+        }
+    }
+
+    public enableBlending(n: number) {
+        if (this._isAG) {
+            for (let anim of this.anims) {
+                if (anim.exist) {
+                    let ar: AnimationGroup = anim.ag;
+                    for (let ta of ar.targetedAnimations) {
+                        ta.animation.enableBlending = true;
+                        ta.animation.blendingSpeed = n;
+                    }
+                }
+            }
+        } else {
+            this.skeleton.enableBlending(n);
+        }
+    }
+
+    public disableBlending() {
+        if (this._isAG) {
+            for (let anim of this.anims) {
+                if (anim.exist) {
+                    let ar: AnimationGroup = anim.ag;
+                    for (let ta of ar.targetedAnimations) {
+                        ta.animation.enableBlending = false;
+                    }
+                }
+            }
+        }
+    }
+
+
+    public setWalkAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
         this.setAnim(this.walk, rangeName, rate, loop);
     }
-    public setRunAnim(rangeName: string, rate: number, loop: boolean) {
+    public setRunAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
         this.setAnim(this.run, rangeName, rate, loop);
     }
-    public setWalkBackAnim(rangeName: string, rate: number, loop: boolean) {
+    public setWalkBackAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
         this.setAnim(this.walkBack, rangeName, rate, loop);
     }
-    public setSlideBackAnim(rangeName: string, rate: number, loop: boolean) {
+    public setSlideBackAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
         this.setAnim(this.slideBack, rangeName, rate, loop);
     }
-    public setIdleAnim(rangeName: string, rate: number, loop: boolean) {
+    public setIdleAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
         this.setAnim(this.idle, rangeName, rate, loop);
     }
-    public setTurnRightAnim(rangeName: string, rate: number, loop: boolean) {
+    public setTurnRightAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
         this.setAnim(this.turnRight, rangeName, rate, loop);
     }
-    public setTurnLeftAnim(rangeName: string, rate: number, loop: boolean) {
+    public setTurnLeftAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
         this.setAnim(this.turnLeft, rangeName, rate, loop);
     }
-    public setStrafeRightAnim(rangeName: string, rate: number, loop: boolean) {
+    public setStrafeRightAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
         this.setAnim(this.strafeRight, rangeName, rate, loop);
     }
-    public setSrafeLeftAnim(rangeName: string, rate: number, loop: boolean) {
+    public setSrafeLeftAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
         this.setAnim(this.strafeLeft, rangeName, rate, loop);
     }
-    public setIdleJumpAnim(rangeName: string, rate: number, loop: boolean) {
+    public setIdleJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
         this.setAnim(this.idleJump, rangeName, rate, loop);
     }
-    public setRunJumpAnim(rangeName: string, rate: number, loop: boolean) {
+    public setRunJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
         this.setAnim(this.runJump, rangeName, rate, loop);
     }
-    public setFallAnim(rangeName: string, rate: number, loop: boolean) {
+    public setFallAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
         this.setAnim(this.fall, rangeName, rate, loop);
     }
 
@@ -238,34 +337,16 @@ export class CharacterController {
         }
     }
 
-    private key: Key;
-    private renderer: () => void;
-    private handleKeyUp: (e) => void;
-    private handleKeyDown: (e) => void;
-    private _ellipsoid: Vector3;
-    constructor(avatar: Mesh, camera: ArcRotateCamera, scene: Scene) {
-
-        this.avatar = avatar;
-        this.scene = scene;
-        this._ellipsoid = this.avatar.ellipsoid.clone();
-
-        this.skeleton = avatar.skeleton;
-        if (this.skeleton != null) this.checkAnims(this.skeleton);
-        this.camera = camera;
-        this.savedCameraCollision = this.camera.checkCollisions;
-
-        this.key = new Key();
-
-
-        this.renderer = () => { this.moveAVandCamera() };
-        this.handleKeyUp = (e) => { this.onKeyUp(e) };
-        this.handleKeyDown = (e) => { this.onKeyDown(e) };
-
-        window.addEventListener("keyup", this.handleKeyUp, false);
-        window.addEventListener("keydown", this.handleKeyDown, false);
-
-
+    private checkAGs(agMap: {}) {
+        for (let anim of this.anims) {
+            if (agMap[anim.name] != null) {
+                anim.ag = agMap[anim.name];
+                anim.exist = true;
+            }
+        }
     }
+
+
 
     private started: boolean = false;
     public start() {
@@ -353,16 +434,17 @@ export class CharacterController {
 
             anim = this.doIdle(dt);
         }
-        if (!this._stopAnim) {
-            if (anim != null) {
-                if (this.skeleton !== null) {
-                    if (this.prevAnim !== anim) {
-                        if (anim.exist) {
-                            this.skeleton.beginAnimation(anim.name, anim.loop, anim.rate);
-                        }
-                        this.prevAnim = anim;
+        if (!this._stopAnim && this._hasAnims && anim != null) {
+            if (this.prevAnim !== anim) {
+                if (anim.exist) {
+                    if (this._isAG) {
+                        if (this.prevAnim != null && this.prevAnim.exist) this.prevAnim.ag.stop();
+                        anim.ag.play(anim.loop);
+                    } else {
+                        this.skeleton.beginAnimation(anim.name, anim.loop, anim.rate);
                     }
                 }
+                this.prevAnim = anim;
             }
         }
         this.updateTargetValue();
@@ -769,12 +851,60 @@ export class CharacterController {
 
         this.move = this.anyMovement();
     }
+
+    private key: Key;
+    private renderer: () => void;
+    private handleKeyUp: (e) => void;
+    private handleKeyDown: (e) => void;
+    private _isAG: boolean = false;
+    private _hasAnims: boolean = false;
+    /**
+     * 
+     * @param avatar 
+     * @param camera 
+     * @param scene 
+     * @param agMap map of animationRange name to animationRange
+     */
+    constructor(avatar: Mesh, camera: ArcRotateCamera, scene: Scene, agMap?: {}) {
+
+        this.avatar = avatar;
+        this.scene = scene;
+
+        if (agMap != null) {
+            this._isAG = true;
+            this.setAnimationGroups(agMap);
+        }
+
+        if (this._isAG || this.skeleton !== null) {
+            this._hasAnims = true;
+        }
+
+        if (!this._isAG) this.skeleton = avatar.skeleton;
+
+        if (!this._isAG && this.skeleton != null) this.checkAnims(this.skeleton);
+        this.camera = camera;
+        this.savedCameraCollision = this.camera.checkCollisions;
+
+        this.key = new Key();
+
+        this.renderer = () => { this.moveAVandCamera() };
+        this.handleKeyUp = (e) => { this.onKeyUp(e) };
+        this.handleKeyDown = (e) => { this.onKeyDown(e) };
+
+        window.addEventListener("keyup", this.handleKeyUp, false);
+        window.addEventListener("keydown", this.handleKeyDown, false);
+
+    }
+
+
+
 }
 
 export class AnimData {
     public name: string;
     public loop: boolean = true;
     public rate: number = 1;
+    public ag: AnimationGroup;
     public exist: boolean = false;
 
     public constructor(name: string) {

@@ -1,4 +1,4 @@
-import { Skeleton, ArcRotateCamera, Vector3, Mesh, Scene, Ray } from "babylonjs";
+import { Skeleton, ArcRotateCamera, Vector3, Mesh, Scene, Ray, AnimationGroup } from "babylonjs";
 export declare class CharacterController {
     private avatar;
     private skeleton;
@@ -59,19 +59,23 @@ export declare class CharacterController {
     setLeftSpeed(n: number): void;
     setRightSpeed(n: number): void;
     setGravity(n: number): void;
-    setAnim(anim: AnimData, rangeName: string, rate: number, loop: boolean): void;
-    setWalkAnim(rangeName: string, rate: number, loop: boolean): void;
-    setRunAnim(rangeName: string, rate: number, loop: boolean): void;
-    setWalkBackAnim(rangeName: string, rate: number, loop: boolean): void;
-    setSlideBackAnim(rangeName: string, rate: number, loop: boolean): void;
-    setIdleAnim(rangeName: string, rate: number, loop: boolean): void;
-    setTurnRightAnim(rangeName: string, rate: number, loop: boolean): void;
-    setTurnLeftAnim(rangeName: string, rate: number, loop: boolean): void;
-    setStrafeRightAnim(rangeName: string, rate: number, loop: boolean): void;
-    setSrafeLeftAnim(rangeName: string, rate: number, loop: boolean): void;
-    setIdleJumpAnim(rangeName: string, rate: number, loop: boolean): void;
-    setRunJumpAnim(rangeName: string, rate: number, loop: boolean): void;
-    setFallAnim(rangeName: string, rate: number, loop: boolean): void;
+    setAnimationGroups(agMap: {}): void;
+    setAnimationRanges(arMap: {}): void;
+    private setAnim;
+    enableBlending(n: number): void;
+    disableBlending(): void;
+    setWalkAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
+    setRunAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
+    setWalkBackAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
+    setSlideBackAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
+    setIdleAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
+    setTurnRightAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
+    setTurnLeftAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
+    setStrafeRightAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
+    setSrafeLeftAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
+    setIdleJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
+    setRunJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
+    setFallAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
     setWalkKey(key: string): void;
     setWalkBackKey(key: string): void;
     setTurnLeftKey(key: string): void;
@@ -91,12 +95,7 @@ export declare class CharacterController {
     cameraCollisionChanged(): void;
     setNoFirstPerson(b: boolean): void;
     private checkAnims;
-    private key;
-    private renderer;
-    private handleKeyUp;
-    private handleKeyDown;
-    private _ellipsoid;
-    constructor(avatar: Mesh, camera: ArcRotateCamera, scene: Scene);
+    private checkAGs;
     private started;
     start(): void;
     stop(): void;
@@ -140,11 +139,19 @@ export declare class CharacterController {
     anyMovement(): boolean;
     private onKeyDown;
     private onKeyUp;
+    private key;
+    private renderer;
+    private handleKeyUp;
+    private handleKeyDown;
+    private _isAG;
+    private _hasAnims;
+    constructor(avatar: Mesh, camera: ArcRotateCamera, scene: Scene, agMap?: {});
 }
 export declare class AnimData {
     name: string;
     loop: boolean;
     rate: number;
+    ag: AnimationGroup;
     exist: boolean;
     constructor(name: string);
 }
