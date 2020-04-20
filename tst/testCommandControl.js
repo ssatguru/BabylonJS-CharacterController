@@ -3,12 +3,7 @@ window.onload = function () {
 };
 
 function main() {
-  var helpButton = document.getElementById("help");
-  var showHelp = function () {
-    var el = document.getElementById("overlay");
-    el.style.visibility = el.style.visibility == "visible" ? "hidden" : "visible";
-  };
-  helpButton.onclick = showHelp;
+  setControls();
   /*
    * The scene
    */
@@ -18,19 +13,7 @@ function main() {
   scene.clearColor = new BABYLON.Color3(0.75, 0.75, 0.75);
   scene.ambientColor = new BABYLON.Color3(1, 1, 1);
 
-  // var isLocked = false;
-  // scene.onPointerDown = function (evt) {
-  //   //true/false check if we're locked, faster than checking pointerlock on each single click.
-  //   if (!isLocked) {
-  //     canvas.requestPointerLock = canvas.requestPointerLock || canvas.msRequestPointerLock || canvas.mozRequestPointerLock || canvas.webkitRequestPointerLock || false;
-  //     if (canvas.requestPointerLock) {
-  //       canvas.requestPointerLock();
-  //     }
-  //   }
-
-  // };
-
-  scene.debugLayer.show({ showExplorer: true, overlay: true });
+  //scene.debugLayer.show({ showExplorer: true, overlay: true });
 
   var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
   light.intensity = 0.3;
@@ -42,23 +25,6 @@ function main() {
   let groundMaterial = createGroundMaterial(scene);
   var ground = createGround(scene, groundMaterial);
 
-  //   var steps = BABYLON.MeshBuilder.CreateBox(
-  //     "Steps",
-  //     { width: 5, height: 0.25, depth: 5 },
-  //     scene
-  //   );
-  //   steps.position = new BABYLON.Vector3(0, 6.25, 5);
-  //   steps.checkCollisions = true;
-  //   steps.material = groundMaterial;
-
-  //   var step2 = steps.createInstance("step2");
-  //   step2.checkCollisions = true;
-  //   console.log(step2);
-  //   step2.scaling.x = 0.5;
-  //   step2.scaling.z = 0.5;
-  //   step2.scaling.y = 6;
-  //   step2.position.y = 6.5;
-
   loadPlayer(scene, engine, canvas);
 
   window.addEventListener("resize", function () {
@@ -66,8 +32,10 @@ function main() {
   });
 }
 
+var cc;
+
 function loadPlayer(scene, engine, canvas) {
-  BABYLON.SceneLoader.ImportMesh("", "player/", "Vincent-frontFacing.babylon", scene, (meshes, particleSystems, skeletons) => {
+  BABYLON.SceneLoader.ImportMesh("", "player/", "Vincent2.babylon", scene, (meshes, particleSystems, skeletons) => {
     var player = meshes[0];
     var skeleton = skeletons[0];
     player.skeleton = skeleton;
@@ -110,11 +78,10 @@ function loadPlayer(scene, engine, canvas) {
     camera.upperRadiusLimit = 20;
     camera.attachControl(canvas, false);
 
-    //var CharacterController = org.ssatguru.babylonjs.component.CharacterController;
-    var cc = new CharacterController(player, camera, scene);
+    cc = new CharacterController(player, camera, scene);
     cc.setFaceForward(true);
-    cc.setMode(1);
-
+    cc.setMode(0);
+    cc.setTurnSpeed(180);
     //below makes the controller point the camera at the player head which is approx
     //1.5m above the player origin
     cc.setCameraTarget(new BABYLON.Vector3(0, 1.5, 0));
@@ -147,12 +114,11 @@ function loadPlayer(scene, engine, canvas) {
 
     cc.start();
 
-    cc.idle();
-    //cc.turnLeft(true);
-
     engine.runRenderLoop(function () {
       scene.render();
     });
+    cmds = [cc.walk, cc.walkBack, cc.run, cc.jump, cc.turnLeft, cc.turnRight, cc.strafeLeft, cc.strafeRight];
+    showControls();
   });
 }
 
@@ -221,4 +187,67 @@ function createGroundMaterial(scene) {
   groundMaterial.diffuseColor = new BABYLON.Color3(0.9, 0.6, 0.4);
   groundMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
   return groundMaterial;
+}
+
+var showHelp = function () {
+  var el = document.getElementById("overlay");
+  el.style.visibility = el.style.visibility == "visible" ? "hidden" : "visible";
+};
+
+function showControls() {
+  var el = document.getElementById("controls");
+  el.style.visibility = "visible";
+}
+
+var w,
+  wb,
+  r,
+  j,
+  tl,
+  tr,
+  sl,
+  sr = false;
+var start = "LightGreen ",
+  stop = "LightSalmon  ";
+
+function setControls() {
+  document.getElementById("w").onclick = (e) => {
+    cc.walk((w = !w));
+    e.target.style.backgroundColor = w ? start : stop;
+  };
+  document.getElementById("wb").onclick = (e) => {
+    cc.walkBack((wb = !wb));
+    e.target.style.backgroundColor = wb ? start : stop;
+  };
+  document.getElementById("r").onclick = (e) => {
+    cc.run((r = !r));
+    e.target.style.backgroundColor = r ? start : stop;
+  };
+  document.getElementById("j").onclick = (e) => {
+    cc.jump();
+  };
+  document.getElementById("tl").onclick = (e) => {
+    cc.turnLeft((tl = !tl));
+    e.target.style.backgroundColor = tl ? start : stop;
+  };
+  document.getElementById("tr").onclick = (e) => {
+    cc.turnRight((tr = !tr));
+    e.target.style.backgroundColor = tr ? start : stop;
+  };
+  document.getElementById("sl").onclick = (e) => {
+    cc.strafeLeft((sl = !sl));
+    e.target.style.backgroundColor = sl ? start : stop;
+  };
+  document.getElementById("sr").onclick = (e) => {
+    cc.strafeRight((sr = !sr));
+    e.target.style.backgroundColor = sr ? start : stop;
+  };
+
+  document.getElementById("tp").onclick = (e) => cc.setMode(0);
+  document.getElementById("td").onclick = (e) => cc.setMode(1);
+  document.getElementById("kb").onclick = (e) => {
+    if (e.target.checked) cc.enableKeyBoard();
+    else cc.disableKeyBoard();
+  };
+  document.getElementById("help").onclick = showHelp;
 }

@@ -4,5 +4,6 @@ lib
 src
 tst
 _config.yml
+*.bat
 
 

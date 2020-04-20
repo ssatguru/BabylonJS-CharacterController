@@ -6,30 +6,34 @@ import {
     Scene,
     Ray,
     PickingInfo,
-    AnimationGroup
+    AnimationGroup,
+    TransformNode,
+    Matrix
 } from "babylonjs"
 
 export class CharacterController {
 
-    private avatar: Mesh;
-    private skeleton: Skeleton;
-    private camera: ArcRotateCamera;
-    private scene: Scene;
+    private _avatar: Mesh;
+    private _skeleton: Skeleton;
+    private _camera: ArcRotateCamera;
+    private _scene: Scene;
 
     //avatar speed in meters/second
-    private walkSpeed: number = 3;
-    private runSpeed: number = this.walkSpeed * 2;
-    private backSpeed: number = this.walkSpeed / 2;
-    private jumpSpeed: number = this.walkSpeed * 2;
-    private leftSpeed: number = this.walkSpeed / 2;
-    private rightSpeed: number = this.walkSpeed / 2;
-    private gravity: number = 9.8;
+    private _walkSpeed: number = 3;
+    private _runSpeed: number = this._walkSpeed * 2;
+    private _backSpeed: number = this._walkSpeed / 2;
+    private _jumpSpeed: number = this._walkSpeed * 2;
+    private _leftSpeed: number = this._walkSpeed / 2;
+    private _rightSpeed: number = this._walkSpeed / 2;
+    //trun speed in radian per second (equivalent to 180 degree/second by default)
+    private _turnSpeed: number = Math.PI;
+    private _gravity: number = 9.8;
     //slopeLimit in degrees
-    private minSlopeLimit: number = 30;
-    private maxSlopeLimit: number = 45;
+    private _minSlopeLimit: number = 30;
+    private _maxSlopeLimit: number = 45;
     //slopeLimit in radians
-    sl: number = Math.PI * this.minSlopeLimit / 180;
-    sl2: number = Math.PI * this.maxSlopeLimit / 180;
+    private _sl: number = Math.PI * this._minSlopeLimit / 180;
+    private _sl2: number = Math.PI * this._maxSlopeLimit / 180;
 
     //The av will step up a stair only if it is closer to the ground than the indicated value.
     private _stepOffset: number = 0.25;
@@ -39,57 +43,57 @@ export class CharacterController {
     private _vMovStartPos: Vector3 = new Vector3(0, 0, 0);
 
     //animations
-    private walk: AnimData = new AnimData("walk");
-    private walkBack: AnimData = new AnimData("walkBack");
-    private idle: AnimData = new AnimData("idle");
-    private idleJump: AnimData = new AnimData("idleJump");
-    private run: AnimData = new AnimData("run");
-    private runJump: AnimData = new AnimData("runJump");
-    private fall: AnimData = new AnimData("fall");
-    private turnLeft: AnimData = new AnimData("turnLeft");
-    private turnRight: AnimData = new AnimData("turnRight");
-    private strafeLeft: AnimData = new AnimData("strafeLeft");
-    private strafeRight: AnimData = new AnimData("strafeRight");
-    private slideBack: AnimData = new AnimData("slideBack");
+    private _walk: AnimData = new AnimData("walk");
+    private _walkBack: AnimData = new AnimData("walkBack");
+    private _idle: AnimData = new AnimData("idle");
+    private _idleJump: AnimData = new AnimData("idleJump");
+    private _run: AnimData = new AnimData("run");
+    private _runJump: AnimData = new AnimData("runJump");
+    private _fall: AnimData = new AnimData("fall");
+    private _turnLeft: AnimData = new AnimData("turnLeft");
+    private _turnRight: AnimData = new AnimData("turnRight");
+    private _strafeLeft: AnimData = new AnimData("strafeLeft");
+    private _strafeRight: AnimData = new AnimData("strafeRight");
+    private _slideBack: AnimData = new AnimData("slideBack");
 
-    private anims: AnimData[] = [this.walk, this.walkBack, this.idle, this.idleJump, this.run, this.runJump, this.fall, this.turnLeft, this.turnRight, this.strafeLeft, this.strafeRight, this.slideBack];
+    private _anims: AnimData[] = [this._walk, this._walkBack, this._idle, this._idleJump, this._run, this._runJump, this._fall, this._turnLeft, this._turnRight, this._strafeLeft, this._strafeRight, this._slideBack];
 
     //move keys
-    private walkKey: string = "W";
-    private walkBackKey: string = "S";
-    private turnLeftKey: string = "A";
-    private turnRightKey: string = "D";
-    private strafeLeftKey: string = "Q";
-    private strafeRightKey: string = "E";
-    private jumpKey: string = "32";
-    private walkCode: number = 38;
-    private walkBackCode: number = 40;
-    private turnLeftCode: number = 37;
-    private turnRightCode: number = 39;
-    private strafeLeftCode: number = 0;
-    private strafeRightCode: number = 0;
-    private jumpCode: number = 32;
+    private _walkKey: string = "W";
+    private _walkBackKey: string = "S";
+    private _turnLeftKey: string = "A";
+    private _turnRightKey: string = "D";
+    private _strafeLeftKey: string = "Q";
+    private _strafeRightKey: string = "E";
+    private _jumpKey: string = "32";
+    private _walkCode: number = 38;
+    private _walkBackCode: number = 40;
+    private _turnLeftCode: number = 37;
+    private _turnRightCode: number = 39;
+    private _strafeLeftCode: number = 0;
+    private _strafeRightCode: number = 0;
+    private _jumpCode: number = 32;
 
-    private elasticCamera: boolean = true;
-    private cameraTarget: Vector3 = new Vector3(0, 0, 0);
+    private _elasticCamera: boolean = true;
+    private _cameraTarget: Vector3 = new Vector3(0, 0, 0);
     //should we go into first person view when camera is near avatar (radius is lowerradius limit)
-    private noFirstPerson: boolean = false;
+    private _noFirstPerson: boolean = false;
 
     public setAvatar(avatar: Mesh) {
-        this.avatar = avatar;
+        this._avatar = avatar;
     }
 
     public setAvatarSkeleton(skeleton: Skeleton) {
-        this.skeleton = skeleton;
+        this._skeleton = skeleton;
         this.checkAnims(skeleton);
     }
 
     public setSlopeLimit(minSlopeLimit: number, maxSlopeLimit: number) {
-        this.minSlopeLimit = minSlopeLimit;
-        this.maxSlopeLimit = maxSlopeLimit;
+        this._minSlopeLimit = minSlopeLimit;
+        this._maxSlopeLimit = maxSlopeLimit;
 
-        this.sl = Math.PI * minSlopeLimit / 180;
-        this.sl2 = Math.PI * this.maxSlopeLimit / 180;
+        this._sl = Math.PI * minSlopeLimit / 180;
+        this._sl2 = Math.PI * this._maxSlopeLimit / 180;
     }
 
     /**
@@ -101,25 +105,30 @@ export class CharacterController {
     }
 
     public setWalkSpeed(n: number) {
-        this.walkSpeed = n;
+        this._walkSpeed = n;
     }
     public setRunSpeed(n: number) {
-        this.runSpeed = n;
+        this._runSpeed = n;
     }
     public setBackSpeed(n: number) {
-        this.backSpeed = n;
+        this._backSpeed = n;
     }
     public setJumpSpeed(n: number) {
-        this.jumpSpeed = n;
+        this._jumpSpeed = n;
     }
     public setLeftSpeed(n: number) {
-        this.leftSpeed = n;
+        this._leftSpeed = n;
     }
     public setRightSpeed(n: number) {
-        this.rightSpeed = n;
+        this._rightSpeed = n;
+    }
+    // get turnSpeed in degrees per second.
+    // store in radians per second
+    public setTurnSpeed(n: number) {
+        this._turnSpeed = n * Math.PI / 180;
     }
     public setGravity(n: number) {
-        this.gravity = n;
+        this._gravity = n;
     }
 
     /**
@@ -138,7 +147,7 @@ export class CharacterController {
      */
     public setAnimationGroups(agMap: {}) {
         this._isAG = true;
-        for (let anim of this.anims) {
+        for (let anim of this._anims) {
             if (agMap[anim.name] != null) {
                 anim.ag = agMap[anim.name];
                 anim.exist = true;
@@ -164,7 +173,7 @@ export class CharacterController {
     public setAnimationRanges(arMap: {}) {
         this._isAG = false;
         let arData: string | {};
-        for (let anim of this.anims) {
+        for (let anim of this._anims) {
             arData = arMap[anim.name];
             if (arData != null) {
                 if (arData instanceof Object) {
@@ -180,12 +189,12 @@ export class CharacterController {
     }
 
     private setAnim(anim: AnimData, rangeName?: string | AnimationGroup, rate?: number, loop?: boolean) {
-        if (!this._isAG && this.skeleton == null) return;
+        if (!this._isAG && this._skeleton == null) return;
         if (loop != null) anim.loop = loop;
         if (!this._isAG) {
             if (rangeName != null) anim.name = <string>rangeName;
             if (rate != null) anim.rate = rate;
-            if (this.skeleton.getAnimationRange(anim.name) != null) {
+            if (this._skeleton.getAnimationRange(anim.name) != null) {
                 anim.exist = true;
             } else {
                 anim.exist = false;
@@ -204,7 +213,7 @@ export class CharacterController {
 
     public enableBlending(n: number) {
         if (this._isAG) {
-            for (let anim of this.anims) {
+            for (let anim of this._anims) {
                 if (anim.exist) {
                     let ar: AnimationGroup = anim.ag;
                     for (let ta of ar.targetedAnimations) {
@@ -214,13 +223,13 @@ export class CharacterController {
                 }
             }
         } else {
-            this.skeleton.enableBlending(n);
+            this._skeleton.enableBlending(n);
         }
     }
 
     public disableBlending() {
         if (this._isAG) {
-            for (let anim of this.anims) {
+            for (let anim of this._anims) {
                 if (anim.exist) {
                     let ar: AnimationGroup = anim.ag;
                     for (let ta of ar.targetedAnimations) {
@@ -231,93 +240,94 @@ export class CharacterController {
         }
     }
 
-
+    //setters for animations
     public setWalkAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this.setAnim(this.walk, rangeName, rate, loop);
+        this.setAnim(this._walk, rangeName, rate, loop);
     }
     public setRunAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this.setAnim(this.run, rangeName, rate, loop);
+        this.setAnim(this._run, rangeName, rate, loop);
     }
     public setWalkBackAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this.setAnim(this.walkBack, rangeName, rate, loop);
+        this.setAnim(this._walkBack, rangeName, rate, loop);
     }
     public setSlideBackAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this.setAnim(this.slideBack, rangeName, rate, loop);
+        this.setAnim(this._slideBack, rangeName, rate, loop);
     }
     public setIdleAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this.setAnim(this.idle, rangeName, rate, loop);
+        this.setAnim(this._idle, rangeName, rate, loop);
     }
     public setTurnRightAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this.setAnim(this.turnRight, rangeName, rate, loop);
+        this.setAnim(this._turnRight, rangeName, rate, loop);
     }
     public setTurnLeftAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this.setAnim(this.turnLeft, rangeName, rate, loop);
+        this.setAnim(this._turnLeft, rangeName, rate, loop);
     }
     public setStrafeRightAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this.setAnim(this.strafeRight, rangeName, rate, loop);
+        this.setAnim(this._strafeRight, rangeName, rate, loop);
     }
     public setSrafeLeftAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this.setAnim(this.strafeLeft, rangeName, rate, loop);
+        this.setAnim(this._strafeLeft, rangeName, rate, loop);
     }
     public setIdleJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this.setAnim(this.idleJump, rangeName, rate, loop);
+        this.setAnim(this._idleJump, rangeName, rate, loop);
     }
     public setRunJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this.setAnim(this.runJump, rangeName, rate, loop);
+        this.setAnim(this._runJump, rangeName, rate, loop);
     }
     public setFallAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this.setAnim(this.fall, rangeName, rate, loop);
+        this.setAnim(this._fall, rangeName, rate, loop);
     }
 
+    // setters for keys
     public setWalkKey(key: string) {
-        this.walkKey = key
+        this._walkKey = key
     }
     public setWalkBackKey(key: string) {
-        this.walkBackKey = key
+        this._walkBackKey = key
     }
     public setTurnLeftKey(key: string) {
-        this.turnLeftKey = key
+        this._turnLeftKey = key
     }
     public setTurnRightKey(key: string) {
-        this.turnRightKey = key
+        this._turnRightKey = key
     }
     public setStrafeLeftKey(key: string) {
-        this.strafeLeftKey = key
+        this._strafeLeftKey = key
     }
     public setStrafeRightKey(key: string) {
-        this.strafeRightKey = key
+        this._strafeRightKey = key
     }
     public setJumpKey(key: string) {
-        this.jumpKey = key
+        this._jumpKey = key
     }
 
     public setWalkCode(code: number) {
-        this.walkCode = code
+        this._walkCode = code
     }
     public setWalkBackCode(code: number) {
-        this.walkBackCode = code
+        this._walkBackCode = code
     }
     public setTurnLeftCode(code: number) {
-        this.turnLeftCode = code
+        this._turnLeftCode = code
     }
     public setTurnRightCode(code: number) {
-        this.turnRightCode = code
+        this._turnRightCode = code
     }
     public setStrafeLeftCode(code: number) {
-        this.strafeLeftCode = code
+        this._strafeLeftCode = code
     }
     public setStrafeRightCode(code: number) {
-        this.strafeRightCode = code
+        this._strafeRightCode = code
     }
     public setJumpCode(code: number) {
-        this.jumpCode = code
+        this._jumpCode = code
     }
 
     public setCameraElasticity(b: boolean) {
-        this.elasticCamera = b;
+        this._elasticCamera = b;
     }
     public setCameraTarget(v: Vector3) {
-        this.cameraTarget.copyFrom(v);
+        this._cameraTarget.copyFrom(v);
     }
     /**
      * user should call this whenever the user changes the camera checkCollision 
@@ -325,20 +335,82 @@ export class CharacterController {
      * 
      */
     public cameraCollisionChanged() {
-        this.savedCameraCollision = this.camera.checkCollisions;
+        this._savedCameraCollision = this._camera.checkCollisions;
     }
     public setNoFirstPerson(b: boolean) {
-        this.noFirstPerson = b;
+        this._noFirstPerson = b;
     }
 
+
     private checkAnims(skel: Skeleton) {
-        for (let anim of this.anims) {
-            if (skel.getAnimationRange(anim.name) != null) anim.exist = true;
+        for (let anim of this._anims) {
+            if (skel != null) {
+                if (skel.getAnimationRange(anim.name) != null) anim.exist = true;
+            } else {
+                anim.exist = false;
+            }
+        }
+    }
+
+    /**
+     * Use this to make the  character controller suitable for a isometeric/top down games or  fps/third person game.
+     * 1 In isometric/top down games the camera direction has no bearing on avatar movement.
+     * 0 In fps/third person game rotating the camera around the avatar , rotates the avatr too.
+     */
+    private mode = 0;
+    private _saveMode = 0;
+    public setMode(n: number) {
+        this.mode = n;
+        this._saveMode = n;
+    }
+
+
+    /**
+        * checks if a have left hand , right hand issue.
+        * In other words if a mesh is a LHS mesh in RHS system or 
+        * a RHS mesh in LHS system
+        * The X axis will be reversed in such cases.
+        * thus Cross product of X and Y should be inverse of Z.
+        * 
+        * BABYLONJS GLB models are RHS and exhibit this behavior
+        * 
+        */
+    private _isRHS = false;
+    private _signRHS = -1;
+    private _setRHS(mesh: TransformNode) {
+
+        let meshMatrix: Matrix = mesh.getWorldMatrix();
+        let _localX = Vector3.FromFloatArray(meshMatrix.m, 0);
+        let _localY = Vector3.FromFloatArray(meshMatrix.m, 4);
+        let _localZ = Vector3.FromFloatArray(meshMatrix.m, 8);
+
+        let actualZ = Vector3.Cross(_localX, _localY);
+        //same direction or opposite direction of Z
+        if (Vector3.Dot(actualZ, _localZ) < 0) {
+            this._isRHS = true;
+            this._signRHS = 1;
+        }
+        else {
+            this._isRHS = false;
+            this._signRHS = -1;
+        }
+    }
+
+    /**
+     * Use setFaceForward(true|false) to indicate that the avatar face  faces forward (true) or backward (false).
+     * The avatar face faces forward if its face points to positive local Z axis direction
+     */
+    private _faceForward = -1;
+    public setFaceForward(b: boolean) {
+        b ? this._faceForward = -1 : 1;
+        if (this._isRHS && b) {
+            this._degree270 = - this._degree270;
+            this._faceForward = 1;
         }
     }
 
     private checkAGs(agMap: {}) {
-        for (let anim of this.anims) {
+        for (let anim of this._anims) {
             if (agMap[anim.name] != null) {
                 anim.ag = agMap[anim.name];
                 anim.exist = true;
@@ -348,32 +420,32 @@ export class CharacterController {
 
 
 
-    private started: boolean = false;
+    private _started: boolean = false;
     public start() {
-        if (this.started) return;
-        this.started = true;
-        this.key.reset();
-        this.movFallTime = 0;
-        //first time we enter render loop, delta time shows zero !!
-        this.idleFallTime = 0.001;
-        this.grounded = false;
-        this.updateTargetValue();
+        if (this._started) return;
+        this._started = true;
+        this._act.reset();
+        this._movFallTime = 0;
+        //first time we enter render loop, delta time is zero
+        this._idleFallTime = 0.001;
+        this._grounded = false;
+        this._updateTargetValue();
 
-        window.addEventListener("keyup", this.handleKeyUp, false);
-        window.addEventListener("keydown", this.handleKeyDown, false);
+        window.addEventListener("keyup", this._handleKeyUp, false);
+        window.addEventListener("keydown", this._handleKeyDown, false);
 
-        this.scene.registerBeforeRender(this.renderer);
-        this.scene
+        this._scene.registerBeforeRender(this._renderer);
+        this._scene
     }
 
     public stop() {
-        if (!this.started) return;
-        this.started = false;
-        this.scene.unregisterBeforeRender(this.renderer);
-        window.removeEventListener("keyup", this.handleKeyUp, false);
-        window.removeEventListener("keydown", this.handleKeyDown, false);
+        if (!this._started) return;
+        this._started = false;
+        this._scene.unregisterBeforeRender(this._renderer);
+        window.removeEventListener("keyup", this._handleKeyUp, false);
+        window.removeEventListener("keydown", this._handleKeyDown, false);
 
-        this.prevAnim = null;
+        this._prevAnim = null;
     }
 
     /**
@@ -396,119 +468,126 @@ export class CharacterController {
         this._stopAnim = false;
     }
 
-    private prevAnim: AnimData = null;
+    private _prevAnim: AnimData = null;
 
-    private avStartPos: Vector3 = new Vector3(0, 0, 0);
-    private grounded: boolean = false;
+    private _avStartPos: Vector3 = new Vector3(0, 0, 0);
+    private _grounded: boolean = false;
     //distance by which AV would move down if in freefall
-    private freeFallDist: number = 0;
+    private _freeFallDist: number = 0;
 
     //how many minimum contiguos frames should the AV have been in free fall
     //before we assume AV is in big freefall.
     //we will use this to remove animation flicker during move down a slope (fall, move, fall move etc)
     //TODO: base this on slope - large slope large count
-    private fallFrameCountMin: number = 50;
-    private fallFrameCount: number = 0;
+    private _fallFrameCountMin: number = 50;
+    private _fallFrameCount: number = 0;
 
-    private inFreeFall: boolean = false;
-    private wasWalking: boolean = false;
-    private wasRunning: boolean = false;
-    private moveVector: Vector3;
+    private _inFreeFall: boolean = false;
+    private _wasWalking: boolean = false;
+    private _wasRunning: boolean = false;
+    private _moveVector: Vector3;
 
-    private moveAVandCamera() {
-        this.avStartPos.copyFrom(this.avatar.position);
+    //used only in mode 1
+    //value 1 or -1 , -1 if avatar is facing camera
+    //private _notFacingCamera = 1;
+
+    private _isAvFacingCamera(): number {
+        if (Vector3.Dot(this._avatar.forward, this._avatar.position.subtract(this._camera.position)) < 0) return 1
+        else return -1;
+    }
+
+    private _moveAVandCamera() {
+        this._avStartPos.copyFrom(this._avatar.position);
         let anim: AnimData = null;
-        let dt: number = this.scene.getEngine().getDeltaTime() / 1000;
+        let dt: number = this._scene.getEngine().getDeltaTime() / 1000;
 
-        if (this.key.jump && !this.inFreeFall) {
-            this.grounded = false;
-            this.idleFallTime = 0;
+        if (this._act.jump && !this._inFreeFall) {
+            this._grounded = false;
+            this._idleFallTime = 0;
+            anim = this._doJump(dt);
+        } else if (this.anyMovement() || this._inFreeFall) {
+            this._grounded = false;
+            this._idleFallTime = 0;
+            anim = this._doMove(dt);
+        } else if (!this._inFreeFall) {
 
-            anim = this.doJump(dt);
-        } else if (this.anyMovement() || this.inFreeFall) {
-            this.grounded = false;
-            this.idleFallTime = 0;
-
-            anim = this.doMove(dt);
-        } else if (!this.inFreeFall) {
-
-            anim = this.doIdle(dt);
+            anim = this._doIdle(dt);
         }
         if (!this._stopAnim && this._hasAnims && anim != null) {
-            if (this.prevAnim !== anim) {
+            if (this._prevAnim !== anim) {
                 if (anim.exist) {
                     if (this._isAG) {
-                        if (this.prevAnim != null && this.prevAnim.exist) this.prevAnim.ag.stop();
+                        if (this._prevAnim != null && this._prevAnim.exist) this._prevAnim.ag.stop();
                         anim.ag.play(anim.loop);
                     } else {
-                        this.skeleton.beginAnimation(anim.name, anim.loop, anim.rate);
+                        this._skeleton.beginAnimation(anim.name, anim.loop, anim.rate);
                     }
                 }
-                this.prevAnim = anim;
+                this._prevAnim = anim;
             }
         }
-        this.updateTargetValue();
+        this._updateTargetValue();
         return;
     }
 
     //verical position of AV when it is about to start a jump
-    private jumpStartPosY: number = 0;
+    private _jumpStartPosY: number = 0;
     //for how long the AV has been in the jump
-    private jumpTime: number = 0;
-    private doJump(dt: number): AnimData {
+    private _jumpTime: number = 0;
+    private _doJump(dt: number): AnimData {
 
         let anim: AnimData = null;
-        anim = this.runJump;
-        if (this.jumpTime === 0) {
-            this.jumpStartPosY = this.avatar.position.y;
+        anim = this._runJump;
+        if (this._jumpTime === 0) {
+            this._jumpStartPosY = this._avatar.position.y;
         }
         //up velocity at the begining of the lastt frame (v=u+at)
-        let js: number = this.jumpSpeed - this.gravity * this.jumpTime;
+        let js: number = this._jumpSpeed - this._gravity * this._jumpTime;
         //distance travelled up since last frame to this frame (s=ut+1/2*at^2)
-        let jumpDist: number = js * dt - 0.5 * this.gravity * dt * dt;
-        this.jumpTime = this.jumpTime + dt;
+        let jumpDist: number = js * dt - 0.5 * this._gravity * dt * dt;
+        this._jumpTime = this._jumpTime + dt;
 
         let forwardDist: number = 0;
         let disp: Vector3;
-        this.avatar.rotation.y = -4.69 - this.camera.alpha;
-        if (this.wasRunning || this.wasWalking) {
-            if (this.wasRunning) {
-                forwardDist = this.runSpeed * dt;
-            } else if (this.wasWalking) {
-                forwardDist = this.walkSpeed * dt;
+        if (this.mode != 1) this._avatar.rotation.y = this._degree270 - this._camera.alpha;
+        if (this._wasRunning || this._wasWalking) {
+            if (this._wasRunning) {
+                forwardDist = this._runSpeed * dt;
+            } else if (this._wasWalking) {
+                forwardDist = this._walkSpeed * dt;
             }
             //find out in which horizontal direction the AV was moving when it started the jump
-            disp = this.moveVector.clone();
+            disp = this._moveVector.clone();
             disp.y = 0;
             disp = disp.normalize();
             disp.scaleToRef(forwardDist, disp);
             disp.y = jumpDist;
         } else {
             disp = new Vector3(0, jumpDist, 0);
-            anim = this.idleJump;
+            anim = this._idleJump;
             //this.avatar.ellipsoid.y=this._ellipsoid.y/2;
         }
         //moveWithCollision only seems to happen if length of displacment is atleast 0.001
-        this.avatar.moveWithCollisions(disp);
+        this._avatar.moveWithCollisions(disp);
         if (jumpDist < 0) {
             //this.avatar.ellipsoid.y=this._ellipsoid.y;
             //anim=this.fall;
             //check if going up a slope or back on flat ground 
-            if ((this.avatar.position.y > this.avStartPos.y) || ((this.avatar.position.y === this.avStartPos.y) && (disp.length() > 0.001))) {
-                this.endJump();
-            } else if (this.avatar.position.y < this.jumpStartPosY) {
+            if ((this._avatar.position.y > this._avStartPos.y) || ((this._avatar.position.y === this._avStartPos.y) && (disp.length() > 0.001))) {
+                this._endJump();
+            } else if (this._avatar.position.y < this._jumpStartPosY) {
                 //the avatar is below the point from where it started the jump
                 //so it is either in free fall or is sliding along a downward slope
                 //
                 //if the actual displacemnt is same as the desired displacement then AV is in freefall
                 //else it is on a slope
-                let actDisp: Vector3 = this.avatar.position.subtract(this.avStartPos);
-                if (!(this.areVectorsEqual(actDisp, disp, 0.001))) {
+                let actDisp: Vector3 = this._avatar.position.subtract(this._avStartPos);
+                if (!(this._areVectorsEqual(actDisp, disp, 0.001))) {
                     //AV is on slope
                     //Should AV continue to slide or stop?
                     //if slope is less steeper than acceptable then stop else slide
-                    if (this.verticalSlope(actDisp) <= this.sl) {
-                        this.endJump();
+                    if (this._verticalSlope(actDisp) <= this._sl) {
+                        this._endJump();
                     }
                 }
             }
@@ -519,343 +598,436 @@ export class CharacterController {
     /**
      * does cleanup at the end of a jump
      */
-    private endJump() {
-        this.key.jump = false;
-        this.jumpTime = 0;
-        this.wasWalking = false;
-        this.wasRunning = false;
+    private _endJump() {
+        this._act.jump = false;
+        this._jumpTime = 0;
+        this._wasWalking = false;
+        this._wasRunning = false;
 
     }
 
     /**
      * checks if two vectors v1 and v2 are equal within a precision of p
      */
-    private areVectorsEqual(v1: Vector3, v2: Vector3, p: number) {
+    private _areVectorsEqual(v1: Vector3, v2: Vector3, p: number) {
         return ((Math.abs(v1.x - v2.x) < p) && (Math.abs(v1.y - v2.y) < p) && (Math.abs(v1.z - v2.z) < p));
     }
     /*
      * returns the slope (in radians) of a vector in the vertical plane
      */
-    private verticalSlope(v: Vector3): number {
+    private _verticalSlope(v: Vector3): number {
         return Math.atan(Math.abs(v.y / Math.sqrt(v.x * v.x + v.z * v.z)));
     }
 
     //for how long has the av been falling while moving
-    private movFallTime: number = 0;
+    private _movFallTime: number = 0;
 
-    private doMove(dt: number): AnimData {
+
+    private _sign = 1;
+    private _turnedBack = false;
+    private _turnedForward = true;
+    // private _degree270 = -4.69;
+    private _degree270 = 3 * (Math.PI / 2);
+
+    private _doMove(dt: number): AnimData {
 
         //initial down velocity
-        let u: number = this.movFallTime * this.gravity
+        let u: number = this._movFallTime * this._gravity
         //calculate the distance by which av should fall down since last frame
         //assuming it is in freefall
-        this.freeFallDist = u * dt + this.gravity * dt * dt / 2;
+        this._freeFallDist = u * dt + this._gravity * dt * dt / 2;
 
-        this.movFallTime = this.movFallTime + dt;
+        this._movFallTime = this._movFallTime + dt;
 
         let moving: boolean = false;
         let anim: AnimData = null;
 
-        if (this.inFreeFall) {
-            this.moveVector.y = -this.freeFallDist;
+        if (this._inFreeFall) {
+            this._moveVector.y = -this._freeFallDist;
             moving = true;
         } else {
-            this.wasWalking = false;
-            this.wasRunning = false;
+            this._wasWalking = false;
+            this._wasRunning = false;
 
-            if (this.key.forward) {
+            if (this._act.forward) {
                 let forwardDist: number = 0;
-                if (this.key.shift) {
-                    this.wasRunning = true;
-                    forwardDist = this.runSpeed * dt;
-                    anim = this.run;
+                if (this._act.shift) {
+                    this._wasRunning = true;
+                    forwardDist = this._runSpeed * dt;
+                    anim = this._run;
                 } else {
-                    this.wasWalking = true;
-                    forwardDist = this.walkSpeed * dt;
-                    anim = this.walk;
+                    this._wasWalking = true;
+                    forwardDist = this._walkSpeed * dt;
+                    anim = this._walk;
                 }
-                this.moveVector = this.avatar.calcMovePOV(0, -this.freeFallDist, forwardDist);
+                if (this.mode != 1) {
+                    this._avatar.rotation.y = this._degree270 - this._camera.alpha;
+                } else {
+                    if (!this._turnedForward) {
+                        this._turnedForward = true;
+                        this._turnedBack = false;
+                        //this.avatar.rotation.y -= 3.14;
+                    }
+                }
+                this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, this._faceForward * forwardDist);
                 moving = true;
-            } else if (this.key.backward) {
-                this.moveVector = this.avatar.calcMovePOV(0, -this.freeFallDist, -(this.backSpeed * dt));
-                anim = this.walkBack;
+            } else if (this._act.backward) {
+                this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, -this._faceForward * (this._backSpeed * dt));
+                anim = this._walkBack;
                 moving = true;
-            } else if (this.key.stepLeft) {
-                anim = this.strafeLeft;
-                this.moveVector = this.avatar.calcMovePOV(-(this.leftSpeed * dt), -this.freeFallDist, 0);
+            } else if (this._act.stepLeft) {
+                anim = this._strafeLeft;
+                this._moveVector = this._avatar.calcMovePOV(this._signRHS * (this._leftSpeed * dt) * this._isAvFacingCamera(), -this._freeFallDist, 0);
                 moving = true;
-            } else if (this.key.stepRight) {
-                anim = this.strafeRight;
-                this.moveVector = this.avatar.calcMovePOV((this.rightSpeed * dt), -this.freeFallDist, 0);
+            } else if (this._act.stepRight) {
+                anim = this._strafeRight;
+                this._moveVector = this._avatar.calcMovePOV(-this._signRHS * (this._rightSpeed * dt) * this._isAvFacingCamera(), -this._freeFallDist, 0);
                 moving = true;
             }
         }
 
-        if (!this.key.stepLeft && !this.key.stepRight) {
-            if (this.key.turnLeft) {
-                this.camera.alpha = this.camera.alpha + 0.022;
-                if (!moving) {
-                    this.avatar.rotation.y = -4.69 - this.camera.alpha;
-                    anim = this.turnLeft;
+        if ((!this._act.stepLeft && !this._act.stepRight) && (this._act.turnLeft || this._act.turnRight)) {
+
+            if (this.mode == 1) {
+                // while turining, the avatar could start facing away from camera and end up facing camera.
+                // we should not switch turning direction during this transition
+                if (this._act.name != this._act.prevName) {
+                    this._act.prevName = this._act.name;
+                    this._sign = this._isAvFacingCamera();
                 }
-            } else if (this.key.turnRight) {
-                this.camera.alpha = this.camera.alpha - 0.022;
-                if (!moving) {
-                    this.avatar.rotation.y = -4.69 - this.camera.alpha;
-                    anim = this.turnRight;
+                if (this._act.turnLeft) {
+                    if (this._act.forward) this._avatar.rotation.y += this._turnSpeed * dt * this._sign;
+                    else if (this._act.backward) this._avatar.rotation.y -= this._turnSpeed * dt * this._sign;
+                    else {
+                        this._avatar.rotation.y += this._turnSpeed * dt * this._sign;
+                        anim = this._turnLeft;
+                    }
+                } else {
+                    if (this._act.forward) this._avatar.rotation.y -= this._turnSpeed * dt * this._sign;
+                    else if (this._act.backward) this._avatar.rotation.y += this._turnSpeed * dt * this._sign;
+                    else {
+                        this._avatar.rotation.y -= this._turnSpeed * dt * this._sign;
+                        anim = this._turnRight;
+                    }
                 }
+            } else {
+                if (this._act.turnLeft) {
+                    this._camera.alpha = this._camera.alpha + this._turnSpeed * dt;
+                    if (!moving) anim = this._turnLeft;
+                } else {
+                    this._camera.alpha = this._camera.alpha - this._turnSpeed * dt;
+                    if (!moving) anim = this._turnRight;
+                }
+                this._avatar.rotation.y = this._degree270 - this._camera.alpha;
             }
         }
 
         if (moving) {
-            this.avatar.rotation.y = -4.69 - this.camera.alpha;
-
-            if (this.moveVector.length() > 0.001) {
-                this.avatar.moveWithCollisions(this.moveVector);
+            //if (this.mode != 1) this._avatar.rotation.y = this._degree270 - this._camera.alpha;
+            if (this._moveVector.length() > 0.001) {
+                this._avatar.moveWithCollisions(this._moveVector);
                 //walking up a slope
-                if (this.avatar.position.y > this.avStartPos.y) {
-                    let actDisp: Vector3 = this.avatar.position.subtract(this.avStartPos);
-                    let _sl: number = this.verticalSlope(actDisp);
-                    if (_sl >= this.sl2) {
+                if (this._avatar.position.y > this._avStartPos.y) {
+                    let actDisp: Vector3 = this._avatar.position.subtract(this._avStartPos);
+                    let _sl: number = this._verticalSlope(actDisp);
+                    if (_sl >= this._sl2) {
                         //this._climbingSteps=true;
                         //is av trying to go up steps
                         if (this._stepOffset > 0) {
                             if (this._vMoveTot == 0) {
                                 //if just started climbing note down the position
-                                this._vMovStartPos.copyFrom(this.avStartPos);
+                                this._vMovStartPos.copyFrom(this._avStartPos);
                             }
-                            this._vMoveTot = this._vMoveTot + (this.avatar.position.y - this.avStartPos.y);
+                            this._vMoveTot = this._vMoveTot + (this._avatar.position.y - this._avStartPos.y);
                             if (this._vMoveTot > this._stepOffset) {
                                 //move av back to its position at begining of steps
                                 this._vMoveTot = 0;
-                                this.avatar.position.copyFrom(this._vMovStartPos);
-                                this.endFreeFall();
+                                this._avatar.position.copyFrom(this._vMovStartPos);
+                                this._endFreeFall();
                             }
                         } else {
                             //move av back to old position
-                            this.avatar.position.copyFrom(this.avStartPos);
-                            this.endFreeFall();
+                            this._avatar.position.copyFrom(this._avStartPos);
+                            this._endFreeFall();
                         }
                     } else {
                         this._vMoveTot = 0;
-                        if (_sl > this.sl) {
+                        if (_sl > this._sl) {
                             //av is on a steep slope , continue increasing the moveFallTIme to deaccelerate it
-                            this.fallFrameCount = 0;
-                            this.inFreeFall = false;
+                            this._fallFrameCount = 0;
+                            this._inFreeFall = false;
                         } else {
                             //continue walking
-                            this.endFreeFall();
+                            this._endFreeFall();
                         }
                     }
-                } else if ((this.avatar.position.y) < this.avStartPos.y) {
-                    let actDisp: Vector3 = this.avatar.position.subtract(this.avStartPos);
-                    if (!(this.areVectorsEqual(actDisp, this.moveVector, 0.001))) {
+                } else if ((this._avatar.position.y) < this._avStartPos.y) {
+                    let actDisp: Vector3 = this._avatar.position.subtract(this._avStartPos);
+                    if (!(this._areVectorsEqual(actDisp, this._moveVector, 0.001))) {
                         //AV is on slope
                         //Should AV continue to slide or walk?
                         //if slope is less steeper than acceptable then walk else slide
-                        if (this.verticalSlope(actDisp) <= this.sl) {
-                            this.endFreeFall();
+                        if (this._verticalSlope(actDisp) <= this._sl) {
+                            this._endFreeFall();
                         } else {
                             //av is on a steep slope , continue increasing the moveFallTIme to deaccelerate it
-                            this.fallFrameCount = 0;
-                            this.inFreeFall = false;
+                            this._fallFrameCount = 0;
+                            this._inFreeFall = false;
                         }
                     } else {
-                        this.inFreeFall = true;
-                        this.fallFrameCount++;
+                        this._inFreeFall = true;
+                        this._fallFrameCount++;
                         //AV could be running down a slope which mean freefall,run,frefall run ...
                         //to remove anim flicker, check if AV has been falling down continously for last few consecutive frames
                         //before changing to free fall animation
-                        if (this.fallFrameCount > this.fallFrameCountMin) {
-                            anim = this.fall;
+                        if (this._fallFrameCount > this._fallFrameCountMin) {
+                            anim = this._fall;
                         }
                     }
                 } else {
-                    this.endFreeFall();
+                    this._endFreeFall();
                 }
             }
         }
         return anim;
     }
 
-    private endFreeFall(): void {
-        this.movFallTime = 0;
-        this.fallFrameCount = 0;
-        this.inFreeFall = false;
+    private _endFreeFall(): void {
+        this._movFallTime = 0;
+        this._fallFrameCount = 0;
+        this._inFreeFall = false;
     }
 
     //for how long has the av been falling while idle (not moving)
-    private idleFallTime: number = 0;
-    private doIdle(dt: number): AnimData {
-        if (this.grounded) {
-            return this.idle;
+    private _idleFallTime: number = 0;
+    private _doIdle(dt: number): AnimData {
+        if (this._grounded) {
+            return this._idle;
         }
-        this.wasWalking = false;
-        this.wasRunning = false;
-        this.movFallTime = 0;
-        let anim: AnimData = this.idle;
-        this.fallFrameCount = 0;
+        this._wasWalking = false;
+        this._wasRunning = false;
+        this._movFallTime = 0;
+        let anim: AnimData = this._idle;
+        this._fallFrameCount = 0;
 
 
         if (dt === 0) {
-            this.freeFallDist = 5;
+            this._freeFallDist = 5;
         } else {
-            let u: number = this.idleFallTime * this.gravity
-            this.freeFallDist = u * dt + this.gravity * dt * dt / 2;
-            this.idleFallTime = this.idleFallTime + dt;
+            let u: number = this._idleFallTime * this._gravity
+            this._freeFallDist = u * dt + this._gravity * dt * dt / 2;
+            this._idleFallTime = this._idleFallTime + dt;
         }
         //if displacement is less than 0.01(? need to verify further) then 
         //moveWithDisplacement down against a surface seems to push the AV up by a small amount!!
-        if (this.freeFallDist < 0.01) return anim;
-        let disp: Vector3 = new Vector3(0, -this.freeFallDist, 0);;
-        this.avatar.rotation.y = -4.69 - this.camera.alpha;
-        this.avatar.moveWithCollisions(disp);
-        if ((this.avatar.position.y > this.avStartPos.y) || (this.avatar.position.y === this.avStartPos.y)) {
+        if (this._freeFallDist < 0.01) return anim;
+        let disp: Vector3 = new Vector3(0, -this._freeFallDist, 0);;
+        if (this.mode != 1) this._avatar.rotation.y = this._degree270 - this._camera.alpha;
+        this._avatar.moveWithCollisions(disp);
+        if ((this._avatar.position.y > this._avStartPos.y) || (this._avatar.position.y === this._avStartPos.y)) {
             //                this.grounded = true;
             //                this.idleFallTime = 0;
-            this.groundIt();
-        } else if (this.avatar.position.y < this.avStartPos.y) {
+            this._groundIt();
+        } else if (this._avatar.position.y < this._avStartPos.y) {
             //AV is going down. 
             //AV is either in free fall or is sliding along a downward slope
             //
             //if the actual displacemnt is same as the desired displacement then AV is in freefall
             //else it is on a slope
-            let actDisp: Vector3 = this.avatar.position.subtract(this.avStartPos);
-            if (!(this.areVectorsEqual(actDisp, disp, 0.001))) {
+            let actDisp: Vector3 = this._avatar.position.subtract(this._avStartPos);
+            if (!(this._areVectorsEqual(actDisp, disp, 0.001))) {
                 //AV is on slope
                 //Should AV continue to slide or stop?
                 //if slope is less steeper than accebtable then stop else slide
-                if (this.verticalSlope(actDisp) <= this.sl) {
+                if (this._verticalSlope(actDisp) <= this._sl) {
                     //                        this.grounded = true;
                     //                        this.idleFallTime = 0;
-                    this.groundIt();
-                    this.avatar.position.copyFrom(this.avStartPos);
+                    this._groundIt();
+                    this._avatar.position.copyFrom(this._avStartPos);
                 } else {
-                    this.unGroundIt();
-                    anim = this.slideBack;
+                    this._unGroundIt();
+                    anim = this._slideBack;
                 }
             }
         }
         return anim;
     }
 
-    private groundFrameCount = 0;
-    private groundFrameMax = 10;
+    private _groundFrameCount = 0;
+    private _groundFrameMax = 10;
     /**
      * donot ground immediately
      * wait few more frames
      */
-    private groundIt(): void {
-        this.groundFrameCount++;
-        if (this.groundFrameCount > this.groundFrameMax) {
-            this.grounded = true;
-            this.idleFallTime = 0;
+    private _groundIt(): void {
+        this._groundFrameCount++;
+        if (this._groundFrameCount > this._groundFrameMax) {
+            this._grounded = true;
+            this._idleFallTime = 0;
         }
     }
-    private unGroundIt() {
-        this.grounded = false;
-        this.groundFrameCount = 0;
+    private _unGroundIt() {
+        this._grounded = false;
+        this._groundFrameCount = 0;
     }
 
-    savedCameraCollision: boolean = true;
-    private updateTargetValue() {
+    private _savedCameraCollision: boolean = true;
+    private _inFP = false;
+    private _updateTargetValue() {
         //donot move camera if av is trying to clinb steps
         if (this._vMoveTot == 0)
-            this.avatar.position.addToRef(this.cameraTarget, this.camera.target);
+            this._avatar.position.addToRef(this._cameraTarget, this._camera.target);
 
-        if (this.camera.radius > this.camera.lowerRadiusLimit) { if (this.elasticCamera) this.snapCamera(); }
+        if (this._camera.radius > this._camera.lowerRadiusLimit) { if (this._elasticCamera) this._snapCamera(); }
 
-        if (this.camera.radius <= this.camera.lowerRadiusLimit) {
-            if (!this.noFirstPerson) {
-                this.avatar.visibility = 0;
-                this.camera.checkCollisions = false;
+        if (this._camera.radius <= this._camera.lowerRadiusLimit) {
+            if (!this._noFirstPerson && !this._inFP) {
+                this._avatar.visibility = 0;
+                this._camera.checkCollisions = false;
+                this._saveMode = this.mode;
+                this.mode = 0;
+                this._inFP = true;
             }
         } else {
-            this.avatar.visibility = 1;
-            this.camera.checkCollisions = this.savedCameraCollision;
+            this._inFP = false;
+            this.mode = this._saveMode;
+            this._avatar.visibility = 1;
+            this._camera.checkCollisions = this._savedCameraCollision;
         }
     }
 
-    ray: Ray = new Ray(Vector3.Zero(), Vector3.One(), 1);
-    rayDir: Vector3 = Vector3.Zero();
+    private _ray: Ray = new Ray(Vector3.Zero(), Vector3.One(), 1);
+    private _rayDir: Vector3 = Vector3.Zero();
     //camera seems to get stuck into things
     //should move camera away from things by a value of cameraSkin
-    cameraSkin: number = 0.5;
-    skip: number = 0;
-    private snapCamera() {
+    private _cameraSkin: number = 0.5;
+    private _skip: number = 0;
+    private _snapCamera() {
         //            if(this.skip<120) {
         //                this.skip++;
         //                return;
         //            }
         //            this.skip=0;
         //get vector from av (camera.target) to camera
-        this.camera.position.subtractToRef(this.camera.target, this.rayDir);
+        this._camera.position.subtractToRef(this._camera.target, this._rayDir);
         //start ray from av to camera
-        this.ray.origin = this.camera.target;
-        this.ray.length = this.rayDir.length();
-        this.ray.direction = this.rayDir.normalize();
+        this._ray.origin = this._camera.target;
+        this._ray.length = this._rayDir.length();
+        this._ray.direction = this._rayDir.normalize();
 
-        let pi: PickingInfo = this.scene.pickWithRay(this.ray, (mesh) => {
+        let pi: PickingInfo = this._scene.pickWithRay(this._ray, (mesh) => {
             //if(mesh==this.avatar||!mesh.isPickable||!mesh.checkCollisions) return false;
-            if (mesh == this.avatar || !mesh.checkCollisions) return false;
+            if (mesh == this._avatar || !mesh.checkCollisions) return false;
             else return true;
         }, true);
 
         if (pi.hit) {
             //postion the camera in front of the mesh that is obstructing camera
-            if (this.camera.checkCollisions) {
-                let newPos: Vector3 = this.camera.target.subtract(pi.pickedPoint).normalize().scale(this.cameraSkin);
-                pi.pickedPoint.addToRef(newPos, this.camera.position);
+            if (this._camera.checkCollisions) {
+                let newPos: Vector3 = this._camera.target.subtract(pi.pickedPoint).normalize().scale(this._cameraSkin);
+                pi.pickedPoint.addToRef(newPos, this._camera.position);
             } else {
-                let nr: number = pi.pickedPoint.subtract(this.camera.target).length();
-                this.camera.radius = nr - this.cameraSkin;
+                let nr: number = pi.pickedPoint.subtract(this._camera.target).length();
+                this._camera.radius = nr - this._cameraSkin;
             }
         }
     }
 
-    move: boolean = false;
+    private _move: boolean = false;
     public anyMovement(): boolean {
-        return (this.key.forward || this.key.backward || this.key.turnLeft || this.key.turnRight || this.key.stepLeft || this.key.stepRight);
+        return (this._act.forward || this._act.backward || this._act.turnLeft || this._act.turnRight || this._act.stepLeft || this._act.stepRight);
     }
 
-    private onKeyDown(e: Event) {
-        var event: KeyboardEvent = <KeyboardEvent>e;
-        var code: number = event.keyCode;
-        var chr: string = String.fromCharCode(code);
+    private _onKeyDown(e: Event) {
+        let event: KeyboardEvent = <KeyboardEvent>e;
+        let code: number = event.keyCode;
+        let chr: string = String.fromCharCode(code);
 
-        if ((chr === this.jumpKey) || (code === this.jumpCode)) this.key.jump = true;
-        else if (code === 16) this.key.shift = true;
+        if ((chr === this._jumpKey) || (code === this._jumpCode)) this._act.jump = true;
+        else if (code === 16) this._act.shift = true;
         //WASD or arrow keys
-        else if ((chr === this.walkKey) || (code === this.walkCode)) this.key.forward = true;
-        else if ((chr === this.turnLeftKey) || (code === this.turnLeftCode)) this.key.turnLeft = true;
-        else if ((chr === this.turnRightKey) || (code === this.turnRightCode)) this.key.turnRight = true;
-        else if ((chr === this.walkBackKey) || (code === this.walkBackCode)) this.key.backward = true;
-        else if ((chr === this.strafeLeftKey) || (code === this.strafeLeftCode)) this.key.stepLeft = true;
-        else if ((chr === this.strafeRightKey) || (code === this.strafeRightCode)) this.key.stepRight = true;
-        this.move = this.anyMovement();
+        else if ((chr === this._walkKey) || (code === this._walkCode)) this._act.forward = true;
+        else if ((chr === this._turnLeftKey) || (code === this._turnLeftCode)) { this._act.turnLeft = true; this._act.name = "tl" }
+        else if ((chr === this._turnRightKey) || (code === this._turnRightCode)) { this._act.turnRight = true; this._act.name = "tr" }
+        else if ((chr === this._walkBackKey) || (code === this._walkBackCode)) this._act.backward = true;
+        else if ((chr === this._strafeLeftKey) || (code === this._strafeLeftCode)) this._act.stepLeft = true;
+        else if ((chr === this._strafeRightKey) || (code === this._strafeRightCode)) this._act.stepRight = true;
+        this._move = this.anyMovement();
     }
 
-    private onKeyUp(e: Event) {
-        var event: KeyboardEvent = <KeyboardEvent>e;
-        var code: number = event.keyCode;
-        var chr: string = String.fromCharCode(code);
+    private _onKeyUp(e: Event) {
+        let event: KeyboardEvent = <KeyboardEvent>e;
+        let code: number = event.keyCode;
+        let chr: string = String.fromCharCode(code);
 
-        if (code === 16) { this.key.shift = false; }
+        if (code === 16) { this._act.shift = false; }
         //WASD or arrow keys
-        else if ((chr === this.walkKey) || (code === this.walkCode)) this.key.forward = false;
-        else if ((chr === this.turnLeftKey) || (code === this.turnLeftCode)) this.key.turnLeft = false;
-        else if ((chr === this.turnRightKey) || (code === this.turnRightCode)) this.key.turnRight = false;
-        else if ((chr === this.walkBackKey) || (code === this.walkBackCode)) this.key.backward = false;
-        else if ((chr === this.strafeLeftKey) || (code === this.strafeLeftCode)) this.key.stepLeft = false;
-        else if ((chr === this.strafeRightKey) || (code === this.strafeRightCode)) this.key.stepRight = false;
+        else if ((chr === this._walkKey) || (code === this._walkCode)) this._act.forward = false;
+        else if ((chr === this._turnLeftKey) || (code === this._turnLeftCode)) { this._act.turnLeft = false; this._act.name = ""; this._act.prevName = "" }
+        else if ((chr === this._turnRightKey) || (code === this._turnRightCode)) { this._act.turnRight = false; this._act.name = ""; this._act.prevName = "" }
+        else if ((chr === this._walkBackKey) || (code === this._walkBackCode)) this._act.backward = false;
+        else if ((chr === this._strafeLeftKey) || (code === this._strafeLeftCode)) this._act.stepLeft = false;
+        else if ((chr === this._strafeRightKey) || (code === this._strafeRightCode)) this._act.stepRight = false;
 
-        this.move = this.anyMovement();
+        this._move = this.anyMovement();
     }
 
-    private key: Key;
-    private renderer: () => void;
-    private handleKeyUp: (e) => void;
-    private handleKeyDown: (e) => void;
+    // control movement by commands rather than keyboard.
+    public disableKeyBoard() {
+        window.removeEventListener("keyup", this._handleKeyUp, false);
+        window.removeEventListener("keydown", this._handleKeyDown, false);
+    }
+
+    public enableKeyBoard() {
+        window.addEventListener("keyup", this._handleKeyUp, false);
+        window.addEventListener("keydown", this._handleKeyDown, false);
+    }
+
+    public walk(b: boolean) {
+        this._act.forward = b;
+    }
+    public walkBack(b: boolean) {
+        this._act.backward = b;
+    }
+    public run(b: boolean) {
+        this._act.forward = b;
+        this._act.shift = b;
+    }
+    public turnLeft(b: boolean) {
+        this._act.turnLeft = b;
+        if (b) this._act.name = "tl"
+        else {
+            this._act.name = "";
+            this._act.prevName = "";
+        }
+    }
+    public turnRight(b: boolean) {
+        this._act.turnRight = b;
+        if (b) this._act.name = "tr"
+        else {
+            this._act.name = "";
+            this._act.prevName = "";
+        }
+    }
+    public strafeLeft(b: boolean) {
+        this._act.stepLeft = b;
+    }
+    public strafeRight(b: boolean) {
+        this._act.stepRight = b;
+    }
+    public jump() {
+        this._act.jump = true;
+    }
+    public idle() {
+        this._act.reset();
+    }
+
+
+
+    private _act: Action;
+    private _renderer: () => void;
+    private _handleKeyUp: (e) => void;
+    private _handleKeyDown: (e) => void;
     private _isAG: boolean = false;
     private _hasAnims: boolean = false;
     /**
@@ -865,34 +1037,38 @@ export class CharacterController {
      * @param scene 
      * @param agMap map of animationRange name to animationRange
      */
-    constructor(avatar: Mesh, camera: ArcRotateCamera, scene: Scene, agMap?: {}) {
+    constructor(avatar: Mesh, camera: ArcRotateCamera, scene: Scene, agMap?: {}, faceForward?: boolean) {
 
-        this.avatar = avatar;
-        this.scene = scene;
+        this._avatar = avatar;
+
+        this._setRHS(avatar);
+        this.setFaceForward(faceForward);
+
+        this._scene = scene;
 
         if (agMap != null) {
             this._isAG = true;
             this.setAnimationGroups(agMap);
         }
 
-        if (this._isAG || this.skeleton !== null) {
+        if (this._isAG || this._skeleton !== null) {
             this._hasAnims = true;
         }
 
-        if (!this._isAG) this.skeleton = avatar.skeleton;
+        if (!this._isAG) this._skeleton = avatar.skeleton;
 
-        if (!this._isAG && this.skeleton != null) this.checkAnims(this.skeleton);
-        this.camera = camera;
-        this.savedCameraCollision = this.camera.checkCollisions;
+        if (!this._isAG && this._skeleton != null) this.checkAnims(this._skeleton);
+        this._camera = camera;
+        this._savedCameraCollision = this._camera.checkCollisions;
 
-        this.key = new Key();
+        this._act = new Action();
 
-        this.renderer = () => { this.moveAVandCamera() };
-        this.handleKeyUp = (e) => { this.onKeyUp(e) };
-        this.handleKeyDown = (e) => { this.onKeyDown(e) };
+        this._renderer = () => { this._moveAVandCamera() };
+        this._handleKeyUp = (e) => { this._onKeyUp(e) };
+        this._handleKeyDown = (e) => { this._onKeyDown(e) };
 
-        window.addEventListener("keyup", this.handleKeyUp, false);
-        window.addEventListener("keydown", this.handleKeyDown, false);
+        window.addEventListener("keyup", this._handleKeyUp, false);
+        window.addEventListener("keydown", this._handleKeyDown, false);
 
     }
 
@@ -912,7 +1088,7 @@ export class AnimData {
     }
 }
 
-export class Key {
+export class Action {
     public forward: boolean;
     public backward: boolean;
     public turnRight: boolean;
@@ -921,6 +1097,9 @@ export class Key {
     public stepLeft: boolean;
     public jump: boolean;
     public shift: boolean;
+
+    public name: string;
+    public prevName: string = "";
 
     constructor() {
         this.reset();
