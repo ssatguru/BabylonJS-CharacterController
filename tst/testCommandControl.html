@@ -48,11 +48,15 @@
         text-align: center;
       }
     </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="w3.css" media="screen" />
     <script src="/node_modules/babylonjs/babylon.max.js"></script>
     <script src="/node_modules/babylonjs-loaders/babylonjs.loaders.min.js"></script>
     <script src="/node_modules/babylonjs-inspector/babylon.inspector.bundle.js"></script>
 
-    <script src="http://localhost:8080/CharacterController.js"></script>
+    <!-- to test with live code (//localhost:8080) or build code (/dist)-->
+    <!-- <script src="http://localhost:8080/CharacterController.js"></script> -->
+    <script src="/dist/CharacterController.js"></script>
 
     <script src="testCommandControl.js"></script>
   </head>
@@ -60,8 +64,8 @@
   <body>
     <canvas id="renderCanvas"></canvas>
 
-    <div id="controls" style="visibility: hidden; background-color: pink;">
-      <ui style="list-style-type: none;">
+    <div id="controls" style="visibility: hidden; opacity: 0.9;" class="w3-round w3-card-4 w3-white">
+      <ui class="w3-ul w3-center">
         <li><button id="w">walk</button></li>
         <li><button id="wb">walkBack</button></li>
         <li><button id="r">run</button></li>
@@ -70,8 +74,8 @@
         <li><button id="tr">turnRight</button></li>
         <li><button id="sl">strafeLeft</button></li>
         <li><button id="sr">strafeRight</button></li>
-        <li><input type="radio" name="mode" id="tp" /> third person <input type="radio" name="mode" id="td" /> top down</li>
-        <li><input type="checkbox" id="kb" checked />Enable KeyBoard</li>
+        <li><input type="radio" name="mode" class="w3-radio w3-orange" id="tp" /> third person <input type="radio" name="mode" class="w3-radio" id="td" /> top down</li>
+        <li><input type="checkbox" id="kb" checked class="w3-check" />Enable KeyBoard</li>
         <li><button id="help">help</button></li>
       </ui>
     </div>

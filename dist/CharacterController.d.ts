@@ -164,7 +164,7 @@ export declare class CharacterController {
     turnRight(b: boolean): void;
     strafeLeft(b: boolean): void;
     strafeRight(b: boolean): void;
-    jump(b: boolean): void;
+    jump(): void;
     idle(): void;
     private _act;
     private _renderer;

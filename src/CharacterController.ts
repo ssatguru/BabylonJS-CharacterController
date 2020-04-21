@@ -676,12 +676,14 @@ export class CharacterController {
                 anim = this._walkBack;
                 moving = true;
             } else if (this._act.stepLeft) {
-                anim = this._strafeLeft;
-                this._moveVector = this._avatar.calcMovePOV(this._signRHS * (this._leftSpeed * dt) * this._isAvFacingCamera(), -this._freeFallDist, 0);
+                let sign = this._signRHS * this._isAvFacingCamera();
+                this._moveVector = this._avatar.calcMovePOV(sign * (this._leftSpeed * dt), -this._freeFallDist, 0);
+                anim = (sign > 0) ? this._strafeLeft : this._strafeRight;
                 moving = true;
             } else if (this._act.stepRight) {
-                anim = this._strafeRight;
-                this._moveVector = this._avatar.calcMovePOV(-this._signRHS * (this._rightSpeed * dt) * this._isAvFacingCamera(), -this._freeFallDist, 0);
+                let sign = -this._signRHS * this._isAvFacingCamera();
+                this._moveVector = this._avatar.calcMovePOV(sign * (this._rightSpeed * dt), -this._freeFallDist, 0);
+                anim = (sign > 0) ? this._strafeLeft : this._strafeRight;
                 moving = true;
             }
         }
@@ -700,14 +702,14 @@ export class CharacterController {
                     else if (this._act.backward) this._avatar.rotation.y -= this._turnSpeed * dt * this._sign;
                     else {
                         this._avatar.rotation.y += this._turnSpeed * dt * this._sign;
-                        anim = this._turnLeft;
+                        anim = (this._sign > 0) ? this._turnRight : this._turnLeft;
                     }
                 } else {
                     if (this._act.forward) this._avatar.rotation.y -= this._turnSpeed * dt * this._sign;
                     else if (this._act.backward) this._avatar.rotation.y += this._turnSpeed * dt * this._sign;
                     else {
                         this._avatar.rotation.y -= this._turnSpeed * dt * this._sign;
-                        anim = this._turnRight;
+                        anim = (this._sign > 0) ? this._turnLeft : this._turnRight;
                     }
                 }
             } else {

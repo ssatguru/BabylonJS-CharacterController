@@ -35,7 +35,7 @@ function main() {
 var cc;
 
 function loadPlayer(scene, engine, canvas) {
-  BABYLON.SceneLoader.ImportMesh("", "player/", "Vincent2.babylon", scene, (meshes, particleSystems, skeletons) => {
+  BABYLON.SceneLoader.ImportMesh("", "player/", "Vincent-frontFacing.babylon", scene, (meshes, particleSystems, skeletons) => {
     var player = meshes[0];
     var skeleton = skeletons[0];
     player.skeleton = skeleton;
@@ -81,7 +81,7 @@ function loadPlayer(scene, engine, canvas) {
     cc = new CharacterController(player, camera, scene);
     cc.setFaceForward(true);
     cc.setMode(0);
-    cc.setTurnSpeed(180);
+    cc.setTurnSpeed(45);
     //below makes the controller point the camera at the player head which is approx
     //1.5m above the player origin
     cc.setCameraTarget(new BABYLON.Vector3(0, 1.5, 0));
@@ -211,6 +211,12 @@ var start = "LightGreen ",
   stop = "LightSalmon  ";
 
 function setControls() {
+  const x = document.getElementsByTagName("button");
+  for (let e of x) {
+    e.style.backgroundColor = stop;
+    e.className = "w3-btn w3-border w3-round";
+  }
+
   document.getElementById("w").onclick = (e) => {
     cc.walk((w = !w));
     e.target.style.backgroundColor = w ? start : stop;
