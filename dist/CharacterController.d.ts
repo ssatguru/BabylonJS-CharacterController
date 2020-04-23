@@ -103,7 +103,8 @@ export declare class CharacterController {
     private _isRHS;
     private _signRHS;
     private _setRHS;
-    private _faceForward;
+    private _ffSign;
+    private _av2cam;
     setFaceForward(b: boolean): void;
     private checkAGs;
     private _started;
@@ -132,9 +133,6 @@ export declare class CharacterController {
     private _verticalSlope;
     private _movFallTime;
     private _sign;
-    private _turnedBack;
-    private _turnedForward;
-    private _degree270;
     private _doMove;
     private _endFreeFall;
     private _idleFallTime;

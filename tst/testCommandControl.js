@@ -57,7 +57,8 @@ function loadPlayer(scene, engine, canvas) {
 
     //rotate the camera behind the player
     //player.rotation.y = Math.PI / 4;
-    var alpha = -(Math.PI / 2 + player.rotation.y);
+    //var alpha = -(Math.PI / 2 + player.rotation.y);
+    var alpha = 0;
     var beta = Math.PI / 2.5;
     var target = new BABYLON.Vector3(player.position.x, player.position.y + 1.5, player.position.z);
 

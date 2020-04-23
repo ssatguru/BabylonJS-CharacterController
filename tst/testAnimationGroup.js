@@ -57,7 +57,7 @@ function main() {
 }
 
 function loadPlayer(scene, engine, canvas) {
-  BABYLON.SceneLoader.ImportMesh("", "player/", "Vincent.glb", scene, (meshes, particleSystems, skeletons) => {
+  BABYLON.SceneLoader.ImportMesh("", "player/", "Vincent-backFacing.glb", scene, (meshes, particleSystems, skeletons) => {
     var player = meshes[0];
 
     player.position = new BABYLON.Vector3(0, 12, 0);
@@ -73,7 +73,7 @@ function loadPlayer(scene, engine, canvas) {
     //rotate the camera behind the player
     //.glbs are RHS
     player.rotation.y = Math.PI / 4;
-    var alpha = Math.PI / 2 - player.rotation.y;
+    var alpha = (3 * Math.PI) / 2 - player.rotation.y;
     var beta = Math.PI / 2.5;
     var target = new BABYLON.Vector3(player.position.x, player.position.y + 1.5, player.position.z);
 
@@ -108,7 +108,7 @@ function loadPlayer(scene, engine, canvas) {
     }
     allAGs[0].stop();
 
-    var cc = new CharacterController(player, camera, scene, agMap, true);
+    var cc = new CharacterController(player, camera, scene, agMap, false);
     cc.setMode(1);
     //below makes the controller point the camera at the player head which is approx
     //1.5m above the player origin

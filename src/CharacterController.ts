@@ -371,7 +371,6 @@ export class CharacterController {
         * a RHS mesh in LHS system
         * The X axis will be reversed in such cases.
         * thus Cross product of X and Y should be inverse of Z.
-        * 
         * BABYLONJS GLB models are RHS and exhibit this behavior
         * 
         */
@@ -400,12 +399,17 @@ export class CharacterController {
      * Use setFaceForward(true|false) to indicate that the avatar face  faces forward (true) or backward (false).
      * The avatar face faces forward if its face points to positive local Z axis direction
      */
-    private _faceForward = -1;
+    private _ffSign;
+    //in mode 0, av2cam is used to align avatar with camera , with camera always facing avatar's back
+    //note:camera alpha is measured anti-clockwise , avatar rotation is measured clockwise 
+    private _av2cam;
     public setFaceForward(b: boolean) {
-        b ? this._faceForward = -1 : 1;
-        if (this._isRHS && b) {
-            this._degree270 = - this._degree270;
-            this._faceForward = 1;
+        if (this._isRHS) {
+            this._av2cam = b ? Math.PI / 2 : 3 * Math.PI / 2;
+            this._ffSign = b ? 1 : -1;
+        } else {
+            this._av2cam = b ? 3 * Math.PI / 2 : Math.PI / 2;
+            this._ffSign = b ? -1 : 1;
         }
     }
 
@@ -549,7 +553,7 @@ export class CharacterController {
 
         let forwardDist: number = 0;
         let disp: Vector3;
-        if (this.mode != 1) this._avatar.rotation.y = this._degree270 - this._camera.alpha;
+        if (this.mode != 1) this._avatar.rotation.y = this._av2cam - this._camera.alpha;
         if (this._wasRunning || this._wasWalking) {
             if (this._wasRunning) {
                 forwardDist = this._runSpeed * dt;
@@ -571,7 +575,6 @@ export class CharacterController {
         this._avatar.moveWithCollisions(disp);
         if (jumpDist < 0) {
             //this.avatar.ellipsoid.y=this._ellipsoid.y;
-            //anim=this.fall;
             //check if going up a slope or back on flat ground 
             if ((this._avatar.position.y > this._avStartPos.y) || ((this._avatar.position.y === this._avStartPos.y) && (disp.length() > 0.001))) {
                 this._endJump();
@@ -589,6 +592,8 @@ export class CharacterController {
                     if (this._verticalSlope(actDisp) <= this._sl) {
                         this._endJump();
                     }
+                } else {
+                    anim = this._fall;
                 }
             }
         }
@@ -624,10 +629,7 @@ export class CharacterController {
 
 
     private _sign = 1;
-    private _turnedBack = false;
-    private _turnedForward = true;
-    // private _degree270 = -4.69;
-    private _degree270 = 3 * (Math.PI / 2);
+
 
     private _doMove(dt: number): AnimData {
 
@@ -649,6 +651,9 @@ export class CharacterController {
             this._wasWalking = false;
             this._wasRunning = false;
 
+            if (this.mode != 1) {
+                this._avatar.rotation.y = this._av2cam - this._camera.alpha;
+            }
             if (this._act.forward) {
                 let forwardDist: number = 0;
                 if (this._act.shift) {
@@ -660,19 +665,10 @@ export class CharacterController {
                     forwardDist = this._walkSpeed * dt;
                     anim = this._walk;
                 }
-                if (this.mode != 1) {
-                    this._avatar.rotation.y = this._degree270 - this._camera.alpha;
-                } else {
-                    if (!this._turnedForward) {
-                        this._turnedForward = true;
-                        this._turnedBack = false;
-                        //this.avatar.rotation.y -= 3.14;
-                    }
-                }
-                this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, this._faceForward * forwardDist);
+                this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, this._ffSign * forwardDist);
                 moving = true;
             } else if (this._act.backward) {
-                this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, -this._faceForward * (this._backSpeed * dt));
+                this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, -this._ffSign * (this._backSpeed * dt));
                 anim = this._walkBack;
                 moving = true;
             } else if (this._act.stepLeft) {
@@ -695,37 +691,40 @@ export class CharacterController {
                 // we should not switch turning direction during this transition
                 if (this._act.name != this._act.prevName) {
                     this._act.prevName = this._act.name;
-                    this._sign = this._isAvFacingCamera();
+                    this._sign = -this._ffSign * this._isAvFacingCamera();
+                    if (this._isRHS) this._sign = - this._sign;
                 }
+                let a = this._sign;
                 if (this._act.turnLeft) {
-                    if (this._act.forward) this._avatar.rotation.y += this._turnSpeed * dt * this._sign;
-                    else if (this._act.backward) this._avatar.rotation.y -= this._turnSpeed * dt * this._sign;
+                    if (this._act.forward) { }
+                    else if (this._act.backward) a = -this._sign;
                     else {
-                        this._avatar.rotation.y += this._turnSpeed * dt * this._sign;
                         anim = (this._sign > 0) ? this._turnRight : this._turnLeft;
                     }
                 } else {
-                    if (this._act.forward) this._avatar.rotation.y -= this._turnSpeed * dt * this._sign;
-                    else if (this._act.backward) this._avatar.rotation.y += this._turnSpeed * dt * this._sign;
+                    if (this._act.forward) a = -this._sign;
+                    else if (this._act.backward) { }
                     else {
-                        this._avatar.rotation.y -= this._turnSpeed * dt * this._sign;
+                        a = -this._sign;
                         anim = (this._sign > 0) ? this._turnLeft : this._turnRight;
                     }
                 }
+                this._avatar.rotation.y = this._avatar.rotation.y + this._turnSpeed * dt * a;
             } else {
+                let a = 1;
                 if (this._act.turnLeft) {
-                    this._camera.alpha = this._camera.alpha + this._turnSpeed * dt;
+                    if (this._act.backward) a = -1;
                     if (!moving) anim = this._turnLeft;
                 } else {
-                    this._camera.alpha = this._camera.alpha - this._turnSpeed * dt;
-                    if (!moving) anim = this._turnRight;
+                    if (this._act.forward) a = -1;
+                    if (!moving) { a = -1; anim = this._turnRight; }
                 }
-                this._avatar.rotation.y = this._degree270 - this._camera.alpha;
+                this._camera.alpha = this._camera.alpha + a * this._turnSpeed * dt;
+                this._avatar.rotation.y = this._av2cam - this._camera.alpha;
             }
         }
 
         if (moving) {
-            //if (this.mode != 1) this._avatar.rotation.y = this._degree270 - this._camera.alpha;
             if (this._moveVector.length() > 0.001) {
                 this._avatar.moveWithCollisions(this._moveVector);
                 //walking up a slope
@@ -824,7 +823,7 @@ export class CharacterController {
         //moveWithDisplacement down against a surface seems to push the AV up by a small amount!!
         if (this._freeFallDist < 0.01) return anim;
         let disp: Vector3 = new Vector3(0, -this._freeFallDist, 0);;
-        if (this.mode != 1) this._avatar.rotation.y = this._degree270 - this._camera.alpha;
+        if (this.mode != 1) this._avatar.rotation.y = this._av2cam - this._camera.alpha;
         this._avatar.moveWithCollisions(disp);
         if ((this._avatar.position.y > this._avStartPos.y) || (this._avatar.position.y === this._avStartPos.y)) {
             //                this.grounded = true;
@@ -1039,7 +1038,7 @@ export class CharacterController {
      * @param scene 
      * @param agMap map of animationRange name to animationRange
      */
-    constructor(avatar: Mesh, camera: ArcRotateCamera, scene: Scene, agMap?: {}, faceForward?: boolean) {
+    constructor(avatar: Mesh, camera: ArcRotateCamera, scene: Scene, agMap?: {}, faceForward = false) {
 
         this._avatar = avatar;
 
