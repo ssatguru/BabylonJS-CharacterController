@@ -908,7 +908,7 @@ export class CharacterController {
 	private _onKeyDown(e: Event) {        
 		switch(e.key) 
 		{	
-			case " ":
+			case this._jumpKey:
 				this._act.jump = true;
 			break;
 			case "CapsLock":
