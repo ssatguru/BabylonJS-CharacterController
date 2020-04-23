@@ -905,7 +905,7 @@ export class CharacterController {
         return (this._act.forward || this._act.backward || this._act.turnLeft || this._act.turnRight || this._act.stepLeft || this._act.stepRight);
     } 
 	
-	private _onKeyDown(e) {        
+	private _onKeyDown(e: Event) {        
 		switch(e.key) 
 		{	
 			case " ":
@@ -945,7 +945,7 @@ export class CharacterController {
         this._move = this.anyMovement();
     }
 	
-    private _onKeyUp(e) {       
+    private _onKeyUp(e: Event) {       
 	    switch(e.key)
 		{	
 			case "Shift":
