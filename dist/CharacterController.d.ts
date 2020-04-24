@@ -39,13 +39,6 @@ export declare class CharacterController {
     private _strafeLeftKey;
     private _strafeRightKey;
     private _jumpKey;
-    private _walkCode;
-    private _walkBackCode;
-    private _turnLeftCode;
-    private _turnRightCode;
-    private _strafeLeftCode;
-    private _strafeRightCode;
-    private _jumpCode;
     private _elasticCamera;
     private _cameraTarget;
     private _noFirstPerson;
@@ -85,13 +78,6 @@ export declare class CharacterController {
     setStrafeLeftKey(key: string): void;
     setStrafeRightKey(key: string): void;
     setJumpKey(key: string): void;
-    setWalkCode(code: number): void;
-    setWalkBackCode(code: number): void;
-    setTurnLeftCode(code: number): void;
-    setTurnRightCode(code: number): void;
-    setStrafeLeftCode(code: number): void;
-    setStrafeRightCode(code: number): void;
-    setJumpCode(code: number): void;
     setCameraElasticity(b: boolean): void;
     setCameraTarget(v: Vector3): void;
     cameraCollisionChanged(): void;

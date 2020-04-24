@@ -273,25 +273,25 @@ export class CharacterController {
 
     // setters for keys
     public setWalkKey(key: string) {
-        this._walkKey = key
+        this._walkKey = key.toLowerCase();
     }
     public setWalkBackKey(key: string) {
-        this._walkBackKey = key
+        this._walkBackKey = key.toLowerCase();
     }
     public setTurnLeftKey(key: string) {
-        this._turnLeftKey = key
+        this._turnLeftKey = key.toLowerCase();
     }
     public setTurnRightKey(key: string) {
-        this._turnRightKey = key
+        this._turnRightKey = key.toLowerCase();
     }
     public setStrafeLeftKey(key: string) {
-        this._strafeLeftKey = key
+        this._strafeLeftKey = key.toLowerCase();
     }
     public setStrafeRightKey(key: string) {
-        this._strafeRightKey = key
+        this._strafeRightKey = key.toLowerCase();
     }
     public setJumpKey(key: string) {
-        this._jumpKey = key
+        this._jumpKey = key.toLowerCase();
     }
 
     public setCameraElasticity(b: boolean) {
@@ -906,35 +906,36 @@ export class CharacterController {
     }
 
     private _onKeyDown(e: KeyboardEvent) {
-        switch (e.key) {
+
+        switch (e.key.toLowerCase()) {
             case this._jumpKey:
                 this._act.jump = true;
                 break;
-            case "CapsLock":
+            case "capslock":
                 if (this._act.shift === false) {
                     this._act.shift = true;
                 } else {
                     this._act.shift = false;
                 }
                 break;
-            case "Shift":
+            case "shift":
                 this._act.shift = true;
                 break;
-            case "ArrowUp":
+            case "arrowup":
             case this._walkKey:
                 this._act.forward = true;
                 break;
-            case "ArrowLeft":
+            case "arrowleft":
             case this._turnLeftKey:
                 this._act.turnLeft = true;
                 this._act.name = "tl";
                 break;
-            case "ArrowRight":
+            case "arrowright":
             case this._turnRightKey:
                 this._act.turnRight = true;
                 this._act.name = "tr";
                 break;
-            case "ArrowDown":
+            case "arrowdown":
             case this._walkBackKey:
                 this._act.backward = true;
                 break;
@@ -949,27 +950,27 @@ export class CharacterController {
     }
 
     private _onKeyUp(e: KeyboardEvent) {
-        switch (e.key) {
-            case "Shift":
+        switch (e.key.toLowerCase()) {
+            case "shift":
                 this._act.shift = false;
                 break;
-            case "ArrowUp":
+            case "arrowup":
             case this._walkKey:
                 this._act.forward = false;
                 break;
-            case "ArrowLeft":
+            case "arrowleft":
             case this._turnLeftKey:
                 this._act.turnLeft = false;
                 this._act.name = "";
                 this._act.prevName = "";
                 break;
-            case "ArrowRight":
+            case "arrowright":
             case this._turnRightKey:
                 this._act.turnRight = false;
                 this._act.name = "";
                 this._act.prevName = "";
                 break;
-            case "ArrowDown":
+            case "arrowdown":
             case this._walkBackKey:
                 this._act.backward = false;
                 break;
