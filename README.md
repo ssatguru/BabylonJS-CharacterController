@@ -300,25 +300,26 @@ cc.setWalkAnim(null,null,true);
 
 By default the controller uses WASDQE, space and arrow keys to controll your player/avatar.
 
-- W-walk forward
-- shit+W-run
-- S-walk backward
-- A-turn left
-- D-turn right
-- Q-strafe left
-- E-strafe right.
-- space - jump
+- w-walk forward
+- Shit+w-run
+- CapsLock- run
+- s-walk backward
+- a-turn left
+- d-turn right
+- q-strafe left
+- e-strafe right.
+- " " - jump
 
 To change these use
 
 ```
-cc.setWalkKey(string:key); or cc.setWalkCode(number:keyCode);
-cc.setWalkBackKey(string:key); or cc.setWalkBackCode(number:keyCode);
-cc.setTurnLeftKey(string:key); or cc.setTurnLefttCode(number:keyCode);
-cc.setTurnRightKey(string:key); or cc.setTurnRightCode(number:keyCode);
-cc.setStrafeLeftKey(string:key); or cc.setStrafeLefttCode(number:keyCode);
-cc.setStrafeRightKey(string:key); or cc.setStrafeRightCode(number:keyCode);
-cc.setJumpKey(string:key); or cc.setJumpCode(number:keyCode);
+cc.setWalkKey(string:key);
+cc.setWalkBackKey(string:key);
+cc.setTurnLeftKey(string:key);
+cc.setTurnRightKey(string:key);
+cc.setStrafeLeftKey(string:key);
+cc.setStrafeRightKey(string:key);
+cc.setJumpKey(string:key);
 ```
 
 You can specify both key or a keycode.

@@ -40,7 +40,7 @@ export class CharacterController {
     //toal amount by which the av has moved up
     private _vMoveTot: number = 0;
     //position of av when it started moving up
-    private _vMovStartPos: Vector3 = new Vector3(0, 0, 0);
+    private _vMovStartPos: Vector3 = Vector3.Zero();
 
     //animations
     private _walk: AnimData = new AnimData("walk");
@@ -59,23 +59,16 @@ export class CharacterController {
     private _anims: AnimData[] = [this._walk, this._walkBack, this._idle, this._idleJump, this._run, this._runJump, this._fall, this._turnLeft, this._turnRight, this._strafeLeft, this._strafeRight, this._slideBack];
 
     //move keys
-    private _walkKey: string = "W";
-    private _walkBackKey: string = "S";
-    private _turnLeftKey: string = "A";
-    private _turnRightKey: string = "D";
-    private _strafeLeftKey: string = "Q";
-    private _strafeRightKey: string = "E";
-    private _jumpKey: string = "32";
-    private _walkCode: number = 38;
-    private _walkBackCode: number = 40;
-    private _turnLeftCode: number = 37;
-    private _turnRightCode: number = 39;
-    private _strafeLeftCode: number = 0;
-    private _strafeRightCode: number = 0;
-    private _jumpCode: number = 32;
-
+    private _walkKey: string = "w";
+    private _walkBackKey: string = "s";
+    private _turnLeftKey: string = "a";
+    private _turnRightKey: string = "d";
+    private _strafeLeftKey: string = "q";
+    private _strafeRightKey: string = "e";	
+    private _jumpKey: string = " ";
+	
     private _elasticCamera: boolean = true;
-    private _cameraTarget: Vector3 = new Vector3(0, 0, 0);
+    private _cameraTarget: Vector3 = Vector3.Zero();
     //should we go into first person view when camera is near avatar (radius is lowerradius limit)
     private _noFirstPerson: boolean = false;
 
@@ -299,29 +292,7 @@ export class CharacterController {
     }
     public setJumpKey(key: string) {
         this._jumpKey = key
-    }
-
-    public setWalkCode(code: number) {
-        this._walkCode = code
-    }
-    public setWalkBackCode(code: number) {
-        this._walkBackCode = code
-    }
-    public setTurnLeftCode(code: number) {
-        this._turnLeftCode = code
-    }
-    public setTurnRightCode(code: number) {
-        this._turnRightCode = code
-    }
-    public setStrafeLeftCode(code: number) {
-        this._strafeLeftCode = code
-    }
-    public setStrafeRightCode(code: number) {
-        this._strafeRightCode = code
-    }
-    public setJumpCode(code: number) {
-        this._jumpCode = code
-    }
+    }  
 
     public setCameraElasticity(b: boolean) {
         this._elasticCamera = b;
@@ -434,10 +405,7 @@ export class CharacterController {
         this._idleFallTime = 0.001;
         this._grounded = false;
         this._updateTargetValue();
-
-        window.addEventListener("keyup", this._handleKeyUp, false);
-        window.addEventListener("keydown", this._handleKeyDown, false);
-
+		this.enableKeyBoard();
         this._scene.registerBeforeRender(this._renderer);
         this._scene
     }
@@ -445,10 +413,8 @@ export class CharacterController {
     public stop() {
         if (!this._started) return;
         this._started = false;
-        this._scene.unregisterBeforeRender(this._renderer);
-        window.removeEventListener("keyup", this._handleKeyUp, false);
-        window.removeEventListener("keydown", this._handleKeyDown, false);
-
+        this._scene.unregisterBeforeRender(this._renderer);		
+        this.disableKeyBoard();
         this._prevAnim = null;
     }
 
@@ -474,7 +440,7 @@ export class CharacterController {
 
     private _prevAnim: AnimData = null;
 
-    private _avStartPos: Vector3 = new Vector3(0, 0, 0);
+    private _avStartPos: Vector3 = Vector3.Zero();
     private _grounded: boolean = false;
     //distance by which AV would move down if in freefall
     private _freeFallDist: number = 0;
@@ -937,40 +903,78 @@ export class CharacterController {
     private _move: boolean = false;
     public anyMovement(): boolean {
         return (this._act.forward || this._act.backward || this._act.turnLeft || this._act.turnRight || this._act.stepLeft || this._act.stepRight);
-    }
-
-    private _onKeyDown(e: Event) {
-        let event: KeyboardEvent = <KeyboardEvent>e;
-        let code: number = event.keyCode;
-        let chr: string = String.fromCharCode(code);
-
-        if ((chr === this._jumpKey) || (code === this._jumpCode)) this._act.jump = true;
-        else if (code === 16) this._act.shift = true;
-        //WASD or arrow keys
-        else if ((chr === this._walkKey) || (code === this._walkCode)) this._act.forward = true;
-        else if ((chr === this._turnLeftKey) || (code === this._turnLeftCode)) { this._act.turnLeft = true; this._act.name = "tl" }
-        else if ((chr === this._turnRightKey) || (code === this._turnRightCode)) { this._act.turnRight = true; this._act.name = "tr" }
-        else if ((chr === this._walkBackKey) || (code === this._walkBackCode)) this._act.backward = true;
-        else if ((chr === this._strafeLeftKey) || (code === this._strafeLeftCode)) this._act.stepLeft = true;
-        else if ((chr === this._strafeRightKey) || (code === this._strafeRightCode)) this._act.stepRight = true;
+    } 
+	
+	private _onKeyDown(e: Event) {        
+		switch(e.key) 
+		{	
+			case this._jumpKey:
+				this._act.jump = true;
+			break;
+			case "CapsLock":
+				if (this._act.shift === false) {
+					this._act.shift = true;
+				} else {
+					this._act.shift = false;
+				}
+			break;	        
+			case "Shift":
+				this._act.shift = true;  
+			break;	
+			case this._walkKey:
+				this._act.forward = true;
+			break;
+			case this._turnLeftKey:
+				this._act.turnLeft = true;
+				this._act.name = "tl";
+			break;
+			case this._turnRightKey:
+				this._act.turnRight = true;
+				this._act.name = "tr";
+			break;
+			case this._walkBackKey:
+				this._act.backward = true;
+			break;
+			case this._strafeLeftKey:
+				this._act.stepLeft = true;
+			break;
+			case this._strafeRightKey:
+				this._act.stepRight = true;
+			break;	
+		}		
         this._move = this.anyMovement();
     }
-
-    private _onKeyUp(e: Event) {
-        let event: KeyboardEvent = <KeyboardEvent>e;
-        let code: number = event.keyCode;
-        let chr: string = String.fromCharCode(code);
-
-        if (code === 16) { this._act.shift = false; }
-        //WASD or arrow keys
-        else if ((chr === this._walkKey) || (code === this._walkCode)) this._act.forward = false;
-        else if ((chr === this._turnLeftKey) || (code === this._turnLeftCode)) { this._act.turnLeft = false; this._act.name = ""; this._act.prevName = "" }
-        else if ((chr === this._turnRightKey) || (code === this._turnRightCode)) { this._act.turnRight = false; this._act.name = ""; this._act.prevName = "" }
-        else if ((chr === this._walkBackKey) || (code === this._walkBackCode)) this._act.backward = false;
-        else if ((chr === this._strafeLeftKey) || (code === this._strafeLeftCode)) this._act.stepLeft = false;
-        else if ((chr === this._strafeRightKey) || (code === this._strafeRightCode)) this._act.stepRight = false;
-
-        this._move = this.anyMovement();
+	
+    private _onKeyUp(e: Event) {       
+	    switch(e.key)
+		{	
+			case "Shift":
+				this._act.shift = false;
+			break;	
+			case this._walkKey:
+				this._act.forward = false;
+			break;	
+			case this._turnLeftKey:
+				this._act.turnLeft = false;
+				this._act.name = "";
+				this._act.prevName = "";
+			break;	
+			case this._turnRightKey:
+				this._act.turnRight = false;
+				this._act.name = "";
+				this._act.prevName = "";
+			break;	
+			case this._walkBackKey:
+				this._act.backward = false;
+			break;	
+			case this._strafeLeftKey:
+				this._act.stepLeft = false;
+			break;	
+			case this._strafeRightKey:
+				this._act.stepRight = false;
+			break;		
+		}		
+        this._move = this.anyMovement();		
     }
 
     // control movement by commands rather than keyboard.
@@ -1037,6 +1041,7 @@ export class CharacterController {
      * @param camera 
      * @param scene 
      * @param agMap map of animationRange name to animationRange
+	 * @param faceForward 
      */
     constructor(avatar: Mesh, camera: ArcRotateCamera, scene: Scene, agMap?: {}, faceForward = false) {
 
@@ -1067,14 +1072,7 @@ export class CharacterController {
         this._renderer = () => { this._moveAVandCamera() };
         this._handleKeyUp = (e) => { this._onKeyUp(e) };
         this._handleKeyDown = (e) => { this._onKeyDown(e) };
-
-        window.addEventListener("keyup", this._handleKeyUp, false);
-        window.addEventListener("keydown", this._handleKeyDown, false);
-
     }
-
-
-
 }
 
 export class AnimData {
@@ -1118,7 +1116,3 @@ export class Action {
     }
 
 }
-
-
-
-
