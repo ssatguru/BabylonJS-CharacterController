@@ -335,7 +335,6 @@ export class CharacterController {
         this._saveMode = n;
     }
 
-
     /**
         * checks if a have left hand , right hand issue.
         * In other words if a mesh is a LHS mesh in RHS system or 
@@ -348,13 +347,11 @@ export class CharacterController {
     private _isRHS = false;
     private _signRHS = -1;
     private _setRHS(mesh: TransformNode) {
-
-        let meshMatrix: Matrix = mesh.getWorldMatrix();
-        let _localX = Vector3.FromFloatArray(meshMatrix.m, 0);
-        let _localY = Vector3.FromFloatArray(meshMatrix.m, 4);
-        let _localZ = Vector3.FromFloatArray(meshMatrix.m, 8);
-
-        let actualZ = Vector3.Cross(_localX, _localY);
+        const meshMatrix: Matrix = mesh.getWorldMatrix();
+        const _localX = Vector3.FromFloatArray(meshMatrix.m, 0);
+        const _localY = Vector3.FromFloatArray(meshMatrix.m, 4);
+        const _localZ = Vector3.FromFloatArray(meshMatrix.m, 8);
+        const actualZ = Vector3.Cross(_localX, _localY);		
         //same direction or opposite direction of Z
         if (Vector3.Dot(actualZ, _localZ) < 0) {
             this._isRHS = true;
@@ -393,8 +390,6 @@ export class CharacterController {
         }
     }
 
-
-
     private _started: boolean = false;
     public start() {
         if (this._started) return;
@@ -407,7 +402,6 @@ export class CharacterController {
         this._updateTargetValue();
         this.enableKeyBoard();
         this._scene.registerBeforeRender(this._renderer);
-        this._scene
     }
 
     public stop() {
@@ -439,7 +433,6 @@ export class CharacterController {
     }
 
     private _prevAnim: AnimData = null;
-
     private _avStartPos: Vector3 = Vector3.Zero();
     private _grounded: boolean = false;
     //distance by which AV would move down if in freefall
@@ -469,7 +462,7 @@ export class CharacterController {
     private _moveAVandCamera() {
         this._avStartPos.copyFrom(this._avatar.position);
         let anim: AnimData = null;
-        let dt: number = this._scene.getEngine().getDeltaTime() / 1000;
+        const dt: number = this._scene.getEngine().getDeltaTime() / 1000;
 
         if (this._act.jump && !this._inFreeFall) {
             this._grounded = false;
@@ -480,7 +473,6 @@ export class CharacterController {
             this._idleFallTime = 0;
             anim = this._doMove(dt);
         } else if (!this._inFreeFall) {
-
             anim = this._doIdle(dt);
         }
         if (!this._stopAnim && this._hasAnims && anim != null) {
@@ -512,9 +504,9 @@ export class CharacterController {
             this._jumpStartPosY = this._avatar.position.y;
         }
         //up velocity at the begining of the lastt frame (v=u+at)
-        let js: number = this._jumpSpeed - this._gravity * this._jumpTime;
+        const js: number = this._jumpSpeed - this._gravity * this._jumpTime;
         //distance travelled up since last frame to this frame (s=ut+1/2*at^2)
-        let jumpDist: number = js * dt - 0.5 * this._gravity * dt * dt;
+        const jumpDist: number = js * dt - 0.5 * this._gravity * dt * dt;
         this._jumpTime = this._jumpTime + dt;
 
         let forwardDist: number = 0;
@@ -550,7 +542,7 @@ export class CharacterController {
                 //
                 //if the actual displacemnt is same as the desired displacement then AV is in freefall
                 //else it is on a slope
-                let actDisp: Vector3 = this._avatar.position.subtract(this._avStartPos);
+                const actDisp: Vector3 = this._avatar.position.subtract(this._avStartPos);
                 if (!(this._areVectorsEqual(actDisp, disp, 0.001))) {
                     //AV is on slope
                     //Should AV continue to slide or stop?
@@ -574,7 +566,6 @@ export class CharacterController {
         this._jumpTime = 0;
         this._wasWalking = false;
         this._wasRunning = false;
-
     }
 
     /**
@@ -583,6 +574,7 @@ export class CharacterController {
     private _areVectorsEqual(v1: Vector3, v2: Vector3, p: number) {
         return ((Math.abs(v1.x - v2.x) < p) && (Math.abs(v1.y - v2.y) < p) && (Math.abs(v1.z - v2.z) < p));
     }
+	
     /*
      * returns the slope (in radians) of a vector in the vertical plane
      */
@@ -592,15 +584,12 @@ export class CharacterController {
 
     //for how long has the av been falling while moving
     private _movFallTime: number = 0;
-
-
     private _sign = 1;
-
 
     private _doMove(dt: number): AnimData {
 
         //initial down velocity
-        let u: number = this._movFallTime * this._gravity
+        const u: number = this._movFallTime * this._gravity
         //calculate the distance by which av should fall down since last frame
         //assuming it is in freefall
         this._freeFallDist = u * dt + this._gravity * dt * dt / 2;
@@ -695,8 +684,8 @@ export class CharacterController {
                 this._avatar.moveWithCollisions(this._moveVector);
                 //walking up a slope
                 if (this._avatar.position.y > this._avStartPos.y) {
-                    let actDisp: Vector3 = this._avatar.position.subtract(this._avStartPos);
-                    let _sl: number = this._verticalSlope(actDisp);
+                    const actDisp: Vector3 = this._avatar.position.subtract(this._avStartPos);
+                    const _sl: number = this._verticalSlope(actDisp);
                     if (_sl >= this._sl2) {
                         //this._climbingSteps=true;
                         //is av trying to go up steps
@@ -729,7 +718,7 @@ export class CharacterController {
                         }
                     }
                 } else if ((this._avatar.position.y) < this._avStartPos.y) {
-                    let actDisp: Vector3 = this._avatar.position.subtract(this._avStartPos);
+                    const actDisp: Vector3 = this._avatar.position.subtract(this._avStartPos);
                     if (!(this._areVectorsEqual(actDisp, this._moveVector, 0.001))) {
                         //AV is on slope
                         //Should AV continue to slide or walk?
@@ -781,14 +770,14 @@ export class CharacterController {
         if (dt === 0) {
             this._freeFallDist = 5;
         } else {
-            let u: number = this._idleFallTime * this._gravity
+            const u: number = this._idleFallTime * this._gravity
             this._freeFallDist = u * dt + this._gravity * dt * dt / 2;
             this._idleFallTime = this._idleFallTime + dt;
         }
         //if displacement is less than 0.01(? need to verify further) then 
         //moveWithDisplacement down against a surface seems to push the AV up by a small amount!!
         if (this._freeFallDist < 0.01) return anim;
-        let disp: Vector3 = new Vector3(0, -this._freeFallDist, 0);;
+        const disp: Vector3 = new Vector3(0, -this._freeFallDist, 0);
         if (this.mode != 1) this._avatar.rotation.y = this._av2cam - this._camera.alpha;
         this._avatar.moveWithCollisions(disp);
         if ((this._avatar.position.y > this._avStartPos.y) || (this._avatar.position.y === this._avStartPos.y)) {
@@ -801,7 +790,7 @@ export class CharacterController {
             //
             //if the actual displacemnt is same as the desired displacement then AV is in freefall
             //else it is on a slope
-            let actDisp: Vector3 = this._avatar.position.subtract(this._avStartPos);
+            const actDisp: Vector3 = this._avatar.position.subtract(this._avStartPos);
             if (!(this._areVectorsEqual(actDisp, disp, 0.001))) {
                 //AV is on slope
                 //Should AV continue to slide or stop?
@@ -882,7 +871,7 @@ export class CharacterController {
         this._ray.length = this._rayDir.length();
         this._ray.direction = this._rayDir.normalize();
 
-        let pi: PickingInfo = this._scene.pickWithRay(this._ray, (mesh) => {
+        const pi: PickingInfo = this._scene.pickWithRay(this._ray, (mesh) => {
             //if(mesh==this.avatar||!mesh.isPickable||!mesh.checkCollisions) return false;
             if (mesh == this._avatar || !mesh.checkCollisions) return false;
             else return true;
@@ -891,10 +880,10 @@ export class CharacterController {
         if (pi.hit) {
             //postion the camera in front of the mesh that is obstructing camera
             if (this._camera.checkCollisions) {
-                let newPos: Vector3 = this._camera.target.subtract(pi.pickedPoint).normalize().scale(this._cameraSkin);
+                const newPos: Vector3 = this._camera.target.subtract(pi.pickedPoint).normalize().scale(this._cameraSkin);
                 pi.pickedPoint.addToRef(newPos, this._camera.position);
             } else {
-                let nr: number = pi.pickedPoint.subtract(this._camera.target).length();
+                const nr: number = pi.pickedPoint.subtract(this._camera.target).length();
                 this._camera.radius = nr - this._cameraSkin;
             }
         }
@@ -906,8 +895,8 @@ export class CharacterController {
     }
 
     private _onKeyDown(e: KeyboardEvent) {
-
-        switch (e.key.toLowerCase()) {
+        if(!e.key) return;
+        switch (e.key.toLowerCase()) {            
             case this._jumpKey:
                 this._act.jump = true;
                 break;
@@ -950,6 +939,7 @@ export class CharacterController {
     }
 
     private _onKeyUp(e: KeyboardEvent) {
+        if(!e.key) return;
         switch (e.key.toLowerCase()) {
             case "shift":
                 this._act.shift = false;
@@ -1033,8 +1023,6 @@ export class CharacterController {
     public idle() {
         this._act.reset();
     }
-
-
 
     private _act: Action;
     private _renderer: () => void;
@@ -1121,5 +1109,4 @@ export class Action {
         this.jump = false;
         this.shift = false;
     }
-
 }
