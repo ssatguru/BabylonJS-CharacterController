@@ -64,9 +64,9 @@ export class CharacterController {
     private _turnLeftKey: string = "a";
     private _turnRightKey: string = "d";
     private _strafeLeftKey: string = "q";
-    private _strafeRightKey: string = "e";	
+    private _strafeRightKey: string = "e";
     private _jumpKey: string = " ";
-	
+
     private _elasticCamera: boolean = true;
     private _cameraTarget: Vector3 = Vector3.Zero();
     //should we go into first person view when camera is near avatar (radius is lowerradius limit)
@@ -292,7 +292,7 @@ export class CharacterController {
     }
     public setJumpKey(key: string) {
         this._jumpKey = key
-    }  
+    }
 
     public setCameraElasticity(b: boolean) {
         this._elasticCamera = b;
@@ -405,7 +405,7 @@ export class CharacterController {
         this._idleFallTime = 0.001;
         this._grounded = false;
         this._updateTargetValue();
-		this.enableKeyBoard();
+        this.enableKeyBoard();
         this._scene.registerBeforeRender(this._renderer);
         this._scene
     }
@@ -413,7 +413,7 @@ export class CharacterController {
     public stop() {
         if (!this._started) return;
         this._started = false;
-        this._scene.unregisterBeforeRender(this._renderer);		
+        this._scene.unregisterBeforeRender(this._renderer);
         this.disableKeyBoard();
         this._prevAnim = null;
     }
@@ -903,78 +903,84 @@ export class CharacterController {
     private _move: boolean = false;
     public anyMovement(): boolean {
         return (this._act.forward || this._act.backward || this._act.turnLeft || this._act.turnRight || this._act.stepLeft || this._act.stepRight);
-    } 
-	
-	private _onKeyDown(e: Event) {        
-		switch(e.key) 
-		{	
-			case this._jumpKey:
-				this._act.jump = true;
-			break;
-			case "CapsLock":
-				if (this._act.shift === false) {
-					this._act.shift = true;
-				} else {
-					this._act.shift = false;
-				}
-			break;	        
-			case "Shift":
-				this._act.shift = true;  
-			break;	
-			case this._walkKey:
-				this._act.forward = true;
-			break;
-			case this._turnLeftKey:
-				this._act.turnLeft = true;
-				this._act.name = "tl";
-			break;
-			case this._turnRightKey:
-				this._act.turnRight = true;
-				this._act.name = "tr";
-			break;
-			case this._walkBackKey:
-				this._act.backward = true;
-			break;
-			case this._strafeLeftKey:
-				this._act.stepLeft = true;
-			break;
-			case this._strafeRightKey:
-				this._act.stepRight = true;
-			break;	
-		}		
+    }
+
+    private _onKeyDown(e: KeyboardEvent) {
+        switch (e.key) {
+            case this._jumpKey:
+                this._act.jump = true;
+                break;
+            case "CapsLock":
+                if (this._act.shift === false) {
+                    this._act.shift = true;
+                } else {
+                    this._act.shift = false;
+                }
+                break;
+            case "Shift":
+                this._act.shift = true;
+                break;
+            case "ArrowUp":
+            case this._walkKey:
+                this._act.forward = true;
+                break;
+            case "ArrowLeft":
+            case this._turnLeftKey:
+                this._act.turnLeft = true;
+                this._act.name = "tl";
+                break;
+            case "ArrowRight":
+            case this._turnRightKey:
+                this._act.turnRight = true;
+                this._act.name = "tr";
+                break;
+            case "ArrowDown":
+            case this._walkBackKey:
+                this._act.backward = true;
+                break;
+            case this._strafeLeftKey:
+                this._act.stepLeft = true;
+                break;
+            case this._strafeRightKey:
+                this._act.stepRight = true;
+                break;
+        }
         this._move = this.anyMovement();
     }
-	
-    private _onKeyUp(e: Event) {       
-	    switch(e.key)
-		{	
-			case "Shift":
-				this._act.shift = false;
-			break;	
-			case this._walkKey:
-				this._act.forward = false;
-			break;	
-			case this._turnLeftKey:
-				this._act.turnLeft = false;
-				this._act.name = "";
-				this._act.prevName = "";
-			break;	
-			case this._turnRightKey:
-				this._act.turnRight = false;
-				this._act.name = "";
-				this._act.prevName = "";
-			break;	
-			case this._walkBackKey:
-				this._act.backward = false;
-			break;	
-			case this._strafeLeftKey:
-				this._act.stepLeft = false;
-			break;	
-			case this._strafeRightKey:
-				this._act.stepRight = false;
-			break;		
-		}		
-        this._move = this.anyMovement();		
+
+    private _onKeyUp(e: KeyboardEvent) {
+        switch (e.key) {
+            case "Shift":
+                this._act.shift = false;
+                break;
+            case "ArrowUp":
+            case this._walkKey:
+                this._act.forward = false;
+                break;
+            case "ArrowLeft":
+            case this._turnLeftKey:
+                this._act.turnLeft = false;
+                this._act.name = "";
+                this._act.prevName = "";
+                break;
+            case "ArrowRight":
+            case this._turnRightKey:
+                this._act.turnRight = false;
+                this._act.name = "";
+                this._act.prevName = "";
+                break;
+            case "ArrowDown":
+            case this._walkBackKey:
+                this._act.backward = false;
+                break;
+            case this._strafeLeftKey:
+                this._act.stepLeft = false;
+                break;
+            case this._strafeRightKey:
+                this._act.stepRight = false;
+                break;
+        }
+        this._move = this.anyMovement();
     }
 
     // control movement by commands rather than keyboard.
