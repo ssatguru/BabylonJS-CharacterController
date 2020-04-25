@@ -67,7 +67,7 @@ export declare class CharacterController {
     setTurnRightAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
     setTurnLeftAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
     setStrafeRightAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
-    setSrafeLeftAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
+    setStrafeLeftAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
     setIdleJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
     setRunJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
     setFallAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;

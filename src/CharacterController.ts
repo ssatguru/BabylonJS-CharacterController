@@ -258,7 +258,7 @@ export class CharacterController {
     public setStrafeRightAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
         this.setAnim(this._strafeRight, rangeName, rate, loop);
     }
-    public setSrafeLeftAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+    public setStrafeLeftAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
         this.setAnim(this._strafeLeft, rangeName, rate, loop);
     }
     public setIdleJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
@@ -351,7 +351,7 @@ export class CharacterController {
         const _localX = Vector3.FromFloatArray(meshMatrix.m, 0);
         const _localY = Vector3.FromFloatArray(meshMatrix.m, 4);
         const _localZ = Vector3.FromFloatArray(meshMatrix.m, 8);
-        const actualZ = Vector3.Cross(_localX, _localY);		
+        const actualZ = Vector3.Cross(_localX, _localY);
         //same direction or opposite direction of Z
         if (Vector3.Dot(actualZ, _localZ) < 0) {
             this._isRHS = true;
@@ -574,7 +574,7 @@ export class CharacterController {
     private _areVectorsEqual(v1: Vector3, v2: Vector3, p: number) {
         return ((Math.abs(v1.x - v2.x) < p) && (Math.abs(v1.y - v2.y) < p) && (Math.abs(v1.z - v2.z) < p));
     }
-	
+
     /*
      * returns the slope (in radians) of a vector in the vertical plane
      */
@@ -895,8 +895,9 @@ export class CharacterController {
     }
 
     private _onKeyDown(e: KeyboardEvent) {
-        if(!e.key) return;
-        switch (e.key.toLowerCase()) {            
+        if (!e.key) return;
+        if (e.repeat) return;
+        switch (e.key.toLowerCase()) {
             case this._jumpKey:
                 this._act.jump = true;
                 break;
@@ -939,7 +940,8 @@ export class CharacterController {
     }
 
     private _onKeyUp(e: KeyboardEvent) {
-        if(!e.key) return;
+        if (!e.key) return;
+        if (e.repeat) return;
         switch (e.key.toLowerCase()) {
             case "shift":
                 this._act.shift = false;

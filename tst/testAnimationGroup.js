@@ -107,7 +107,6 @@ function loadPlayer(scene, engine, canvas) {
       agMap[allAGs[i].name] = allAGs[i];
     }
     allAGs[0].stop();
-
     var cc = new CharacterController(player, camera, scene, agMap, false);
     cc.setMode(1);
     //below makes the controller point the camera at the player head which is approx
