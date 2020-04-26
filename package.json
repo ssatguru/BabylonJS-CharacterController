@@ -27,7 +27,7 @@
     "webpack-dev-server": "^3.10.3"
   },
   "scripts": {
-    "start": "webpack-dev-server --open",
+    "start": "webpack-dev-server --open-page tst/test.html",
     "build-dev": "webpack --mode=development",
     "build": "webpack --mode=production"
   }

@@ -4,11 +4,12 @@ window.onload = function () {
 
 function main() {
   var helpButton = document.getElementById("help");
-  var showHelp = function () {
-    var el = document.getElementById("overlay");
+  var closeButton = document.getElementById("closehelp");
+  var el = document.getElementById("overlay");
+  helpButton.onclick = closeButton.onclick = () => {
     el.style.visibility = el.style.visibility == "visible" ? "hidden" : "visible";
   };
-  helpButton.onclick = showHelp;
+
   /*
    * The scene
    */
@@ -41,23 +42,6 @@ function main() {
 
   let groundMaterial = createGroundMaterial(scene);
   var ground = createGround(scene, groundMaterial);
-
-  //   var steps = BABYLON.MeshBuilder.CreateBox(
-  //     "Steps",
-  //     { width: 5, height: 0.25, depth: 5 },
-  //     scene
-  //   );
-  //   steps.position = new BABYLON.Vector3(0, 6.25, 5);
-  //   steps.checkCollisions = true;
-  //   steps.material = groundMaterial;
-
-  //   var step2 = steps.createInstance("step2");
-  //   step2.checkCollisions = true;
-  //   console.log(step2);
-  //   step2.scaling.x = 0.5;
-  //   step2.scaling.z = 0.5;
-  //   step2.scaling.y = 6;
-  //   step2.position.y = 6.5;
 
   loadPlayer(scene, engine, canvas);
 
@@ -110,7 +94,6 @@ function loadPlayer(scene, engine, canvas) {
     camera.upperRadiusLimit = 20;
     camera.attachControl(canvas, false);
 
-    //var CharacterController = org.ssatguru.babylonjs.component.CharacterController;
     var cc = new CharacterController(player, camera, scene);
     cc.setFaceForward(true);
     cc.setMode(1);
@@ -138,17 +121,12 @@ function loadPlayer(scene, engine, canvas) {
     cc.setWalkBackAnim("walkBack", 0.5, true);
     cc.setIdleJumpAnim("idleJump", 0.5, false);
     cc.setRunJumpAnim("runJump", 0.6, false);
-    //set the animation range name to "null" to prevent the controller from playing
-    //a player animation.
-    //here even though we have an animation range called "fall" we donot want to play
-    //the fall animation
     cc.setFallAnim("fall", 2, false);
     cc.setSlideBackAnim("slideBack", 1, false);
 
     cc.start();
 
     cc.idle();
-    //cc.turnLeft(true);
 
     engine.runRenderLoop(function () {
       scene.render();

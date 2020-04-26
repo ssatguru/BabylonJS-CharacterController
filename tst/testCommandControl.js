@@ -106,10 +106,6 @@ function loadPlayer(scene, engine, canvas) {
     cc.setWalkBackAnim("walkBack", 0.5, true);
     cc.setIdleJumpAnim("idleJump", 0.5, false);
     cc.setRunJumpAnim("runJump", 0.6, false);
-    //set the animation range name to "null" to prevent the controller from playing
-    //a player animation.
-    //here even though we have an animation range called "fall" we donot want to play
-    //the fall animation
     cc.setFallAnim("fall", 2, false);
     cc.setSlideBackAnim("slideBack", 1, false);
 
@@ -118,6 +114,7 @@ function loadPlayer(scene, engine, canvas) {
     engine.runRenderLoop(function () {
       scene.render();
     });
+
     cmds = [cc.walk, cc.walkBack, cc.run, cc.jump, cc.turnLeft, cc.turnRight, cc.strafeLeft, cc.strafeRight];
     showControls();
   });
@@ -208,8 +205,6 @@ var w,
   tr,
   sl,
   sr = false;
-var start = "LightGreen ",
-  stop = "LightSalmon  ";
 
 function toggleClass(e) {
   e.target.classList.toggle("w3-pale-red");

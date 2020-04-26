@@ -527,7 +527,6 @@ Run "npm install", once, to install all the dependencies.
 
 Start the development server  
 "npm run start"  
-This will start the live dev server on port 8080 and open the browser with the file http://localhost:8080/index.html.  
-This "index.html" in turn would redirect the browser to tst/test.html.  
+This will start the live dev server on port 8080 and open the browser with the file http://localhost:8080/tst/test.html.  
 The dev server will live compile your code any time you make changes and make "CharacterController.max.js" available at http://localhost:8080.  
-All the "test\*.html" thus point to http://localhost:8080/CharacterController.max.js to pick up CharacterController
+All the "test/\*.html" thus point to http://localhost:8080/CharacterController.max.js to pick up CharacterController

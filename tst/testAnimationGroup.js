@@ -4,19 +4,18 @@ window.onload = function () {
 
 function main() {
   var helpButton = document.getElementById("help");
-  var showHelp = function () {
-    var el = document.getElementById("overlay");
+  var el = document.getElementById("overlay");
+  var closeButton = document.getElementById("closehelp");
+  helpButton.onclick = closeButton.onclick = () => {
     el.style.visibility = el.style.visibility == "visible" ? "hidden" : "visible";
   };
-  helpButton.onclick = showHelp;
+
   /*
    * The scene
    */
   var canvas = document.querySelector("#renderCanvas");
   var engine = new BABYLON.Engine(canvas, true);
   var scene = new BABYLON.Scene(engine);
-
-  //scene.useRightHandedSystem = true;
 
   scene.clearColor = new BABYLON.Color3(0.75, 0.75, 0.75);
   scene.ambientColor = new BABYLON.Color3(1, 1, 1);
@@ -33,22 +32,6 @@ function main() {
   var groundMaterial = createGroundMaterial(scene);
   var ground = createGround(scene, groundMaterial);
 
-  //   var steps = BABYLON.MeshBuilder.CreateBox(
-  //     "Steps",
-  //     { width: 5, height: 0.25, depth: 5 },
-  //     scene
-  //   );
-  //   steps.position = new BABYLON.Vector3(0, 6.25, 5);
-  //   steps.checkCollisions = true;
-  //   steps.material = groundMaterial;
-
-  //   var step2 = steps.createInstance("step2");
-  //   step2.checkCollisions = true;
-  //   console.log(step2);
-  //   step2.scaling.x = 0.5;
-  //   step2.scaling.z = 0.5;
-  //   step2.scaling.y = 6;
-  //   step2.position.y = 6.5;
   loadPlayer(scene, engine, canvas);
 
   window.addEventListener("resize", function () {
@@ -97,9 +80,9 @@ function loadPlayer(scene, engine, canvas) {
     camera.attachControl(canvas, false);
 
     // provide all your animation groups as a map to the character controller
-    // the map should have a key whose value is the name of the character controller  aniamtion
+    // the map should have a key whose value is the name of the character controller  animation
     // and the value is the AnimationGroup corresponding to that animation.
-    // In our example the name of the AnimationGroup is the same as the name of name of the character controller  aniamtion
+    // In our example the name of the AnimationGroup is the same as the name of name of the character controller  animation
     // so the following will work.
     var agMap = {};
     var allAGs = scene.animationGroups;
@@ -107,6 +90,7 @@ function loadPlayer(scene, engine, canvas) {
       agMap[allAGs[i].name] = allAGs[i];
     }
     allAGs[0].stop();
+
     var cc = new CharacterController(player, camera, scene, agMap, false);
     cc.setMode(1);
     //below makes the controller point the camera at the player head which is approx
