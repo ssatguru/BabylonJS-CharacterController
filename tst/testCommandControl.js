@@ -13,7 +13,7 @@ function main() {
   scene.clearColor = new BABYLON.Color3(0.75, 0.75, 0.75);
   scene.ambientColor = new BABYLON.Color3(1, 1, 1);
 
-  //scene.debugLayer.show({ showExplorer: true, overlay: true });
+  // scene.debugLayer.show({ showExplorer: true, overlay: true });
 
   var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
   light.intensity = 0.3;
@@ -250,9 +250,6 @@ function setControls() {
 
   document.getElementById("tp").onclick = (e) => cc.setMode(0);
   document.getElementById("td").onclick = (e) => cc.setMode(1);
-  document.getElementById("kb").onclick = (e) => {
-    if (e.target.checked) cc.enableKeyBoard();
-    else cc.disableKeyBoard();
-  };
+  document.getElementById("kb").onclick = (e) => cc.enableKeyBoard(e.target.checked);
   document.getElementById("help").onclick = showHelp;
 }

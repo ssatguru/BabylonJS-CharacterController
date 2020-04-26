@@ -15,14 +15,14 @@
 
       #controls {
         position: absolute;
-        left: 10px;
-        top: 10px;
+        top: 0;
+        left: 0;
       }
 
       #renderCanvas {
         position: absolute;
         top: 0;
-        right: 0;
+        left: 0;
         width: 100%;
         height: 100%;
         touch-action: none;
@@ -62,7 +62,7 @@
   <body>
     <canvas id="renderCanvas"></canvas>
 
-    <div id="controls" style="visibility: hidden; opacity: 0.9;" class="w3-round w3-card-4 w3-grey">
+    <div id="controls" style="opacity: 0.9;" class="w3-round w3-card-4 w3-grey">
       <ui class="w3-ul w3-left">
         <li><button id="w">walk</button></li>
         <li><button id="wb">walkBack</button></li>
@@ -72,12 +72,12 @@
         <li><button id="tr">turnRight</button></li>
         <li><button id="sl">strafeLeft</button></li>
         <li><button id="sr">strafeRight</button></li>
-        <li class="w3-left">
+        <li>
           <input type="radio" checked name="mode" class="w3-radio w3-orange" id="tp" /> third person
           <br />
           <input type="radio" name="mode" class="w3-radio" id="td" /> top down
         </li>
-        <li><input type="checkbox" id="kb" checked class="w3-check" />Enable KeyBoard</li>
+        <li><input type="checkbox" id="kb" checked class="w3-check" />enable keyboard</li>
         <li><button id="help">help</button></li>
       </ui>
     </div>
@@ -87,7 +87,7 @@
         <h3>Demo of CharacterController for Babylonjs</h3>
         <p>
           For more information and source code, head on over to <br />
-          <a href="https://github.com/ssatguru/BabylonJS-CharacterController" target="link"> https://github.com/ssatguru/BabylonJS-CharacterController</a>
+          <a href="https://ssatguru.github.io/BabylonJS-CharacterController/" target="link"> https://ssatguru.github.io/BabylonJS-CharacterController/</a>
         </p>
         <button id="closehelp" onclick="showHelp();">close</button>
       </div>

@@ -402,7 +402,7 @@ export class CharacterController {
         this._idleFallTime = 0.001;
         this._grounded = false;
         this._updateTargetValue();
-        this.enableKeyBoard();
+        this.enableKeyBoard(true);
         this._scene.registerBeforeRender(this._renderer);
     }
 
@@ -410,7 +410,7 @@ export class CharacterController {
         if (!this._started) return;
         this._started = false;
         this._scene.unregisterBeforeRender(this._renderer);
-        this.disableKeyBoard();
+        this.enableKeyBoard(false);
         this._prevAnim = null;
     }
 
@@ -611,34 +611,40 @@ export class CharacterController {
             if (this.mode != 1) {
                 this._avatar.rotation.y = this._av2cam - this._camera.alpha;
             }
-            if (this._act._forward) {
-                let forwardDist: number = 0;
-                if (this._act._shift) {
-                    this._wasRunning = true;
-                    forwardDist = this._runSpeed * dt;
-                    anim = this._run;
-                } else {
-                    this._wasWalking = true;
-                    forwardDist = this._walkSpeed * dt;
-                    anim = this._walk;
-                }
-                this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, this._ffSign * forwardDist);
-                moving = true;
-            } else if (this._act._backward) {
-                this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, -this._ffSign * (this._backSpeed * dt));
-                anim = this._walkBack;
-                moving = true;
-            } else if (this._act._stepLeft) {
-                let sign = this._signRHS * this._isAvFacingCamera();
-                this._moveVector = this._avatar.calcMovePOV(sign * (this._leftSpeed * dt), -this._freeFallDist, 0);
-                anim = (sign > 0) ? this._strafeLeft : this._strafeRight;
-                moving = true;
-            } else if (this._act._stepRight) {
-                let sign = -this._signRHS * this._isAvFacingCamera();
-                this._moveVector = this._avatar.calcMovePOV(sign * (this._rightSpeed * dt), -this._freeFallDist, 0);
-                anim = (sign > 0) ? this._strafeLeft : this._strafeRight;
-                moving = true;
+            let sign: number;
+            switch (true) {
+                case (this._act._walk):
+                    let forwardDist: number = 0;
+                    if (this._act._walkMod) {
+                        this._wasRunning = true;
+                        forwardDist = this._runSpeed * dt;
+                        anim = this._run;
+                    } else {
+                        this._wasWalking = true;
+                        forwardDist = this._walkSpeed * dt;
+                        anim = this._walk;
+                    }
+                    this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, this._ffSign * forwardDist);
+                    moving = true;
+                    break;
+                case (this._act._walkback):
+                    this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, -this._ffSign * (this._backSpeed * dt));
+                    anim = this._walkBack;
+                    moving = true;
+                    break;
+                case (this._act._stepLeft):
+                    sign = this._signRHS * this._isAvFacingCamera();
+                    this._moveVector = this._avatar.calcMovePOV(sign * (this._leftSpeed * dt), -this._freeFallDist, 0);
+                    anim = (sign > 0) ? this._strafeLeft : this._strafeRight;
+                    moving = true;
+                    break;
+                case (this._act._stepRight):
+                    sign = -this._signRHS * this._isAvFacingCamera();
+                    this._moveVector = this._avatar.calcMovePOV(sign * (this._rightSpeed * dt), -this._freeFallDist, 0);
+                    anim = (sign > 0) ? this._strafeLeft : this._strafeRight;
+                    moving = true;
             }
+
         }
 
         if ((!this._act._stepLeft && !this._act._stepRight) && (this._act._turnLeft || this._act._turnRight)) {
@@ -654,14 +660,14 @@ export class CharacterController {
                 }
                 let a = this._sign;
                 if (this._act._turnLeft) {
-                    if (this._act._forward) { }
-                    else if (this._act._backward) a = -this._sign;
+                    if (this._act._walk) { }
+                    else if (this._act._walkback) a = -this._sign;
                     else {
                         anim = (this._sign > 0) ? this._turnRight : this._turnLeft;
                     }
                 } else {
-                    if (this._act._forward) a = -this._sign;
-                    else if (this._act._backward) { }
+                    if (this._act._walk) a = -this._sign;
+                    else if (this._act._walkback) { }
                     else {
                         a = -this._sign;
                         anim = (this._sign > 0) ? this._turnLeft : this._turnRight;
@@ -671,10 +677,10 @@ export class CharacterController {
             } else {
                 let a = 1;
                 if (this._act._turnLeft) {
-                    if (this._act._backward) a = -1;
+                    if (this._act._walkback) a = -1;
                     if (!moving) anim = this._turnLeft;
                 } else {
-                    if (this._act._forward) a = -1;
+                    if (this._act._walk) a = -1;
                     if (!moving) { a = -1; anim = this._turnRight; }
                 }
                 this._camera.alpha = this._camera.alpha + a * this._turnSpeed * dt;
@@ -894,7 +900,7 @@ export class CharacterController {
 
     private _move: boolean = false;
     public anyMovement(): boolean {
-        return (this._act._forward || this._act._backward || this._act._turnLeft || this._act._turnRight || this._act._stepLeft || this._act._stepRight);
+        return (this._act._walk || this._act._walkback || this._act._turnLeft || this._act._turnRight || this._act._stepLeft || this._act._stepRight);
     }
 
     private _onKeyDown(e: KeyboardEvent) {
@@ -905,14 +911,14 @@ export class CharacterController {
                 this._act._jump = true;
                 break;
             case "capslock":
-                this._act._shift = !this._act._shift;
+                this._act._walkMod = !this._act._walkMod;
                 break;
             case "shift":
-                this._act._shift = true;
+                this._act._walkMod = true;
                 break;
             case "arrowup":
             case this._walkKey:
-                this._act._forward = true;
+                this._act._walk = true;
                 break;
             case "arrowleft":
             case this._turnLeftKey:
@@ -924,7 +930,7 @@ export class CharacterController {
                 break;
             case "arrowdown":
             case this._walkBackKey:
-                this._act._backward = true;
+                this._act._walkback = true;
                 break;
             case this._strafeLeftKey:
                 this._act._stepLeft = true;
@@ -940,11 +946,11 @@ export class CharacterController {
         if (!e.key) return;
         switch (e.key.toLowerCase()) {
             case "shift":
-                this._act._shift = false;
+                this._act._walkMod = false;
                 break;
             case "arrowup":
             case this._walkKey:
-                this._act._forward = false;
+                this._act._walk = false;
                 break;
             case "arrowleft":
             case this._turnLeftKey:
@@ -958,7 +964,7 @@ export class CharacterController {
                 break;
             case "arrowdown":
             case this._walkBackKey:
-                this._act._backward = false;
+                this._act._walkback = false;
                 break;
             case this._strafeLeftKey:
                 this._act._stepLeft = false;
@@ -970,26 +976,34 @@ export class CharacterController {
         this._move = this.anyMovement();
     }
 
+
+    // public disableKeyBoard() {
+    //     let canvas: HTMLCanvasElement = this._scene.getEngine().getRenderingCanvas();
+    //     canvas.removeEventListener("keyup", this._handleKeyUp, false);
+    //     canvas.removeEventListener("keydown", this._handleKeyDown, false);
+    // }
+
+    public enableKeyBoard(b: boolean) {
+        let canvas: HTMLCanvasElement = this._scene.getEngine().getRenderingCanvas();
+        if (b) {
+            canvas.addEventListener("keyup", this._handleKeyUp, false);
+            canvas.addEventListener("keydown", this._handleKeyDown, false);
+        } else {
+            canvas.removeEventListener("keyup", this._handleKeyUp, false);
+            canvas.removeEventListener("keydown", this._handleKeyDown, false);
+        }
+    }
+
     // control movement by commands rather than keyboard.
-    public disableKeyBoard() {
-        window.removeEventListener("keyup", this._handleKeyUp, false);
-        window.removeEventListener("keydown", this._handleKeyDown, false);
-    }
-
-    public enableKeyBoard() {
-        window.addEventListener("keyup", this._handleKeyUp, false);
-        window.addEventListener("keydown", this._handleKeyDown, false);
-    }
-
     public walk(b: boolean) {
-        this._act._forward = b;
+        this._act._walk = b;
     }
     public walkBack(b: boolean) {
-        this._act._backward = b;
+        this._act._walkback = b;
     }
     public run(b: boolean) {
-        this._act._forward = b;
-        this._act._shift = b;
+        this._act._walk = b;
+        this._act._walkMod = b;
     }
     public turnLeft(b: boolean) {
         this._act._turnLeft = b;
@@ -1071,27 +1085,29 @@ class _AnimData {
 }
 
 class _Action {
-    public _forward: boolean;
-    public _backward: boolean;
-    public _turnRight: boolean;
-    public _turnLeft: boolean;
-    public _stepRight: boolean;
-    public _stepLeft: boolean;
-    public _jump: boolean;
-    public _shift: boolean;
+    public _walk: boolean = false;
+    public _walkback: boolean = false;
+    // walk modifier - modifies walk to run
+    public _walkMod: boolean = false;
+    public _turnRight: boolean = false;
+    public _turnLeft: boolean = false;
+    public _stepRight: boolean = false;
+    public _stepLeft: boolean = false;
+    public _jump: boolean = false;
+
 
     constructor() {
         this.reset();
     }
 
     reset() {
-        this._forward = false;
-        this._backward = false;
+        this._walk = false;
+        this._walkback = false;
         this._turnRight = false;
         this._turnLeft = false;
         this._stepRight = false;
         this._stepLeft = false;
         this._jump = false;
-        this._shift = false;
+        this._walkMod = false;
     }
 }

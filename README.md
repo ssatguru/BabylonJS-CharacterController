@@ -411,13 +411,15 @@ cc.walk(false); // will stop walking the Avatar.
 
 #### Enabling/Disabling the KeyBoard controll
 
-Sometime when you are controlling the movement of the Avatar programmatically as shown above you might want to disable the keyboard.  
-Use the following methods to enable disable the keyboard.
+Sometimes, when you are controlling the movement of the Avatar programmatically as shown above, you might want to disable the keyboard.  
+Use the following method to enable disable the keyboard.
 
 ```
-cc.enableKeyBoard();
-cc.disableKeyBoard();
+cc.enableKeyBoard(b:boolean);
 ```
+
+cc.enableKeyBoard(true) enables the keyboard  
+cc.enableKeyBoard(false) disables the keyboard
 
 #### To change gravity or speed at which avatar/player is moved
 

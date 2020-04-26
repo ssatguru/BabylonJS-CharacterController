@@ -140,8 +140,7 @@ export declare class CharacterController {
     anyMovement(): boolean;
     private _onKeyDown;
     private _onKeyUp;
-    disableKeyBoard(): void;
-    enableKeyBoard(): void;
+    enableKeyBoard(b: boolean): void;
     walk(b: boolean): void;
     walkBack(b: boolean): void;
     run(b: boolean): void;

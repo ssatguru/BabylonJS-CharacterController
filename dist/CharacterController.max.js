@@ -465,7 +465,7 @@ var CharacterController = (function () {
         this._idleFallTime = 0.001;
         this._grounded = false;
         this._updateTargetValue();
-        this.enableKeyBoard();
+        this.enableKeyBoard(true);
         this._scene.registerBeforeRender(this._renderer);
     };
     CharacterController.prototype.stop = function () {
@@ -473,7 +473,7 @@ var CharacterController = (function () {
             return;
         this._started = false;
         this._scene.unregisterBeforeRender(this._renderer);
-        this.disableKeyBoard();
+        this.enableKeyBoard(false);
         this._prevAnim = null;
     };
     CharacterController.prototype.pauseAnim = function () {
@@ -600,37 +600,39 @@ var CharacterController = (function () {
             if (this.mode != 1) {
                 this._avatar.rotation.y = this._av2cam - this._camera.alpha;
             }
-            if (this._act._forward) {
-                var forwardDist = 0;
-                if (this._act._shift) {
-                    this._wasRunning = true;
-                    forwardDist = this._runSpeed * dt;
-                    anim = this._run;
-                }
-                else {
-                    this._wasWalking = true;
-                    forwardDist = this._walkSpeed * dt;
-                    anim = this._walk;
-                }
-                this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, this._ffSign * forwardDist);
-                moving = true;
-            }
-            else if (this._act._backward) {
-                this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, -this._ffSign * (this._backSpeed * dt));
-                anim = this._walkBack;
-                moving = true;
-            }
-            else if (this._act._stepLeft) {
-                var sign = this._signRHS * this._isAvFacingCamera();
-                this._moveVector = this._avatar.calcMovePOV(sign * (this._leftSpeed * dt), -this._freeFallDist, 0);
-                anim = (sign > 0) ? this._strafeLeft : this._strafeRight;
-                moving = true;
-            }
-            else if (this._act._stepRight) {
-                var sign = -this._signRHS * this._isAvFacingCamera();
-                this._moveVector = this._avatar.calcMovePOV(sign * (this._rightSpeed * dt), -this._freeFallDist, 0);
-                anim = (sign > 0) ? this._strafeLeft : this._strafeRight;
-                moving = true;
+            var sign = void 0;
+            switch (true) {
+                case (this._act._walk):
+                    var forwardDist = 0;
+                    if (this._act._walkMod) {
+                        this._wasRunning = true;
+                        forwardDist = this._runSpeed * dt;
+                        anim = this._run;
+                    }
+                    else {
+                        this._wasWalking = true;
+                        forwardDist = this._walkSpeed * dt;
+                        anim = this._walk;
+                    }
+                    this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, this._ffSign * forwardDist);
+                    moving = true;
+                    break;
+                case (this._act._walkback):
+                    this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, -this._ffSign * (this._backSpeed * dt));
+                    anim = this._walkBack;
+                    moving = true;
+                    break;
+                case (this._act._stepLeft):
+                    sign = this._signRHS * this._isAvFacingCamera();
+                    this._moveVector = this._avatar.calcMovePOV(sign * (this._leftSpeed * dt), -this._freeFallDist, 0);
+                    anim = (sign > 0) ? this._strafeLeft : this._strafeRight;
+                    moving = true;
+                    break;
+                case (this._act._stepRight):
+                    sign = -this._signRHS * this._isAvFacingCamera();
+                    this._moveVector = this._avatar.calcMovePOV(sign * (this._rightSpeed * dt), -this._freeFallDist, 0);
+                    anim = (sign > 0) ? this._strafeLeft : this._strafeRight;
+                    moving = true;
             }
         }
         if ((!this._act._stepLeft && !this._act._stepRight) && (this._act._turnLeft || this._act._turnRight)) {
@@ -643,17 +645,17 @@ var CharacterController = (function () {
                 }
                 var a = this._sign;
                 if (this._act._turnLeft) {
-                    if (this._act._forward) { }
-                    else if (this._act._backward)
+                    if (this._act._walk) { }
+                    else if (this._act._walkback)
                         a = -this._sign;
                     else {
                         anim = (this._sign > 0) ? this._turnRight : this._turnLeft;
                     }
                 }
                 else {
-                    if (this._act._forward)
+                    if (this._act._walk)
                         a = -this._sign;
-                    else if (this._act._backward) { }
+                    else if (this._act._walkback) { }
                     else {
                         a = -this._sign;
                         anim = (this._sign > 0) ? this._turnLeft : this._turnRight;
@@ -664,13 +666,13 @@ var CharacterController = (function () {
             else {
                 var a = 1;
                 if (this._act._turnLeft) {
-                    if (this._act._backward)
+                    if (this._act._walkback)
                         a = -1;
                     if (!moving)
                         anim = this._turnLeft;
                 }
                 else {
-                    if (this._act._forward)
+                    if (this._act._walk)
                         a = -1;
                     if (!moving) {
                         a = -1;
@@ -845,7 +847,7 @@ var CharacterController = (function () {
         }
     };
     CharacterController.prototype.anyMovement = function () {
-        return (this._act._forward || this._act._backward || this._act._turnLeft || this._act._turnRight || this._act._stepLeft || this._act._stepRight);
+        return (this._act._walk || this._act._walkback || this._act._turnLeft || this._act._turnRight || this._act._stepLeft || this._act._stepRight);
     };
     CharacterController.prototype._onKeyDown = function (e) {
         if (!e.key)
@@ -857,14 +859,14 @@ var CharacterController = (function () {
                 this._act._jump = true;
                 break;
             case "capslock":
-                this._act._shift = !this._act._shift;
+                this._act._walkMod = !this._act._walkMod;
                 break;
             case "shift":
-                this._act._shift = true;
+                this._act._walkMod = true;
                 break;
             case "arrowup":
             case this._walkKey:
-                this._act._forward = true;
+                this._act._walk = true;
                 break;
             case "arrowleft":
             case this._turnLeftKey:
@@ -876,7 +878,7 @@ var CharacterController = (function () {
                 break;
             case "arrowdown":
             case this._walkBackKey:
-                this._act._backward = true;
+                this._act._walkback = true;
                 break;
             case this._strafeLeftKey:
                 this._act._stepLeft = true;
@@ -892,11 +894,11 @@ var CharacterController = (function () {
             return;
         switch (e.key.toLowerCase()) {
             case "shift":
-                this._act._shift = false;
+                this._act._walkMod = false;
                 break;
             case "arrowup":
             case this._walkKey:
-                this._act._forward = false;
+                this._act._walk = false;
                 break;
             case "arrowleft":
             case this._turnLeftKey:
@@ -910,7 +912,7 @@ var CharacterController = (function () {
                 break;
             case "arrowdown":
             case this._walkBackKey:
-                this._act._backward = false;
+                this._act._walkback = false;
                 break;
             case this._strafeLeftKey:
                 this._act._stepLeft = false;
@@ -921,23 +923,26 @@ var CharacterController = (function () {
         }
         this._move = this.anyMovement();
     };
-    CharacterController.prototype.disableKeyBoard = function () {
-        window.removeEventListener("keyup", this._handleKeyUp, false);
-        window.removeEventListener("keydown", this._handleKeyDown, false);
-    };
-    CharacterController.prototype.enableKeyBoard = function () {
-        window.addEventListener("keyup", this._handleKeyUp, false);
-        window.addEventListener("keydown", this._handleKeyDown, false);
+    CharacterController.prototype.enableKeyBoard = function (b) {
+        var canvas = this._scene.getEngine().getRenderingCanvas();
+        if (b) {
+            canvas.addEventListener("keyup", this._handleKeyUp, false);
+            canvas.addEventListener("keydown", this._handleKeyDown, false);
+        }
+        else {
+            canvas.removeEventListener("keyup", this._handleKeyUp, false);
+            canvas.removeEventListener("keydown", this._handleKeyDown, false);
+        }
     };
     CharacterController.prototype.walk = function (b) {
-        this._act._forward = b;
+        this._act._walk = b;
     };
     CharacterController.prototype.walkBack = function (b) {
-        this._act._backward = b;
+        this._act._walkback = b;
     };
     CharacterController.prototype.run = function (b) {
-        this._act._forward = b;
-        this._act._shift = b;
+        this._act._walk = b;
+        this._act._walkMod = b;
     };
     CharacterController.prototype.turnLeft = function (b) {
         this._act._turnLeft = b;
@@ -973,17 +978,25 @@ var _AnimData = (function () {
 }());
 var _Action = (function () {
     function _Action() {
-        this.reset();
-    }
-    _Action.prototype.reset = function () {
-        this._forward = false;
-        this._backward = false;
+        this._walk = false;
+        this._walkback = false;
+        this._walkMod = false;
         this._turnRight = false;
         this._turnLeft = false;
         this._stepRight = false;
         this._stepLeft = false;
         this._jump = false;
-        this._shift = false;
+        this.reset();
+    }
+    _Action.prototype.reset = function () {
+        this._walk = false;
+        this._walkback = false;
+        this._turnRight = false;
+        this._turnLeft = false;
+        this._stepRight = false;
+        this._stepLeft = false;
+        this._jump = false;
+        this._walkMod = false;
     };
     return _Action;
 }());
