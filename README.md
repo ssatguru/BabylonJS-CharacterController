@@ -197,6 +197,9 @@ var cc = new CharacterController(player,camera,scene);
 // if using animation groups
 var cc = new CharacterController(player,camera,scene,agMap);
 //agMap is a Map of animation name to animationGroup
+
+// if the avatar face is forward facing (positive Z direction)
+var cc = new CharacterController(player,camera,scene,agMap,true);
 ```
 
 ```
@@ -208,10 +211,10 @@ import {CharacterController} from "babylonjs-charactercontroller";
 let cc = new CharacterController(player,camera,scene);
 
 // if using animation groups (.glb files use animation groups)
-var cc = new CharacterController(player,camera,scene,agMap);
+let cc = new CharacterController(player,camera,scene,agMap);
 
 // if the avatar face is forward facing (positive Z direction)
-var cc = new CharacterController(player,camera,scene,agMap,true);
+let cc = new CharacterController(player,camera,scene,agMap,true);
 ```
 
 Takes five parms
@@ -251,7 +254,7 @@ If using animation ranges the player skeleton is expected to have the following 
 - strafeRight
 - slideDown
 
-If an animation is not resent the controller will not play that animation and will continue playing the animation it was playing just before.
+If an animation is not present the controller will not play that animation and will continue playing the animation it was playing just before.
 
 If your animation range is named differently from those mentioned above then use the setWalkAnim(..),setWalkBackAnim(..) etc API to specify your animation range name.
 
