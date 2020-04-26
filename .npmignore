@@ -5,5 +5,5 @@ src
 tst
 _config.yml
 *.bat
-
+**/ig_*.*
 

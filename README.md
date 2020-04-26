@@ -1,11 +1,10 @@
 [![npm](https://img.shields.io/npm/v/babylonjs-charactercontroller.svg)](https://npmjs.org/package/babylonjs-charactercontroller)
 [![npm](https://img.shields.io/npm/dm/babylonjs-charactercontroller.svg)](https://npmjs.org/package/babylonjs-charactercontroller)
 
-
 # BabylonJS-CharacterController
 
 A 3rd person CharacterController for use in [BabylonJS](http://www.babylonjs.com/) (a 3D HTML Webgl framework) applications.  
-It uses the collider and moveWithCollision() function to move the character around. It uses some of the physics kinematic equations to calculate movements like jump, fall, slide. It does not use any physics engine. It does not react to or apply forces.  
+It uses the collider and moveWithCollision() function to move the character around. It uses physics kinematic equations to calculate movements like jump, fall, slide. It does not use any physics engine. It does not react to forces but does apply forces to other physics object. The force applied cannot be controlled.  
 For demo see  
 <a href="https://ssatguru.github.io/BabylonJS-CharacterController-Samples/demo/" target="_blank">https://ssatguru.github.io/BabylonJS-CharacterController-Samples/demo/</a>
 
@@ -75,10 +74,11 @@ See below for more details.
 <script src="CharacterController.js"></script>
 ```
 
-See INSTALL below to find where you can get "CharacterController.js". 
+See INSTALL below to find where you can get "CharacterController.js".
 
 2. if your mesh rotation is in quaternion then switch to euler.  
-NOTE: The GLTF/GLB files have rotation in quaternion
+   NOTE: The GLTF/GLB files have rotation in quaternion
+
 ```
 // character controller  needs rotation in euler.
 // if your mesh has rotation in quaternion then convert that to euler.
@@ -91,7 +91,7 @@ player.rotationQuaternion = null;
 
 ```
   //------------------Character Controller -------------------------------------------------
-  //fourth parm agMap is optional and is used when animation groups rather than animation ranges 
+  //fourth parm agMap is optional and is used when animation groups rather than animation ranges
   //are used.
   var cc = new CharacterController(player,camera,scene,agMap);
   cc.start();
@@ -184,7 +184,7 @@ Global Module
 </script>
 ```
 
-## API
+## API ( version 0.4.0 )
 
 #### To Instantiate
 
@@ -207,28 +207,34 @@ import {CharacterController} from "babylonjs-charactercontroller";
 // if using animation ranges
 let cc = new CharacterController(player,camera,scene);
 
-// if using animation groups
+// if using animation groups (.glb files use animation groups)
 var cc = new CharacterController(player,camera,scene,agMap);
 
+// if the avatar face is forward facing (positive Z direction)
+var cc = new CharacterController(player,camera,scene,agMap,true);
 ```
 
-Takes four parms
+Takes five parms
 
-- player - the player mesh containing a skeleton with appropriate animations listed below
+- player - the player mesh containing a skeleton with appropriate animations as listed below
 - camera - arc rotate camera
 - scene - scene
-- agMap - This is optional and only needed if using animation groups instead of animation ranges.
-    It is a Map of animation name to animationGroup
-	In this Map the key would be the character controller animation name and
-    the key value would be the animationGroup.  
-     example:
-```	 
+- agMap - This is optional and is only needed if using animation groups instead of animation ranges. ".glb" files have animation groups.  
+  It is a Map of animation name to animationGroup object.  
+  In this Map the key would be the character controller animation name and
+  the key value would be the animationGroup.  
+   example:
+
+```
    	let myWalkAnimationGroup:AnimationGroup = ...;
+
     let agMap:{} = {
     	"walk":myWalkAnimationGroup,
      	"run": ...,
     }
-```	 
+```
+
+- forwardFacing - Optional. If the avatar's face is forward facing (positive Z direction) set this to true. By default it is false.
 
 If using animation ranges the player skeleton is expected to have the following animation ranges named as follows
 
@@ -245,11 +251,15 @@ If using animation ranges the player skeleton is expected to have the following 
 - strafeRight
 - slideDown
 
+If an animation is not resent the controller will not play that animation and will continue playing the animation it was playing just before.
+
 If your animation range is named differently from those mentioned above then use the setWalkAnim(..),setWalkBackAnim(..) etc API to specify your animation range name.
 
-NOTE : 
+If instead of animation ranges you have animation groups then you will have to provide a map of animation name to animation group. This is explained further down below.
+
+NOTE :
 If your mesh rotation is in quaternion then switch to euler before creating character controller.
-The GLTF/GLB files have rotation in quaternion.  
+The GLTF/GLB files have rotation in quaternion.
 
 ```
 player.rotation = player.rotationQuaternion.toEulerAngles();
@@ -263,9 +273,43 @@ cc.start();
 cc.stop();
 ```
 
+#### To pause playing any animations
+
+Sometimes you might want to stop the character controller from playing
+any animation on the character and instead play your animation instead
+Example instead of idle animation you might want to play a shoot animation.
+Use the following to pause or resume
+
+```
+cc.pauseAnim();
+cc.resumeAnim();
+```
+
+#### To Change Mode
+
+The CharacterController can run in one of two modes - 0 or 1.
+
+- Mode 0 is the default mode.  
+  This is suitable for First Person and Third Person kind of games.  
+  Here the camera follows the movement and rotation of the Avatar.  
+  Rotating the camera around the Avatar also rotates the Avatar.
+- Mode 1 is suitable for top down, isometric type of games.  
+  Here the camera just follows the movement of the Avatar.  
+  It is not effected by or effects the rotation of the Avatar
+
+```
+cc.setMode(n:number); // 0 or 1
+```
+
 #### To change animation range name / animation group and their parameters
-rangeName can be the name of your animation range corresponding to the character controller animation  
-or it could be the animation group corresponding to the character controller animation 
+
+Takes three parms
+
+- rangeName or Animation group Object
+- rate - rate of speed at which to play the aniamtion
+- loop - whether the animation should be looped or stop at end.
+
+To leave any parameter unchanged set its value to null.
 
 ```
 cc.setIdleAnim(rangeName: string|AnimationGroup ,rate: number,loop: boolean);
@@ -288,27 +332,36 @@ cc.setStrafeLeftAnim(name :string|AnimationGroup , playback rate:number,loop:boo
 cc.setSlideBackAnim(name :string|AnimationGroup , playback rate:number,loop:boolean);
 ```
 
-So lets say your walk animation is called "myWalk" and you want to play it at half speed and loop it continuoulsy then
+So lets say your walk animation range is called "myWalk" and you want to play it at half speed and loop it continuoulsy then
 
 ```
 cc.setWalkAnim("myWalk",0.5,true);
-//if you donot want to change the name or the rate the use below instead
+//if you donot want to change the name or the rate then use below instead
 cc.setWalkAnim(null,null,true);
+```
+
+If animation Group
+
+```
+let myWalkAnimationGroup:AnimationGroup = ...;
+cc.setWalkAnim(myWalkAnimationGroup,0.5,true);
 ```
 
 #### To change key binding
 
-By default the controller uses WASDQE, space and arrow keys to controll your player/avatar.
+By default the controller uses WASDQE, space, Capslock and arrow keys to controll your Avatar.
 
-- w-walk forward
-- Shit+w-run
-- CapsLock- run
-- s-walk backward
-- a-turn left
-- d-turn right
-- q-strafe left
-- e-strafe right.
-- " " - jump
+| KEY/KEYS          | ACTION                                                   |
+| ----------------- | -------------------------------------------------------- |
+| w and up arrow    | walk forward                                             |
+| Shift + w         | run                                                      |
+| CapsLock          | locks the Shift key and thus pressing "w" results in run |
+| s and down Arrow  | walk backward                                            |
+| a and left Arrow  | turn left                                                |
+| d and right Arrow | turn right                                               |
+| q                 | strafe left                                              |
+| e                 | strafe right                                             |
+| " "               | jump                                                     |
 
 To change these use
 
@@ -322,7 +375,46 @@ cc.setStrafeRightKey(string:key);
 cc.setJumpKey(string:key);
 ```
 
-You can specify both key or a keycode.
+Example: To use "x" key to walkback do
+
+```
+cc.setWalkBackKey("x");
+```
+
+Note: Currently you cannot reassign Shift, Capslock or Arrow Keys to other actions. This is on TODO list
+
+#### Controlling Avatar programmatically
+
+In addition to keyboard, as show above, the Avatar's movement can also be controlled from script using the following methods.  
+You might use these to controll movement using say UI, Mouse Clicks, Touch Controllers etc.
+
+```
+cc.walk(b:boolean);
+cc.walkBack(b:boolean);
+cc.run(b:boolean);
+cc.turnLeft(b:boolean);
+cc.turnRight(b:boolean);
+cc.strafeLeft(b:boolean);
+cc.strafeRight(b:boolean);
+cc.jump(b:boolean);
+```
+
+Example:
+
+```
+cc.walk(true);  // will start walking the Avatar.
+cc.walk(false); // will stop walking the Avatar.
+```
+
+#### Enabling/Disabling the KeyBoard controll
+
+Sometime when you are controlling the movement of the Avatar programmatically as shown above you might want to disable the keyboard.  
+Use the following methods to enable disable the keyboard.
+
+```
+cc.enableKeyBoard();
+cc.disableKeyBoard();
+```
 
 #### To change gravity or speed at which avatar/player is moved
 
@@ -417,19 +509,22 @@ setNoFirstPerson(true);
 
 If not already installed, install node js.  
 Switch to the project folder.  
-Run "npm install", once, to install all the dependencies.  
-### To build   
-Run "npm build"  
-This will both compile, minify and store the build in "dist" folder.  
+Run "npm install", once, to install all the dependencies.
+
+### To build
+
+1. Run "npm build"  
+   This will create a production build.
+   This will both compile, minify and store the build called CharacterController.js in "dist" folder.
+2. Run "npm run build-dev"  
+   This will create a development build.
+   This will compile and create a non minified build called CharacterController.max.js in "dist" folder.
+
 ### To test
-1) start the development server  
-"npm run dev"  
-This will start the live dev server on port 8080.  
-This will live compile your code any time you make changes and make your library available at
-http://localhost:8080  
 
-2) start another http server from the project root folder say on port 8181.  
-goto http://localhost:8181/tst
-to serve the index.html file for testing.  
-The test html files pulls the library from http://localhost:8080 as shown in previous step.
-
+Start the development server  
+"npm run start"  
+This will start the live dev server on port 8080 and open the browser with the file http://localhost:8080/index.html.  
+This "index.html" in turn would redirect the browser to tst/test.html.  
+The dev server will live compile your code any time you make changes and make "CharacterController.max.js" available at http://localhost:8080.  
+All the "test\*.html" thus point to http://localhost:8080/CharacterController.max.js to pick up CharacterController

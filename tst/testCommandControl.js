@@ -211,43 +211,46 @@ var w,
 var start = "LightGreen ",
   stop = "LightSalmon  ";
 
+function toggleClass(e) {
+  e.target.classList.toggle("w3-pale-red");
+  e.target.classList.toggle("w3-pale-green");
+}
 function setControls() {
   const x = document.getElementsByTagName("button");
   for (let e of x) {
-    e.style.backgroundColor = stop;
-    e.className = "w3-btn w3-border w3-round";
+    e.className = "w3-btn w3-border w3-round w3-pale-red";
   }
 
   document.getElementById("w").onclick = (e) => {
     cc.walk((w = !w));
-    e.target.style.backgroundColor = w ? start : stop;
+    toggleClass(e);
   };
   document.getElementById("wb").onclick = (e) => {
     cc.walkBack((wb = !wb));
-    e.target.style.backgroundColor = wb ? start : stop;
+    toggleClass(e);
   };
   document.getElementById("r").onclick = (e) => {
     cc.run((r = !r));
-    e.target.style.backgroundColor = r ? start : stop;
+    toggleClass(e);
   };
   document.getElementById("j").onclick = (e) => {
     cc.jump();
   };
   document.getElementById("tl").onclick = (e) => {
     cc.turnLeft((tl = !tl));
-    e.target.style.backgroundColor = tl ? start : stop;
+    toggleClass(e);
   };
   document.getElementById("tr").onclick = (e) => {
     cc.turnRight((tr = !tr));
-    e.target.style.backgroundColor = tr ? start : stop;
+    toggleClass(e);
   };
   document.getElementById("sl").onclick = (e) => {
     cc.strafeLeft((sl = !sl));
-    e.target.style.backgroundColor = sl ? start : stop;
+    toggleClass(e);
   };
   document.getElementById("sr").onclick = (e) => {
     cc.strafeRight((sr = !sr));
-    e.target.style.backgroundColor = sr ? start : stop;
+    toggleClass(e);
   };
 
   document.getElementById("tp").onclick = (e) => cc.setMode(0);

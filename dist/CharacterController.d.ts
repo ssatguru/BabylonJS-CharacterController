@@ -158,25 +158,3 @@ export declare class CharacterController {
     private _hasAnims;
     constructor(avatar: Mesh, camera: ArcRotateCamera, scene: Scene, agMap?: {}, faceForward?: boolean);
 }
-export declare class AnimData {
-    name: string;
-    loop: boolean;
-    rate: number;
-    ag: AnimationGroup;
-    exist: boolean;
-    constructor(name: string);
-}
-export declare class Action {
-    forward: boolean;
-    backward: boolean;
-    turnRight: boolean;
-    turnLeft: boolean;
-    stepRight: boolean;
-    stepLeft: boolean;
-    jump: boolean;
-    shift: boolean;
-    name: string;
-    prevName: string;
-    constructor();
-    reset(): void;
-}

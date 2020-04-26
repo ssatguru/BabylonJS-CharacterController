@@ -3,13 +3,12 @@ const TerserPlugin = require("terser-webpack-plugin");
 var webpack = require("webpack");
 
 module.exports = (env, argv) => {
-  console.log("argv is", argv);
   return {
     mode: "development",
     entry: "./src/CharacterController.ts",
     devtool: "source-map",
     devServer: {
-      contentBase: "./dist",
+      contentBase: ".",
     },
     module: {
       rules: [
