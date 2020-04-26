@@ -119,6 +119,7 @@ export declare class CharacterController {
     private _verticalSlope;
     private _movFallTime;
     private _sign;
+    private _turning;
     private _doMove;
     private _endFreeFall;
     private _idleFallTime;

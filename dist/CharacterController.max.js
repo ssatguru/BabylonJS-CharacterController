@@ -100,14 +100,12 @@ return /******/ (function(modules) { // webpackBootstrap
 /*!************************************!*\
   !*** ./src/CharacterController.ts ***!
   \************************************/
-/*! exports provided: CharacterController, AnimData, Action */
+/*! exports provided: CharacterController */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CharacterController", function() { return CharacterController; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "AnimData", function() { return AnimData; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Action", function() { return Action; });
 /* harmony import */ var babylonjs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! babylonjs */ "babylonjs");
 /* harmony import */ var babylonjs__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(babylonjs__WEBPACK_IMPORTED_MODULE_0__);
 
@@ -130,18 +128,18 @@ var CharacterController = (function () {
         this._stepOffset = 0.25;
         this._vMoveTot = 0;
         this._vMovStartPos = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].Zero();
-        this._walk = new AnimData("walk");
-        this._walkBack = new AnimData("walkBack");
-        this._idle = new AnimData("idle");
-        this._idleJump = new AnimData("idleJump");
-        this._run = new AnimData("run");
-        this._runJump = new AnimData("runJump");
-        this._fall = new AnimData("fall");
-        this._turnLeft = new AnimData("turnLeft");
-        this._turnRight = new AnimData("turnRight");
-        this._strafeLeft = new AnimData("strafeLeft");
-        this._strafeRight = new AnimData("strafeRight");
-        this._slideBack = new AnimData("slideBack");
+        this._walk = new _AnimData("walk");
+        this._walkBack = new _AnimData("walkBack");
+        this._idle = new _AnimData("idle");
+        this._idleJump = new _AnimData("idleJump");
+        this._run = new _AnimData("run");
+        this._runJump = new _AnimData("runJump");
+        this._fall = new _AnimData("fall");
+        this._turnLeft = new _AnimData("turnLeft");
+        this._turnRight = new _AnimData("turnRight");
+        this._strafeLeft = new _AnimData("strafeLeft");
+        this._strafeRight = new _AnimData("strafeRight");
+        this._slideBack = new _AnimData("slideBack");
         this._anims = [this._walk, this._walkBack, this._idle, this._idleJump, this._run, this._runJump, this._fall, this._turnLeft, this._turnRight, this._strafeLeft, this._strafeRight, this._slideBack];
         this._walkKey = "w";
         this._walkBackKey = "s";
@@ -172,6 +170,7 @@ var CharacterController = (function () {
         this._jumpTime = 0;
         this._movFallTime = 0;
         this._sign = 1;
+        this._turning = false;
         this._idleFallTime = 0;
         this._groundFrameCount = 0;
         this._groundFrameMax = 10;
@@ -201,7 +200,7 @@ var CharacterController = (function () {
             this.checkAnims(this._skeleton);
         this._camera = camera;
         this._savedCameraCollision = this._camera.checkCollisions;
-        this._act = new Action();
+        this._act = new _Action();
         this._renderer = function () { _this._moveAVandCamera(); };
         this._handleKeyUp = function (e) { _this._onKeyUp(e); };
         this._handleKeyDown = function (e) { _this._onKeyDown(e); };
@@ -250,9 +249,9 @@ var CharacterController = (function () {
         this._isAG = true;
         for (var _i = 0, _a = this._anims; _i < _a.length; _i++) {
             var anim = _a[_i];
-            if (agMap[anim.name] != null) {
-                anim.ag = agMap[anim.name];
-                anim.exist = true;
+            if (agMap[anim._name] != null) {
+                anim._ag = agMap[anim._name];
+                anim._exist = true;
             }
         }
     };
@@ -261,20 +260,20 @@ var CharacterController = (function () {
         var arData;
         for (var _i = 0, _a = this._anims; _i < _a.length; _i++) {
             var anim = _a[_i];
-            arData = arMap[anim.name];
+            arData = arMap[anim._name];
             if (arData != null) {
                 if (arData instanceof Object) {
                     if (arData["name"])
-                        anim.name = arData["name"];
+                        anim._name = arData["name"];
                     if (arData["loop"])
-                        anim.loop = arData["loop"];
+                        anim._loop = arData["loop"];
                     if (arData["rate"])
-                        anim.loop = arData["rate"];
+                        anim._loop = arData["rate"];
                 }
                 else {
-                    anim.name = arData;
+                    anim._name = arData;
                 }
-                anim.exist = true;
+                anim._exist = true;
             }
         }
     };
@@ -282,27 +281,27 @@ var CharacterController = (function () {
         if (!this._isAG && this._skeleton == null)
             return;
         if (loop != null)
-            anim.loop = loop;
+            anim._loop = loop;
         if (!this._isAG) {
             if (rangeName != null)
-                anim.name = rangeName;
+                anim._name = rangeName;
             if (rate != null)
-                anim.rate = rate;
-            if (this._skeleton.getAnimationRange(anim.name) != null) {
-                anim.exist = true;
+                anim._rate = rate;
+            if (this._skeleton.getAnimationRange(anim._name) != null) {
+                anim._exist = true;
             }
             else {
-                anim.exist = false;
+                anim._exist = false;
             }
         }
         else {
             if (rangeName != null) {
-                anim.ag = rangeName;
-                anim.exist = true;
+                anim._ag = rangeName;
+                anim._exist = true;
             }
-            if (rate != null && anim.exist) {
-                anim.rate = rate;
-                anim.ag.speedRatio = rate;
+            if (rate != null && anim._exist) {
+                anim._rate = rate;
+                anim._ag.speedRatio = rate;
             }
         }
     };
@@ -310,8 +309,8 @@ var CharacterController = (function () {
         if (this._isAG) {
             for (var _i = 0, _a = this._anims; _i < _a.length; _i++) {
                 var anim = _a[_i];
-                if (anim.exist) {
-                    var ar = anim.ag;
+                if (anim._exist) {
+                    var ar = anim._ag;
                     for (var _b = 0, _c = ar.targetedAnimations; _b < _c.length; _b++) {
                         var ta = _c[_b];
                         ta.animation.enableBlending = true;
@@ -328,8 +327,8 @@ var CharacterController = (function () {
         if (this._isAG) {
             for (var _i = 0, _a = this._anims; _i < _a.length; _i++) {
                 var anim = _a[_i];
-                if (anim.exist) {
-                    var ar = anim.ag;
+                if (anim._exist) {
+                    var ar = anim._ag;
                     for (var _b = 0, _c = ar.targetedAnimations; _b < _c.length; _b++) {
                         var ta = _c[_b];
                         ta.animation.enableBlending = false;
@@ -411,11 +410,11 @@ var CharacterController = (function () {
         for (var _i = 0, _a = this._anims; _i < _a.length; _i++) {
             var anim = _a[_i];
             if (skel != null) {
-                if (skel.getAnimationRange(anim.name) != null)
-                    anim.exist = true;
+                if (skel.getAnimationRange(anim._name) != null)
+                    anim._exist = true;
             }
             else {
-                anim.exist = false;
+                anim._exist = false;
             }
         }
     };
@@ -451,9 +450,9 @@ var CharacterController = (function () {
     CharacterController.prototype.checkAGs = function (agMap) {
         for (var _i = 0, _a = this._anims; _i < _a.length; _i++) {
             var anim = _a[_i];
-            if (agMap[anim.name] != null) {
-                anim.ag = agMap[anim.name];
-                anim.exist = true;
+            if (agMap[anim._name] != null) {
+                anim._ag = agMap[anim._name];
+                anim._exist = true;
             }
         }
     };
@@ -493,7 +492,7 @@ var CharacterController = (function () {
         this._avStartPos.copyFrom(this._avatar.position);
         var anim = null;
         var dt = this._scene.getEngine().getDeltaTime() / 1000;
-        if (this._act.jump && !this._inFreeFall) {
+        if (this._act._jump && !this._inFreeFall) {
             this._grounded = false;
             this._idleFallTime = 0;
             anim = this._doJump(dt);
@@ -508,14 +507,14 @@ var CharacterController = (function () {
         }
         if (!this._stopAnim && this._hasAnims && anim != null) {
             if (this._prevAnim !== anim) {
-                if (anim.exist) {
+                if (anim._exist) {
                     if (this._isAG) {
-                        if (this._prevAnim != null && this._prevAnim.exist)
-                            this._prevAnim.ag.stop();
-                        anim.ag.play(anim.loop);
+                        if (this._prevAnim != null && this._prevAnim._exist)
+                            this._prevAnim._ag.stop();
+                        anim._ag.play(anim._loop);
                     }
                     else {
-                        this._skeleton.beginAnimation(anim.name, anim.loop, anim.rate);
+                        this._skeleton.beginAnimation(anim._name, anim._loop, anim._rate);
                     }
                 }
                 this._prevAnim = anim;
@@ -574,7 +573,7 @@ var CharacterController = (function () {
         return anim;
     };
     CharacterController.prototype._endJump = function () {
-        this._act.jump = false;
+        this._act._jump = false;
         this._jumpTime = 0;
         this._wasWalking = false;
         this._wasRunning = false;
@@ -601,9 +600,9 @@ var CharacterController = (function () {
             if (this.mode != 1) {
                 this._avatar.rotation.y = this._av2cam - this._camera.alpha;
             }
-            if (this._act.forward) {
+            if (this._act._forward) {
                 var forwardDist = 0;
-                if (this._act.shift) {
+                if (this._act._shift) {
                     this._wasRunning = true;
                     forwardDist = this._runSpeed * dt;
                     anim = this._run;
@@ -616,45 +615,45 @@ var CharacterController = (function () {
                 this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, this._ffSign * forwardDist);
                 moving = true;
             }
-            else if (this._act.backward) {
+            else if (this._act._backward) {
                 this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, -this._ffSign * (this._backSpeed * dt));
                 anim = this._walkBack;
                 moving = true;
             }
-            else if (this._act.stepLeft) {
+            else if (this._act._stepLeft) {
                 var sign = this._signRHS * this._isAvFacingCamera();
                 this._moveVector = this._avatar.calcMovePOV(sign * (this._leftSpeed * dt), -this._freeFallDist, 0);
                 anim = (sign > 0) ? this._strafeLeft : this._strafeRight;
                 moving = true;
             }
-            else if (this._act.stepRight) {
+            else if (this._act._stepRight) {
                 var sign = -this._signRHS * this._isAvFacingCamera();
                 this._moveVector = this._avatar.calcMovePOV(sign * (this._rightSpeed * dt), -this._freeFallDist, 0);
                 anim = (sign > 0) ? this._strafeLeft : this._strafeRight;
                 moving = true;
             }
         }
-        if ((!this._act.stepLeft && !this._act.stepRight) && (this._act.turnLeft || this._act.turnRight)) {
+        if ((!this._act._stepLeft && !this._act._stepRight) && (this._act._turnLeft || this._act._turnRight)) {
             if (this.mode == 1) {
-                if (this._act.name != this._act.prevName) {
-                    this._act.prevName = this._act.name;
+                if (!this._turning) {
                     this._sign = -this._ffSign * this._isAvFacingCamera();
                     if (this._isRHS)
                         this._sign = -this._sign;
+                    this._turning = true;
                 }
                 var a = this._sign;
-                if (this._act.turnLeft) {
-                    if (this._act.forward) { }
-                    else if (this._act.backward)
+                if (this._act._turnLeft) {
+                    if (this._act._forward) { }
+                    else if (this._act._backward)
                         a = -this._sign;
                     else {
                         anim = (this._sign > 0) ? this._turnRight : this._turnLeft;
                     }
                 }
                 else {
-                    if (this._act.forward)
+                    if (this._act._forward)
                         a = -this._sign;
-                    else if (this._act.backward) { }
+                    else if (this._act._backward) { }
                     else {
                         a = -this._sign;
                         anim = (this._sign > 0) ? this._turnLeft : this._turnRight;
@@ -664,14 +663,14 @@ var CharacterController = (function () {
             }
             else {
                 var a = 1;
-                if (this._act.turnLeft) {
-                    if (this._act.backward)
+                if (this._act._turnLeft) {
+                    if (this._act._backward)
                         a = -1;
                     if (!moving)
                         anim = this._turnLeft;
                 }
                 else {
-                    if (this._act.forward)
+                    if (this._act._forward)
                         a = -1;
                     if (!moving) {
                         a = -1;
@@ -846,7 +845,7 @@ var CharacterController = (function () {
         }
     };
     CharacterController.prototype.anyMovement = function () {
-        return (this._act.forward || this._act.backward || this._act.turnLeft || this._act.turnRight || this._act.stepLeft || this._act.stepRight);
+        return (this._act._forward || this._act._backward || this._act._turnLeft || this._act._turnRight || this._act._stepLeft || this._act._stepRight);
     };
     CharacterController.prototype._onKeyDown = function (e) {
         if (!e.key)
@@ -855,42 +854,35 @@ var CharacterController = (function () {
             return;
         switch (e.key.toLowerCase()) {
             case this._jumpKey:
-                this._act.jump = true;
+                this._act._jump = true;
                 break;
             case "capslock":
-                if (this._act.shift === false) {
-                    this._act.shift = true;
-                }
-                else {
-                    this._act.shift = false;
-                }
+                this._act._shift = !this._act._shift;
                 break;
             case "shift":
-                this._act.shift = true;
+                this._act._shift = true;
                 break;
             case "arrowup":
             case this._walkKey:
-                this._act.forward = true;
+                this._act._forward = true;
                 break;
             case "arrowleft":
             case this._turnLeftKey:
-                this._act.turnLeft = true;
-                this._act.name = "tl";
+                this._act._turnLeft = true;
                 break;
             case "arrowright":
             case this._turnRightKey:
-                this._act.turnRight = true;
-                this._act.name = "tr";
+                this._act._turnRight = true;
                 break;
             case "arrowdown":
             case this._walkBackKey:
-                this._act.backward = true;
+                this._act._backward = true;
                 break;
             case this._strafeLeftKey:
-                this._act.stepLeft = true;
+                this._act._stepLeft = true;
                 break;
             case this._strafeRightKey:
-                this._act.stepRight = true;
+                this._act._stepRight = true;
                 break;
         }
         this._move = this.anyMovement();
@@ -898,37 +890,33 @@ var CharacterController = (function () {
     CharacterController.prototype._onKeyUp = function (e) {
         if (!e.key)
             return;
-        if (e.repeat)
-            return;
         switch (e.key.toLowerCase()) {
             case "shift":
-                this._act.shift = false;
+                this._act._shift = false;
                 break;
             case "arrowup":
             case this._walkKey:
-                this._act.forward = false;
+                this._act._forward = false;
                 break;
             case "arrowleft":
             case this._turnLeftKey:
-                this._act.turnLeft = false;
-                this._act.name = "";
-                this._act.prevName = "";
+                this._act._turnLeft = false;
+                this._turning = false;
                 break;
             case "arrowright":
             case this._turnRightKey:
-                this._act.turnRight = false;
-                this._act.name = "";
-                this._act.prevName = "";
+                this._act._turnRight = false;
+                this._turning = false;
                 break;
             case "arrowdown":
             case this._walkBackKey:
-                this._act.backward = false;
+                this._act._backward = false;
                 break;
             case this._strafeLeftKey:
-                this._act.stepLeft = false;
+                this._act._stepLeft = false;
                 break;
             case this._strafeRightKey:
-                this._act.stepRight = false;
+                this._act._stepRight = false;
                 break;
         }
         this._move = this.anyMovement();
@@ -942,41 +930,31 @@ var CharacterController = (function () {
         window.addEventListener("keydown", this._handleKeyDown, false);
     };
     CharacterController.prototype.walk = function (b) {
-        this._act.forward = b;
+        this._act._forward = b;
     };
     CharacterController.prototype.walkBack = function (b) {
-        this._act.backward = b;
+        this._act._backward = b;
     };
     CharacterController.prototype.run = function (b) {
-        this._act.forward = b;
-        this._act.shift = b;
+        this._act._forward = b;
+        this._act._shift = b;
     };
     CharacterController.prototype.turnLeft = function (b) {
-        this._act.turnLeft = b;
-        if (b)
-            this._act.name = "tl";
-        else {
-            this._act.name = "";
-            this._act.prevName = "";
-        }
+        this._act._turnLeft = b;
+        this._turning = b;
     };
     CharacterController.prototype.turnRight = function (b) {
-        this._act.turnRight = b;
-        if (b)
-            this._act.name = "tr";
-        else {
-            this._act.name = "";
-            this._act.prevName = "";
-        }
+        this._act._turnRight = b;
+        this._turning = b;
     };
     CharacterController.prototype.strafeLeft = function (b) {
-        this._act.stepLeft = b;
+        this._act._stepLeft = b;
     };
     CharacterController.prototype.strafeRight = function (b) {
-        this._act.stepRight = b;
+        this._act._stepRight = b;
     };
     CharacterController.prototype.jump = function () {
-        this._act.jump = true;
+        this._act._jump = true;
     };
     CharacterController.prototype.idle = function () {
         this._act.reset();
@@ -984,34 +962,31 @@ var CharacterController = (function () {
     return CharacterController;
 }());
 
-var AnimData = (function () {
-    function AnimData(name) {
-        this.loop = true;
-        this.rate = 1;
-        this.exist = false;
-        this.name = name;
+var _AnimData = (function () {
+    function _AnimData(name) {
+        this._loop = true;
+        this._rate = 1;
+        this._exist = false;
+        this._name = name;
     }
-    return AnimData;
+    return _AnimData;
 }());
-
-var Action = (function () {
-    function Action() {
-        this.prevName = "";
+var _Action = (function () {
+    function _Action() {
         this.reset();
     }
-    Action.prototype.reset = function () {
-        this.forward = false;
-        this.backward = false;
-        this.turnRight = false;
-        this.turnLeft = false;
-        this.stepRight = false;
-        this.stepLeft = false;
-        this.jump = false;
-        this.shift = false;
+    _Action.prototype.reset = function () {
+        this._forward = false;
+        this._backward = false;
+        this._turnRight = false;
+        this._turnLeft = false;
+        this._stepRight = false;
+        this._stepLeft = false;
+        this._jump = false;
+        this._shift = false;
     };
-    return Action;
+    return _Action;
 }());
-
 
 
 /***/ }),
