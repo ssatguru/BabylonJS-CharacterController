@@ -625,13 +625,13 @@ var CharacterController = (function () {
                 case (this._act._stepLeft):
                     sign = this._signRHS * this._isAvFacingCamera();
                     this._moveVector = this._avatar.calcMovePOV(sign * (this._leftSpeed * dt), -this._freeFallDist, 0);
-                    anim = (sign > 0) ? this._strafeLeft : this._strafeRight;
+                    anim = (-this._ffSign * sign > 0) ? this._strafeLeft : this._strafeRight;
                     moving = true;
                     break;
                 case (this._act._stepRight):
                     sign = -this._signRHS * this._isAvFacingCamera();
                     this._moveVector = this._avatar.calcMovePOV(sign * (this._rightSpeed * dt), -this._freeFallDist, 0);
-                    anim = (sign > 0) ? this._strafeLeft : this._strafeRight;
+                    anim = (-this._ffSign * sign > 0) ? this._strafeLeft : this._strafeRight;
                     moving = true;
             }
         }
