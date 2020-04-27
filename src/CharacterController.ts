@@ -1007,11 +1007,11 @@ export class CharacterController {
     }
     public turnLeft(b: boolean) {
         this._act._turnLeft = b;
-        this._turning = b;
+        if (!b) this._turning = b;
     }
     public turnRight(b: boolean) {
         this._act._turnRight = b;
-        this._turning = b;
+        if (!b) this._turning = b;
     }
     public strafeLeft(b: boolean) {
         this._act._stepLeft = b;
