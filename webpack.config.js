@@ -8,7 +8,8 @@ module.exports = (env, argv) => {
     entry: "./src/CharacterController.ts",
     devtool: "source-map",
     devServer: {
-      contentBase: ".",
+      // contentBase: "/tst",
+      publicPath: "/dist",
     },
     module: {
       rules: [

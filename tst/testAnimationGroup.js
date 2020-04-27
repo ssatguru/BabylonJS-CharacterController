@@ -40,7 +40,7 @@ function main() {
 }
 
 function loadPlayer(scene, engine, canvas) {
-  BABYLON.SceneLoader.ImportMesh("", "player/", "Vincent.glb", scene, (meshes, particleSystems, skeletons) => {
+  BABYLON.SceneLoader.ImportMesh("", "player/", "Vincent-frontFacing.glb", scene, (meshes, particleSystems, skeletons) => {
     var player = meshes[0];
 
     player.position = new BABYLON.Vector3(0, 12, 0);

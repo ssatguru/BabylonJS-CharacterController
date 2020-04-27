@@ -527,8 +527,16 @@ Run "npm install", once, to install all the dependencies.
 
 ### To test
 
-Start the development server  
-"npm run start"  
-This will start the live dev server on port 8080 and open the browser with the file http://localhost:8080/tst/test.html.  
-The dev server will live compile your code any time you make changes and make "CharacterController.max.js" available at http://localhost:8080.  
-All the "test/\*.html" thus point to http://localhost:8080/CharacterController.max.js to pick up CharacterController
+Two ways to test.
+
+1. using the webpack-dev-server.  
+   Start the development server  
+   "npm run start"  
+   This will start the live dev server on port 8080 (could be different if this port is already in use) and open the browser with the file http://localhost:8080/tst/test.html.  
+   The dev server will live compile your code any time you make changes.  
+   Note: The dev server does not write the build to disk, instead it serves it from memory. In our case the build, "CharacterController.max.js", is served from location http://localhost:8080/dest. (see publicPath in wepack.config.js file).
+
+2. using any other http server.  
+   Start the server , say http-server, from the project root folder (not from within "/tst " folder).  
+   Goto http://localhost:8080/tst/test.html (assuming the server was started on port 8080).  
+   Everytime you make changes you will have to build using "npm start build-dev".
