@@ -1,6 +1,6 @@
 {
   "name": "babylonjs-charactercontroller",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "A CharacterController for BabylonJS",
   "repository": {
     "type": "git",
