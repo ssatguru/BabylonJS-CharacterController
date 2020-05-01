@@ -191,6 +191,7 @@ function createGroundMaterial(scene) {
 var showHelp = function () {
   var el = document.getElementById("overlay");
   el.style.visibility = el.style.visibility == "visible" ? "hidden" : "visible";
+  canvas.focus();
 };
 
 function showControls() {
@@ -259,8 +260,18 @@ function setControls() {
     toggleClass(e);
   };
 
-  document.getElementById("tp").onclick = (e) => cc.setMode(0);
-  document.getElementById("td").onclick = (e) => cc.setMode(1);
-  document.getElementById("kb").onclick = (e) => cc.enableKeyBoard(e.target.checked);
+  document.getElementById("tp").onclick = (e) => {
+    cc.setMode(0);
+    canvas.focus();
+  };
+  document.getElementById("td").onclick = (e) => {
+    cc.setMode(1);
+    canvas.focus();
+  };
+  document.getElementById("kb").onclick = (e) => {
+    cc.enableKeyBoard(e.target.checked);
+    canvas.focus();
+  };
   document.getElementById("help").onclick = showHelp;
+  document.getElementById("closehelp").onclick = showHelp;
 }
