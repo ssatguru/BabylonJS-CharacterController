@@ -608,9 +608,6 @@ export class CharacterController {
             this._wasWalking = false;
             this._wasRunning = false;
 
-            if (this.mode != 1) {
-                this._avatar.rotation.y = this._av2cam - this._camera.alpha;
-            }
             let sign: number;
             switch (true) {
                 case (this._act._walk):
@@ -684,8 +681,11 @@ export class CharacterController {
                     if (!moving) { a = -1; anim = this._turnRight; }
                 }
                 this._camera.alpha = this._camera.alpha + a * this._turnSpeed * dt;
-                this._avatar.rotation.y = this._av2cam - this._camera.alpha;
             }
+        }
+
+        if (this.mode != 1) {
+            this._avatar.rotation.y = this._av2cam - this._camera.alpha;
         }
 
         if (moving) {

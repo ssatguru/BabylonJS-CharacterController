@@ -946,11 +946,13 @@ var CharacterController = (function () {
     };
     CharacterController.prototype.turnLeft = function (b) {
         this._act._turnLeft = b;
-        this._turning = b;
+        if (!b)
+            this._turning = b;
     };
     CharacterController.prototype.turnRight = function (b) {
         this._act._turnRight = b;
-        this._turning = b;
+        if (!b)
+            this._turning = b;
     };
     CharacterController.prototype.strafeLeft = function (b) {
         this._act._stepLeft = b;

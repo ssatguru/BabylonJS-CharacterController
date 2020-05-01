@@ -118,6 +118,7 @@ function loadPlayer(scene, engine, canvas) {
 
     cmds = [cc.walk, cc.walkBack, cc.run, cc.jump, cc.turnLeft, cc.turnRight, cc.strafeLeft, cc.strafeRight];
     showControls();
+    canvas.focus();
   });
 }
 
