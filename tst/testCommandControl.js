@@ -2,12 +2,13 @@ window.onload = function () {
   main();
 };
 
+var canvas;
 function main() {
   setControls();
   /*
    * The scene
    */
-  var canvas = document.querySelector("#renderCanvas");
+  canvas = document.querySelector("#renderCanvas");
   var engine = new BABYLON.Engine(canvas, true);
   var scene = new BABYLON.Scene(engine);
   scene.clearColor = new BABYLON.Color3(0.75, 0.75, 0.75);
@@ -209,12 +210,21 @@ var w,
 function toggleClass(e) {
   e.target.classList.toggle("w3-pale-red");
   e.target.classList.toggle("w3-pale-green");
+  canvas.focus();
 }
 function setControls() {
   const x = document.getElementsByTagName("button");
   for (let e of x) {
     e.className = "w3-btn w3-border w3-round w3-pale-red";
   }
+
+  document.getElementById("pl").onclick = (e) => {
+    canvas.requestPointerLock = canvas.requestPointerLock || canvas.msRequestPointerLock || canvas.mozRequestPointerLock || canvas.webkitRequestPointerLock || false;
+    if (canvas.requestPointerLock) {
+      canvas.requestPointerLock();
+    }
+    canvas.focus();
+  };
 
   document.getElementById("w").onclick = (e) => {
     cc.walk((w = !w));
@@ -230,6 +240,7 @@ function setControls() {
   };
   document.getElementById("j").onclick = (e) => {
     cc.jump();
+    canvas.focus();
   };
   document.getElementById("tl").onclick = (e) => {
     cc.turnLeft((tl = !tl));
