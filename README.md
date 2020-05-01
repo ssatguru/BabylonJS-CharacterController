@@ -42,13 +42,13 @@ In JavaScript, instead of
 
 ```
 var CharacterControl = org.ssatguru.babylonjs.component.CharacterController;
-var characterControl = new CharacterControl(player,camera,scene);
+var characterControl = new CharacterControl(player, camera, scene);
 ```
 
 now do
 
 ```
-var characterControl = new CharacterController(player,camera,scene);
+var characterControl = new CharacterController(player, camera, scene);
 ```
 
 In TypeScript, instead of
@@ -60,7 +60,7 @@ import CharacterController = org.ssatguru.babylonjs.component.CharacterControlle
 now do
 
 ```
-import {CharacterController} from "babaylonjs-charactercontroller";
+import {CharacterController} from "babylonjs-charactercontroller";
 ```
 
 See below for more details.
@@ -93,7 +93,7 @@ player.rotationQuaternion = null;
   //------------------Character Controller -------------------------------------------------
   //fourth parm agMap is optional and is used when animation groups rather than animation ranges
   //are used.
-  var cc = new CharacterController(player,camera,scene,agMap);
+  var cc = new CharacterController(player, camera, scene, agMap);
   cc.start();
 ```
 
@@ -130,7 +130,7 @@ import {CharacterController} from "babylonjs-charactercontroller";
 ...
 let engine = new BABYLON.Engine(canvas, true);
 ...
-let cc = new CharacterController(player,camera,scene);
+let cc = new CharacterController(player, camera, scene);
 ```
 
 CommonJS/NodeJS Module
@@ -141,7 +141,7 @@ let CharacterController = require("babylonjs-CharacterController").CharacterCont
 ...
 let engine = new BABYLON.Engine(canvas, true);
 ...
-let characterController = new CharacterController(player,camera,scene);
+let characterController = new CharacterController(player, camera, scene);
 ...
 
 ```
@@ -161,10 +161,10 @@ AMD Module
 
 	require(['babylonjs', 'cc'], function (BABYLON, cc) {
 		let CharacterController = ec.CharacterController;
-    ...
+		...
 		let engine = new BABYLON.Engine(canvas, true);
 		...
-		let characterController = new CharacterController(player,camera,scene);
+		let characterController = new CharacterController(player, camera, scene);
 		...
 	});
 </script>
@@ -176,11 +176,11 @@ Global Module
 <script src="./lib/babylon.js"></script>
 <script src="./lib/CharacterController.js"></script>
 <script>
-  ...
-	let engine = new BABYLON.Engine(canvas, true);
-	...
-	let characterController = new CharacterController(player,camera,scene);
-	...
+...
+let engine = new BABYLON.Engine(canvas, true);
+...
+let characterController = new CharacterController(player, camera, scene);
+...
 </script>
 ```
 
@@ -192,14 +192,14 @@ Global Module
 // JavaScript
 
 // if using animation ranges
-var cc = new CharacterController(player,camera,scene);
+var cc = new CharacterController(player, camera, scene);
 
 // if using animation groups
-var cc = new CharacterController(player,camera,scene,agMap);
+var cc = new CharacterController(player, camera, scene, agMap);
 //agMap is a Map of animation name to animationGroup
 
 // if the avatar face is forward facing (positive Z direction)
-var cc = new CharacterController(player,camera,scene,agMap,true);
+var cc = new CharacterController(player, camera, scene, agMap, true);
 ```
 
 ```
@@ -208,13 +208,13 @@ var cc = new CharacterController(player,camera,scene,agMap,true);
 import {CharacterController} from "babylonjs-charactercontroller";
 
 // if using animation ranges
-let cc = new CharacterController(player,camera,scene);
+let cc = new CharacterController(player, camera, scene);
 
 // if using animation groups (.glb files use animation groups)
-let cc = new CharacterController(player,camera,scene,agMap);
+let cc = new CharacterController(player, camera, scene, agMap);
 
 // if the avatar face is forward facing (positive Z direction)
-let cc = new CharacterController(player,camera,scene,agMap,true);
+let cc = new CharacterController(player, camera, scene, agMap, true);
 ```
 
 Takes five parms
@@ -229,12 +229,11 @@ Takes five parms
    example:
 
 ```
-   	let myWalkAnimationGroup:AnimationGroup = ...;
-
-    let agMap:{} = {
-    	"walk":myWalkAnimationGroup,
+let myWalkAnimationGroup:AnimationGroup = ...;
+let agMap:{} = {
+    	"walk": myWalkAnimationGroup,
      	"run": ...,
-    }
+}
 ```
 
 - forwardFacing - Optional. If the avatar's face is forward facing (positive Z direction) set this to true. By default it is false.
@@ -256,7 +255,7 @@ If using animation ranges the player skeleton is expected to have the following 
 
 If an animation is not present the controller will not play that animation and will continue playing the animation it was playing just before.
 
-If your animation range is named differently from those mentioned above then use the setWalkAnim(..),setWalkBackAnim(..) etc API to specify your animation range name.
+If your animation range is named differently from those mentioned above then use the setWalkAnim(..), setWalkBackAnim(..) etc API to specify your animation range name.
 
 If instead of animation ranges you have animation groups then you will have to provide a map of animation name to animation group. This is explained further down below.
 
@@ -301,7 +300,7 @@ The CharacterController can run in one of two modes - 0 or 1.
   It is not effected by or effects the rotation of the Avatar
 
 ```
-cc.setMode(n:number); // 0 or 1
+cc.setMode(n: number); // 0 or 1
 ```
 
 #### To change animation range name / animation group and their parameters
@@ -315,39 +314,39 @@ Takes three parms
 To leave any parameter unchanged set its value to null.
 
 ```
-cc.setIdleAnim(rangeName: string|AnimationGroup ,rate: number,loop: boolean);
-cc.setIdleJumpAnim(rangeName: string,rate: number,loop: boolean);
+cc.setIdleAnim(name: string|AnimationGroup, rate: number, loop: boolean);
+cc.setIdleJumpAnim(name: string|AnimationGroup, rate: number, loop: boolean);
 
-cc.setWalkAnim(name :string|AnimationGroup , playback rate:number,loop:boolean);
-cc.setWalkBackAnim(name :string, playback rate:number,loop:boolean);
+cc.setWalkAnim(name: string|AnimationGroup, rate: number, loop: boolean);
+cc.setWalkBackAnim(name: string|AnimationGroup, rate: number, loop: boolean);
 
-cc.setRunAnim(name :string|AnimationGroup , playback rate:number,loop:boolean);
-cc.setRunJumpAnim(rangeName: string,rate: number,loop: boolean)
+cc.setRunAnim(name: string|AnimationGroup, rate: number, loop: boolean);
+cc.setRunJumpAnim(name: string, rate: number, loop: boolean);
 
-cc.setFallAnim(name :string|AnimationGroup , playback rate:number,loop:boolean);
+cc.setFallAnim(name: string|AnimationGroup, rate: number, loop: boolean);
 
-cc.setTurnRightAnim(name :string|AnimationGroup , playback rate:number,loop:boolean);
-cc.setTurnLeftAnim(name :string|AnimationGroup , playback rate:number,loop:boolean);
+cc.setTurnRightAnim(name: string|AnimationGroup, rate: number, loop: boolean);
+cc.setTurnLeftAnim(name: string|AnimationGroup, rate: number, loop: boolean);
 
-cc.setStrafeRightAnim(name :string|AnimationGroup , playback rate:number,loop:boolean);
-cc.setStrafeLeftAnim(name :string|AnimationGroup , playback rate:number,loop:boolean);
+cc.setStrafeRightAnim(name: string|AnimationGroup, rate: number, loop: boolean);
+cc.setStrafeLeftAnim(name: string|AnimationGroup, rate: number, loop: boolean);
 
-cc.setSlideBackAnim(name :string|AnimationGroup , playback rate:number,loop:boolean);
+cc.setSlideBackAnim(name :string|AnimationGroup, rate: number, loop: boolean);
 ```
 
 So lets say your walk animation range is called "myWalk" and you want to play it at half speed and loop it continuoulsy then
 
 ```
-cc.setWalkAnim("myWalk",0.5,true);
+cc.setWalkAnim("myWalk", 0.5, true);
 //if you donot want to change the name or the rate then use below instead
-cc.setWalkAnim(null,null,true);
+cc.setWalkAnim(null, null, true);
 ```
 
 If animation Group
 
 ```
 let myWalkAnimationGroup:AnimationGroup = ...;
-cc.setWalkAnim(myWalkAnimationGroup,0.5,true);
+cc.setWalkAnim(myWalkAnimationGroup, 0.5, true);
 ```
 
 #### To change key binding
@@ -369,13 +368,13 @@ By default the controller uses WASDQE, space, Capslock and arrow keys to control
 To change these use
 
 ```
-cc.setWalkKey(string:key);
-cc.setWalkBackKey(string:key);
-cc.setTurnLeftKey(string:key);
-cc.setTurnRightKey(string:key);
-cc.setStrafeLeftKey(string:key);
-cc.setStrafeRightKey(string:key);
-cc.setJumpKey(string:key);
+cc.setWalkKey(string: key);
+cc.setWalkBackKey(string: key);
+cc.setTurnLeftKey(string: key);
+cc.setTurnRightKey(string: key);
+cc.setStrafeLeftKey(string: key);
+cc.setStrafeRightKey(string: key);
+cc.setJumpKey(string: key);
 ```
 
 Example: To use "x" key to walkback do
@@ -392,14 +391,14 @@ In addition to keyboard, as show above, the Avatar's movement can also be contro
 You might use these to controll movement using say UI, Mouse Clicks, Touch Controllers etc.
 
 ```
-cc.walk(b:boolean);
-cc.walkBack(b:boolean);
-cc.run(b:boolean);
-cc.turnLeft(b:boolean);
-cc.turnRight(b:boolean);
-cc.strafeLeft(b:boolean);
-cc.strafeRight(b:boolean);
-cc.jump(b:boolean);
+cc.walk(b: boolean);
+cc.walkBack(b: boolean);
+cc.run(b: boolean);
+cc.turnLeft(b: boolean);
+cc.turnRight(b: boolean);
+cc.strafeLeft(b: boolean);
+cc.strafeRight(b: boolean);
+cc.jump(b: boolean);
 ```
 
 Example:
@@ -415,7 +414,7 @@ Sometimes, when you are controlling the movement of the Avatar programmatically 
 Use the following method to enable disable the keyboard.
 
 ```
-cc.enableKeyBoard(b:boolean);
+cc.enableKeyBoard(b: boolean);
 ```
 
 cc.enableKeyBoard(true) enables the keyboard  
@@ -438,13 +437,13 @@ setRightSpeed(n: number); //default 3 m/s
 #### To change the slope the avatar can traverse
 
 ```
-setSlopeLimit(minSlopeLimit: number,maxSlopeLimit: number); //the slope is specified in degrees
+setSlopeLimit(minSlopeLimit: number, maxSlopeLimit: number); //the slope is specified in degrees
 ```
 
 Example
 
 ```
-setSlopeLimit(45,55);
+setSlopeLimit(45, 55);
 ```
 
 Here if the avatar is on a slope with angle between 45 and 55 degrees then it will start sliding back when it stops moving.  
@@ -480,10 +479,10 @@ By default the camera focuses on the avatar/player origin. To focus on a differe
 setCameraTarget(v: Vector3);
 ```
 
-Lets say your avatar origin is at its feet but instead of focusing on its feet you would like camera to focus on its head then, assuming the the head is 1.5m above ground, you would do
+Lets say your avatar origin is at its feet but instead of focusing on its feet you would like camera to focus on its head then, assuming the the head is 1.8m above ground, you would do
 
 ```
-cc.setCameraTarget(new BABAYLON.Vector3(0,1.5,0);
+cc.setCameraTarget(new BABYLON.Vector3(0, 1.8, 0);
 ```
 
 By default the camera behaves "elastically". In other words if something comes between the camera and avatar the camera snaps to
@@ -498,8 +497,8 @@ You can use the arc rotate camera's "lowerRadiusLimit" and "upperRadiusLimit" pr
 Example setting
 
 ```
-camera.lowerRadiusLimit=2;
-camera.upperRadiusLimit=20;
+camera.lowerRadiusLimit = 2;
+camera.upperRadiusLimit = 20;
 ```
 
 will restrict the camera between 2 and 20m from the avatar/player.  
