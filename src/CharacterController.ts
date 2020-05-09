@@ -916,18 +916,22 @@ export class CharacterController {
             case "shift":
                 this._act._walkMod = true;
                 break;
+            case "up":
             case "arrowup":
             case this._walkKey:
                 this._act._walk = true;
                 break;
+            case "left":
             case "arrowleft":
             case this._turnLeftKey:
                 this._act._turnLeft = true;
                 break;
+            case "right":
             case "arrowright":
             case this._turnRightKey:
                 this._act._turnRight = true;
                 break;
+            case "down":
             case "arrowdown":
             case this._walkBackKey:
                 this._act._walkback = true;
@@ -948,20 +952,24 @@ export class CharacterController {
             case "shift":
                 this._act._walkMod = false;
                 break;
+            case "up":
             case "arrowup":
             case this._walkKey:
                 this._act._walk = false;
                 break;
+            case "left":
             case "arrowleft":
             case this._turnLeftKey:
                 this._act._turnLeft = false;
                 this._turning = false;
                 break;
+            case "right":
             case "arrowright":
             case this._turnRightKey:
                 this._act._turnRight = false;
                 this._turning = false;
                 break;
+            case "down":
             case "arrowdown":
             case this._walkBackKey:
                 this._act._walkback = false;

@@ -25,7 +25,6 @@ function main() {
 
   let groundMaterial = createGroundMaterial(scene);
   var ground = createGround(scene, groundMaterial);
-
   loadPlayer(scene, engine, canvas);
 
   window.addEventListener("resize", function () {
@@ -36,7 +35,7 @@ function main() {
 var cc;
 
 function loadPlayer(scene, engine, canvas) {
-  BABYLON.SceneLoader.ImportMesh("", "player/", "Vincent-backFacing.babylon", scene, (meshes, particleSystems, skeletons) => {
+  BABYLON.SceneLoader.ImportMesh("", "player/", "Vincent-backFacing.babylon", scene, function (meshes, particleSystems, skeletons) {
     var player = meshes[0];
     var skeleton = skeletons[0];
     player.skeleton = skeleton;
@@ -110,6 +109,13 @@ function loadPlayer(scene, engine, canvas) {
     cc.setFallAnim("fall", 2, false);
     cc.setSlideBackAnim("slideBack", 1, false);
 
+    var ua = window.navigator.userAgent;
+    var isIE = /MSIE|Trident/.test(ua);
+    if (isIE) {
+      //IE specific code goes here
+      cc.setJumpKey("spacebar");
+    }
+
     cc.start();
 
     engine.runRenderLoop(function () {
@@ -163,7 +169,7 @@ function createGround(scene, groundMaterial) {
       minHeight: 0,
       maxHeight: 10,
       subdivisions: 32,
-      onReady: (grnd) => {
+      onReady: function (grnd) {
         grnd.material = groundMaterial;
         grnd.checkCollisions = true;
         grnd.isPickable = true;
@@ -216,11 +222,12 @@ function toggleClass(e) {
 }
 function setControls() {
   const x = document.getElementsByTagName("button");
-  for (let e of x) {
-    e.className = "w3-btn w3-border w3-round w3-pale-red";
+
+  for (i = 0; i < x.length; i++) {
+    x[i].className = "w3-btn w3-border w3-round w3-pale-red";
   }
 
-  document.getElementById("pl").onclick = (e) => {
+  document.getElementById("pl").onclick = function (e) {
     canvas.requestPointerLock = canvas.requestPointerLock || canvas.msRequestPointerLock || canvas.mozRequestPointerLock || canvas.webkitRequestPointerLock || false;
     if (canvas.requestPointerLock) {
       canvas.requestPointerLock();
@@ -228,48 +235,48 @@ function setControls() {
     canvas.focus();
   };
 
-  document.getElementById("w").onclick = (e) => {
+  document.getElementById("w").onclick = function (e) {
     cc.walk((w = !w));
     toggleClass(e);
   };
-  document.getElementById("wb").onclick = (e) => {
+  document.getElementById("wb").onclick = function (e) {
     cc.walkBack((wb = !wb));
     toggleClass(e);
   };
-  document.getElementById("r").onclick = (e) => {
+  document.getElementById("r").onclick = function (e) {
     cc.run((r = !r));
     toggleClass(e);
   };
-  document.getElementById("j").onclick = (e) => {
+  document.getElementById("j").onclick = function (e) {
     cc.jump();
     canvas.focus();
   };
-  document.getElementById("tl").onclick = (e) => {
+  document.getElementById("tl").onclick = function (e) {
     cc.turnLeft((tl = !tl));
     toggleClass(e);
   };
-  document.getElementById("tr").onclick = (e) => {
+  document.getElementById("tr").onclick = function (e) {
     cc.turnRight((tr = !tr));
     toggleClass(e);
   };
-  document.getElementById("sl").onclick = (e) => {
+  document.getElementById("sl").onclick = function (e) {
     cc.strafeLeft((sl = !sl));
     toggleClass(e);
   };
-  document.getElementById("sr").onclick = (e) => {
+  document.getElementById("sr").onclick = function (e) {
     cc.strafeRight((sr = !sr));
     toggleClass(e);
   };
 
-  document.getElementById("tp").onclick = (e) => {
+  document.getElementById("tp").onclick = function (e) {
     cc.setMode(0);
     canvas.focus();
   };
-  document.getElementById("td").onclick = (e) => {
+  document.getElementById("td").onclick = function (e) {
     cc.setMode(1);
     canvas.focus();
   };
-  document.getElementById("kb").onclick = (e) => {
+  document.getElementById("kb").onclick = function (e) {
     cc.enableKeyBoard(e.target.checked);
     canvas.focus();
   };

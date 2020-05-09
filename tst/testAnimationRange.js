@@ -31,7 +31,7 @@ function main() {
 
   // };
 
-  scene.debugLayer.show({ showExplorer: true, overlay: true });
+  scene.debugLayer.show({ showExplorer: true, embedMode: true });
 
   var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
   light.intensity = 0.3;
@@ -96,7 +96,7 @@ function loadPlayer(scene, engine, canvas) {
 
     var cc = new CharacterController(player, camera, scene);
     cc.setFaceForward(true);
-    cc.setMode(1);
+    cc.setMode(0);
 
     //below makes the controller point the camera at the player head which is approx
     //1.5m above the player origin
