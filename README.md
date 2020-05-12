@@ -303,6 +303,21 @@ The CharacterController can run in one of two modes - 0 or 1.
 cc.setMode(n: number); // 0 or 1
 ```
 
+##### Turning on/off
+
+Use this to set turning on/off.
+When turining is off  
+a) turn left or turn right keys result in avatar facing and moving left or right with respect to camera rather then just turning left or right  
+b) walkback/runback key results in avatar facing back, towards the camera and walking/running towards camera rather than walking backwards with back to the camera
+
+This setting has no effect when mode is 1.
+
+```
+cc.setTurningOff(true/false);
+```
+
+default is false
+
 #### To change animation range name / animation group and their parameters
 
 Takes three parms
