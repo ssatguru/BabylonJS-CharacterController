@@ -86,6 +86,7 @@ export declare class CharacterController {
     private mode;
     private _saveMode;
     setMode(n: number): void;
+    setTurningOff(b: boolean): void;
     private _isRHS;
     private _signRHS;
     private _setRHS;
@@ -119,7 +120,8 @@ export declare class CharacterController {
     private _verticalSlope;
     private _movFallTime;
     private _sign;
-    private _turning;
+    private _isTurning;
+    private _noRot;
     private _doMove;
     private _endFreeFall;
     private _idleFallTime;

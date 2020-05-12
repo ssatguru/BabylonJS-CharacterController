@@ -115,6 +115,7 @@ function loadPlayer(scene, engine, canvas) {
     cc.setIdleAnim(null, 1, true);
     cc.setTurnLeftAnim(null, 0.5, true);
     cc.setTurnRightAnim(null, 0.5, true);
+    cc.setWalkAnim(agMap["walk2"], 1, true);
     cc.setWalkBackAnim(null, 0.5, true);
     cc.setIdleJumpAnim(null, 0.5, false);
     cc.setRunJumpAnim(null, 0.6, false);

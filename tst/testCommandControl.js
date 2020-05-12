@@ -35,7 +35,7 @@ function main() {
 var cc;
 
 function loadPlayer(scene, engine, canvas) {
-  BABYLON.SceneLoader.ImportMesh("", "player/", "Vincent-backFacing.babylon", scene, function (meshes, particleSystems, skeletons) {
+  BABYLON.SceneLoader.ImportMesh("", "player/", "Vincent-frontFacing.babylon", scene, function (meshes, particleSystems, skeletons) {
     var player = meshes[0];
     var skeleton = skeletons[0];
     player.skeleton = skeleton;
@@ -80,7 +80,7 @@ function loadPlayer(scene, engine, canvas) {
     camera.attachControl(canvas, false);
 
     cc = new CharacterController(player, camera, scene);
-    cc.setFaceForward(false);
+    cc.setFaceForward(true);
     cc.setMode(0);
     cc.setTurnSpeed(45);
     //below makes the controller point the camera at the player head which is approx
@@ -274,6 +274,10 @@ function setControls() {
   };
   document.getElementById("td").onclick = function (e) {
     cc.setMode(1);
+    canvas.focus();
+  };
+  document.getElementById("toff").onclick = function (e) {
+    cc.setTurningOff(e.target.checked);
     canvas.focus();
   };
   document.getElementById("kb").onclick = function (e) {

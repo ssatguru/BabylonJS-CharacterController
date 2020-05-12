@@ -26,7 +26,7 @@ export class CharacterController {
     private _leftSpeed: number = this._walkSpeed / 2;
     private _rightSpeed: number = this._walkSpeed / 2;
     //trun speed in radian per second (equivalent to 180 degree/second by default)
-    private _turnSpeed: number = Math.PI;
+    private _turnSpeed: number = Math.PI / 4;
     private _gravity: number = 9.8;
     //slopeLimit in degrees
     private _minSlopeLimit: number = 30;
@@ -336,6 +336,19 @@ export class CharacterController {
         this.mode = n;
         this._saveMode = n;
     }
+    /**
+     * Use this to set  turning off.
+     * When turining is off 
+     * a) turn left or turn right keys result in avatar facing and moving left or right with respect to camera.
+     * b) walkback/runback key results in avatar facing back and walking/running towards camera.
+     * 
+     * This setting has no effect when mode is 1.
+     * 
+     * @param b 
+     */
+    public setTurningOff(b: boolean) {
+        this._noRot = b;
+    }
 
     /**
         * checks if a have left hand , right hand issue.
@@ -513,7 +526,7 @@ export class CharacterController {
 
         let forwardDist: number = 0;
         let disp: Vector3;
-        if (this.mode != 1) this._avatar.rotation.y = this._av2cam - this._camera.alpha;
+        if (this.mode != 1 && !this._noRot) this._avatar.rotation.y = this._av2cam - this._camera.alpha;
         if (this._wasRunning || this._wasWalking) {
             if (this._wasRunning) {
                 forwardDist = this._runSpeed * dt;
@@ -587,7 +600,8 @@ export class CharacterController {
     //for how long has the av been falling while moving
     private _movFallTime: number = 0;
     private _sign = 1;
-    private _turning = false;
+    private _isTurning = false;
+    private _noRot = false;
     private _doMove(dt: number): _AnimData {
 
         //initial down velocity
@@ -609,51 +623,69 @@ export class CharacterController {
             this._wasRunning = false;
 
             let sign: number;
+            let horizDist: number = 0;
             switch (true) {
-                case (this._act._walk):
-                    let forwardDist: number = 0;
-                    if (this._act._walkMod) {
-                        this._wasRunning = true;
-                        forwardDist = this._runSpeed * dt;
-                        anim = this._run;
-                    } else {
-                        this._wasWalking = true;
-                        forwardDist = this._walkSpeed * dt;
-                        anim = this._walk;
-                    }
-                    this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, this._ffSign * forwardDist);
-                    moving = true;
-                    break;
-                case (this._act._walkback):
-                    this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, -this._ffSign * (this._backSpeed * dt));
-                    anim = this._walkBack;
-                    moving = true;
-                    break;
                 case (this._act._stepLeft):
+                    horizDist = this._leftSpeed * dt;
+                    if (this._act._speedMod) {
+                        horizDist = 2 * horizDist;
+                    }
                     sign = this._signRHS * this._isAvFacingCamera();
-                    this._moveVector = this._avatar.calcMovePOV(sign * (this._leftSpeed * dt), -this._freeFallDist, 0);
+                    this._moveVector = this._avatar.calcMovePOV(sign * horizDist, -this._freeFallDist, 0);
                     anim = (-this._ffSign * sign > 0) ? this._strafeLeft : this._strafeRight;
                     moving = true;
                     break;
                 case (this._act._stepRight):
+                    horizDist = this._rightSpeed * dt;
+                    if (this._act._speedMod) {
+                        horizDist = 2 * horizDist;
+                    }
                     sign = -this._signRHS * this._isAvFacingCamera();
-                    this._moveVector = this._avatar.calcMovePOV(sign * (this._rightSpeed * dt), -this._freeFallDist, 0);
+                    this._moveVector = this._avatar.calcMovePOV(sign * horizDist, -this._freeFallDist, 0);
                     anim = (-this._ffSign * sign > 0) ? this._strafeLeft : this._strafeRight;
                     moving = true;
+                    break;
+                case (this._act._walk || (this._noRot && this.mode == 0)):
+                    if (this._act._speedMod) {
+                        this._wasRunning = true;
+                        horizDist = this._runSpeed * dt;
+                        anim = this._run;
+                    } else {
+                        this._wasWalking = true;
+                        horizDist = this._walkSpeed * dt;
+                        anim = this._walk;
+                    }
+                    this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, this._ffSign * horizDist);
+                    moving = true;
+                    break;
+                case (this._act._walkback):
+                    horizDist = this._backSpeed * dt;
+                    if (this._act._speedMod) {
+                        horizDist = 2 * horizDist;
+                    }
+                    this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, -this._ffSign * horizDist);
+                    anim = this._walkBack;
+                    moving = true;
+                    break;
+
             }
 
         }
 
-        if ((!this._act._stepLeft && !this._act._stepRight) && (this._act._turnLeft || this._act._turnRight)) {
+        if (!(this._noRot && this.mode == 0) && (!this._act._stepLeft && !this._act._stepRight) && (this._act._turnLeft || this._act._turnRight)) {
+            let turnAngle = this._turnSpeed * dt;
+            if (this._act._speedMod) {
+                turnAngle = 2 * turnAngle;
+            }
             if (this.mode == 1) {
                 // while turining, the avatar could start facing away from camera and end up facing camera.
                 // we should not switch turning direction during this transition
-                if (!this._turning) {
+                if (!this._isTurning) {
                     // if (this._act.name != this._act.prevName) {
                     // this._act.prevName = this._act.name;
                     this._sign = -this._ffSign * this._isAvFacingCamera();
                     if (this._isRHS) this._sign = - this._sign;
-                    this._turning = true;
+                    this._isTurning = true;
                 }
                 let a = this._sign;
                 if (this._act._turnLeft) {
@@ -670,7 +702,7 @@ export class CharacterController {
                         anim = (this._sign > 0) ? this._turnLeft : this._turnRight;
                     }
                 }
-                this._avatar.rotation.y = this._avatar.rotation.y + this._turnSpeed * dt * a;
+                this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
             } else {
                 let a = 1;
                 if (this._act._turnLeft) {
@@ -680,12 +712,43 @@ export class CharacterController {
                     if (this._act._walk) a = -1;
                     if (!moving) { a = -1; anim = this._turnRight; }
                 }
-                this._camera.alpha = this._camera.alpha + a * this._turnSpeed * dt;
+                this._camera.alpha = this._camera.alpha + turnAngle * a;
             }
         }
 
         if (this.mode != 1) {
-            this._avatar.rotation.y = this._av2cam - this._camera.alpha;
+            if (this._noRot) {
+                switch (true) {
+                    case (this._act._walk && this._act._turnRight):
+                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + Math.PI / 4;
+                        break;
+                    case (this._act._walk && this._act._turnLeft):
+                        this._avatar.rotation.y = this._av2cam - this._camera.alpha - Math.PI / 4;
+                        break;
+                    case (this._act._walkback && this._act._turnRight):
+                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + 3 * Math.PI / 4;
+                        break;
+                    case (this._act._walkback && this._act._turnLeft):
+                        this._avatar.rotation.y = this._av2cam - this._camera.alpha - 3 * Math.PI / 4;
+                        break;
+                    case (this._act._walk):
+                        this._avatar.rotation.y = this._av2cam - this._camera.alpha;
+                        break;
+                    case (this._act._walkback):
+                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + Math.PI;
+                        break;
+                    case (this._act._turnRight):
+                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + Math.PI / 2;
+                        break;
+                    case (this._act._turnLeft):
+                        this._avatar.rotation.y = this._av2cam - this._camera.alpha - Math.PI / 2;
+                        break;
+                }
+            } else {
+                this._avatar.rotation.y = this._av2cam - this._camera.alpha;
+            }
+        } else {
+
         }
 
         if (moving) {
@@ -787,7 +850,7 @@ export class CharacterController {
         //moveWithDisplacement down against a surface seems to push the AV up by a small amount!!
         if (this._freeFallDist < 0.01) return anim;
         const disp: Vector3 = new Vector3(0, -this._freeFallDist, 0);
-        if (this.mode != 1) this._avatar.rotation.y = this._av2cam - this._camera.alpha;
+        if (this.mode != 1 && !this._noRot) this._avatar.rotation.y = this._av2cam - this._camera.alpha;
         this._avatar.moveWithCollisions(disp);
         if ((this._avatar.position.y > this._avStartPos.y) || (this._avatar.position.y === this._avStartPos.y)) {
             //                this.grounded = true;
@@ -911,10 +974,10 @@ export class CharacterController {
                 this._act._jump = true;
                 break;
             case "capslock":
-                this._act._walkMod = !this._act._walkMod;
+                this._act._speedMod = !this._act._speedMod;
                 break;
             case "shift":
-                this._act._walkMod = true;
+                this._act._speedMod = true;
                 break;
             case "up":
             case "arrowup":
@@ -950,7 +1013,7 @@ export class CharacterController {
         if (!e.key) return;
         switch (e.key.toLowerCase()) {
             case "shift":
-                this._act._walkMod = false;
+                this._act._speedMod = false;
                 break;
             case "up":
             case "arrowup":
@@ -961,13 +1024,13 @@ export class CharacterController {
             case "arrowleft":
             case this._turnLeftKey:
                 this._act._turnLeft = false;
-                this._turning = false;
+                this._isTurning = false;
                 break;
             case "right":
             case "arrowright":
             case this._turnRightKey:
                 this._act._turnRight = false;
-                this._turning = false;
+                this._isTurning = false;
                 break;
             case "down":
             case "arrowdown":
@@ -1011,15 +1074,15 @@ export class CharacterController {
     }
     public run(b: boolean) {
         this._act._walk = b;
-        this._act._walkMod = b;
+        this._act._speedMod = b;
     }
     public turnLeft(b: boolean) {
         this._act._turnLeft = b;
-        if (!b) this._turning = b;
+        if (!b) this._isTurning = b;
     }
     public turnRight(b: boolean) {
         this._act._turnRight = b;
-        if (!b) this._turning = b;
+        if (!b) this._isTurning = b;
     }
     public strafeLeft(b: boolean) {
         this._act._stepLeft = b;
@@ -1095,8 +1158,8 @@ class _AnimData {
 class _Action {
     public _walk: boolean = false;
     public _walkback: boolean = false;
-    // walk modifier - modifies walk to run
-    public _walkMod: boolean = false;
+    // speed modifier - changes speed of movement
+    public _speedMod: boolean = false;
     public _turnRight: boolean = false;
     public _turnLeft: boolean = false;
     public _stepRight: boolean = false;
@@ -1116,6 +1179,6 @@ class _Action {
         this._stepRight = false;
         this._stepLeft = false;
         this._jump = false;
-        this._walkMod = false;
+        this._speedMod = false;
     }
 }
