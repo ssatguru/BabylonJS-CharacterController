@@ -20,13 +20,18 @@ export class CharacterController {
 
     //avatar speed in meters/second
     private _walkSpeed: number = 3;
+    private _walkFastSpeed: number = this._walkSpeed * 2;
     private _runSpeed: number = this._walkSpeed * 2;
     private _backSpeed: number = this._walkSpeed / 2;
+    private _backFastSpeed: number = this._backSpeed * 2;
     private _jumpSpeed: number = this._walkSpeed * 2;
     private _leftSpeed: number = this._walkSpeed / 2;
+    private _leftFastSpeed: number = this._leftSpeed * 2;
     private _rightSpeed: number = this._walkSpeed / 2;
+    private _rightFastSpeed: number = this._rightSpeed * 2;
     //trun speed in radian per second (equivalent to 180 degree/second by default)
-    private _turnSpeed: number = Math.PI / 4;
+    private _turnSpeed: number = Math.PI / 8;
+    private _turnFastSpeed: number = this._turnSpeed * 2;
     private _gravity: number = 9.8;
     //slopeLimit in degrees
     private _minSlopeLimit: number = 30;
@@ -45,18 +50,23 @@ export class CharacterController {
     //animations
     private _walk: _AnimData = new _AnimData("walk");
     private _walkBack: _AnimData = new _AnimData("walkBack");
+    private _walkBackFast: _AnimData = new _AnimData("walkBackFast");
     private _idle: _AnimData = new _AnimData("idle");
     private _idleJump: _AnimData = new _AnimData("idleJump");
     private _run: _AnimData = new _AnimData("run");
     private _runJump: _AnimData = new _AnimData("runJump");
     private _fall: _AnimData = new _AnimData("fall");
     private _turnLeft: _AnimData = new _AnimData("turnLeft");
+    private _turnLeftFast: _AnimData = new _AnimData("turnLeftFast");
     private _turnRight: _AnimData = new _AnimData("turnRight");
+    private _turnRightFast: _AnimData = new _AnimData("turnRightFast");
     private _strafeLeft: _AnimData = new _AnimData("strafeLeft");
+    private _strafeLeftFast: _AnimData = new _AnimData("strafeLeftFast");
     private _strafeRight: _AnimData = new _AnimData("strafeRight");
+    private _strafeRightFast: _AnimData = new _AnimData("strafeRightFast");
     private _slideBack: _AnimData = new _AnimData("slideBack");
 
-    private _anims: _AnimData[] = [this._walk, this._walkBack, this._idle, this._idleJump, this._run, this._runJump, this._fall, this._turnLeft, this._turnRight, this._strafeLeft, this._strafeRight, this._slideBack];
+    private _anims: _AnimData[] = [this._walk, this._walkBack, this._walkBackFast, this._idle, this._idleJump, this._run, this._runJump, this._fall, this._turnLeft, this._turnLeftFast, this._turnRight, this._turnRightFast, this._strafeLeft, this._strafeLeftFast, this._strafeRight, this._strafeRightFast, this._slideBack];
 
     //move keys
     private _walkKey: string = "w";
@@ -103,22 +113,26 @@ export class CharacterController {
     public setRunSpeed(n: number) {
         this._runSpeed = n;
     }
-    public setBackSpeed(n: number) {
+    public setBackSpeed(n: number, f?: number) {
         this._backSpeed = n;
+        this._backFastSpeed = (f) ? f : n * 2;
     }
     public setJumpSpeed(n: number) {
         this._jumpSpeed = n;
     }
-    public setLeftSpeed(n: number) {
+    public setLeftSpeed(n: number, f?: number) {
         this._leftSpeed = n;
+        this._leftFastSpeed = (f) ? f : n * 2;
     }
-    public setRightSpeed(n: number) {
+    public setRightSpeed(n: number, f?: number) {
         this._rightSpeed = n;
+        this._rightFastSpeed = (f) ? f : n * 2;
     }
     // get turnSpeed in degrees per second.
     // store in radians per second
-    public setTurnSpeed(n: number) {
+    public setTurnSpeed(n: number, f?: number) {
         this._turnSpeed = n * Math.PI / 180;
+        this._turnFastSpeed = (f) ? f : n * 2;
     }
     public setGravity(n: number) {
         this._gravity = n;
@@ -144,8 +158,10 @@ export class CharacterController {
             if (agMap[anim._name] != null) {
                 anim._ag = agMap[anim._name];
                 anim._exist = true;
+                anim._ag.name
             }
         }
+        this._checkFastAnims();
     }
     /**
      * Use this to provide AnimationRanges to the character controller.
@@ -181,7 +197,7 @@ export class CharacterController {
         }
     }
 
-    private setAnim(anim: _AnimData, rangeName?: string | AnimationGroup, rate?: number, loop?: boolean) {
+    private _setAnim(anim: _AnimData, rangeName?: string | AnimationGroup, rate?: number, loop?: boolean) {
         if (!this._isAG && this._skeleton == null) return;
         if (loop != null) anim._loop = loop;
         if (!this._isAG) {
@@ -235,40 +251,60 @@ export class CharacterController {
 
     //setters for animations
     public setWalkAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this.setAnim(this._walk, rangeName, rate, loop);
+        this._setAnim(this._walk, rangeName, rate, loop);
     }
     public setRunAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this.setAnim(this._run, rangeName, rate, loop);
+        this._setAnim(this._run, rangeName, rate, loop);
     }
     public setWalkBackAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this.setAnim(this._walkBack, rangeName, rate, loop);
+        this._setAnim(this._walkBack, rangeName, rate, loop);
+        this._copySlowAnims(this._walkBackFast, this._walkBack);
+    }
+    public setWalkBackFastAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+        this._setAnim(this._walkBackFast, rangeName, rate, loop);
     }
     public setSlideBackAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this.setAnim(this._slideBack, rangeName, rate, loop);
+        this._setAnim(this._slideBack, rangeName, rate, loop);
     }
     public setIdleAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this.setAnim(this._idle, rangeName, rate, loop);
+        this._setAnim(this._idle, rangeName, rate, loop);
     }
     public setTurnRightAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this.setAnim(this._turnRight, rangeName, rate, loop);
+        this._setAnim(this._turnRight, rangeName, rate, loop);
+        this._copySlowAnims(this._turnRightFast, this._turnRight);
+    }
+    public setTurnRightFastAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+        this._setAnim(this._turnRightFast, rangeName, rate, loop);
     }
     public setTurnLeftAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this.setAnim(this._turnLeft, rangeName, rate, loop);
+        this._setAnim(this._turnLeft, rangeName, rate, loop);
+        this._copySlowAnims(this._turnLeftFast, this._turnLeft);
+    }
+    public setTurnLeftFastAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+        this._setAnim(this._turnLeftFast, rangeName, rate, loop);
     }
     public setStrafeRightAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this.setAnim(this._strafeRight, rangeName, rate, loop);
+        this._setAnim(this._strafeRight, rangeName, rate, loop);
+        this._copySlowAnims(this._strafeRightFast, this._strafeRight);
+    }
+    public setStrafeRightFastAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+        this._setAnim(this._strafeRightFast, rangeName, rate, loop);
     }
     public setStrafeLeftAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this.setAnim(this._strafeLeft, rangeName, rate, loop);
+        this._setAnim(this._strafeLeft, rangeName, rate, loop);
+        this._copySlowAnims(this._strafeLeftFast, this._strafeLeft);
+    }
+    public setStrafeLeftFastAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+        this._setAnim(this._strafeLeftFast, rangeName, rate, loop);
     }
     public setIdleJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this.setAnim(this._idleJump, rangeName, rate, loop);
+        this._setAnim(this._idleJump, rangeName, rate, loop);
     }
     public setRunJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this.setAnim(this._runJump, rangeName, rate, loop);
+        this._setAnim(this._runJump, rangeName, rate, loop);
     }
     public setFallAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this.setAnim(this._fall, rangeName, rate, loop);
+        this._setAnim(this._fall, rangeName, rate, loop);
     }
 
     // setters for keys
@@ -323,6 +359,27 @@ export class CharacterController {
                 anim._exist = false;
             }
         }
+        this._checkFastAnims();
+    }
+
+    /**
+     * if fast anims do not exist then use their slow counterpart as them but double the rate at which they play
+     */
+    private _checkFastAnims() {
+        this._copySlowAnims(this._walkBackFast, this._walkBack)
+        this._copySlowAnims(this._turnRightFast, this._turnRightFast);
+        this._copySlowAnims(this._turnLeftFast, this._turnLeft);
+        this._copySlowAnims(this._strafeRightFast, this._strafeRight);
+        this._copySlowAnims(this._strafeLeftFast, this._strafeLeft);
+    }
+
+    private _copySlowAnims(f: _AnimData, s: _AnimData) {
+        if (f._exist) return;
+        if (!s._exist) return;
+        f._exist = true;
+        f._ag = s._ag;
+        f._name = s._name;
+        f._rate = s._rate * 2;
     }
 
     /**
@@ -496,6 +553,7 @@ export class CharacterController {
                     if (this._isAG) {
                         if (this._prevAnim != null && this._prevAnim._exist) this._prevAnim._ag.stop();
                         anim._ag.play(anim._loop);
+                        anim._ag.speedRatio = anim._rate;
                     } else {
                         this._skeleton.beginAnimation(anim._name, anim._loop, anim._rate);
                     }
@@ -626,29 +684,34 @@ export class CharacterController {
             let horizDist: number = 0;
             switch (true) {
                 case (this._act._stepLeft):
+                    sign = this._signRHS * this._isAvFacingCamera();
                     horizDist = this._leftSpeed * dt;
                     if (this._act._speedMod) {
-                        horizDist = 2 * horizDist;
+                        horizDist = this._leftFastSpeed * dt;
+                        anim = (-this._ffSign * sign > 0) ? this._strafeLeftFast : this._strafeRightFast;
+                    } else {
+                        anim = (-this._ffSign * sign > 0) ? this._strafeLeft : this._strafeRight;
                     }
-                    sign = this._signRHS * this._isAvFacingCamera();
+
                     this._moveVector = this._avatar.calcMovePOV(sign * horizDist, -this._freeFallDist, 0);
-                    anim = (-this._ffSign * sign > 0) ? this._strafeLeft : this._strafeRight;
                     moving = true;
                     break;
                 case (this._act._stepRight):
+                    sign = -this._signRHS * this._isAvFacingCamera();
                     horizDist = this._rightSpeed * dt;
                     if (this._act._speedMod) {
-                        horizDist = 2 * horizDist;
+                        horizDist = this._rightFastSpeed * dt;
+                        anim = (-this._ffSign * sign > 0) ? this._strafeLeftFast : this._strafeRightFast;
+                    } else {
+                        anim = (-this._ffSign * sign > 0) ? this._strafeLeft : this._strafeRight;
                     }
-                    sign = -this._signRHS * this._isAvFacingCamera();
                     this._moveVector = this._avatar.calcMovePOV(sign * horizDist, -this._freeFallDist, 0);
-                    anim = (-this._ffSign * sign > 0) ? this._strafeLeft : this._strafeRight;
                     moving = true;
                     break;
                 case (this._act._walk || (this._noRot && this.mode == 0)):
                     if (this._act._speedMod) {
                         this._wasRunning = true;
-                        horizDist = this._runSpeed * dt;
+                        horizDist = this._walkFastSpeed * dt;
                         anim = this._run;
                     } else {
                         this._wasWalking = true;
@@ -661,10 +724,12 @@ export class CharacterController {
                 case (this._act._walkback):
                     horizDist = this._backSpeed * dt;
                     if (this._act._speedMod) {
-                        horizDist = 2 * horizDist;
+                        horizDist = this._backFastSpeed * dt;
+                        anim = this._walkBackFast;
+                    } else {
+                        anim = this._walkBack;
                     }
                     this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, -this._ffSign * horizDist);
-                    anim = this._walkBack;
                     moving = true;
                     break;
 
@@ -1072,6 +1137,10 @@ export class CharacterController {
     public walkBack(b: boolean) {
         this._act._walkback = b;
     }
+    public walkBackFast(b: boolean) {
+        this._act._walkback = b;
+        this._act._speedMod = b;
+    }
     public run(b: boolean) {
         this._act._walk = b;
         this._act._speedMod = b;
@@ -1080,15 +1149,33 @@ export class CharacterController {
         this._act._turnLeft = b;
         if (!b) this._isTurning = b;
     }
+    public turnLeftFast(b: boolean) {
+        this._act._turnLeft = b;
+        if (!b) this._isTurning = b;
+        this._act._speedMod = b;
+    }
     public turnRight(b: boolean) {
         this._act._turnRight = b;
         if (!b) this._isTurning = b;
     }
+    public turnRightFast(b: boolean) {
+        this._act._turnRight = b;
+        if (!b) this._isTurning = b;
+        this._act._speedMod = b;
+    }
     public strafeLeft(b: boolean) {
         this._act._stepLeft = b;
     }
+    public strafeLeftFast(b: boolean) {
+        this._act._stepLeft = b;
+        this._act._speedMod = b;
+    }
     public strafeRight(b: boolean) {
         this._act._stepRight = b;
+    }
+    public strafeRightFast(b: boolean) {
+        this._act._stepRight = b;
+        this._act._speedMod = b;
     }
     public jump() {
         this._act._jump = true;

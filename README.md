@@ -16,16 +16,29 @@ It currently supports
 - idleJump
 - walk
 - walkBack
+- walkBackFast
 - run
 - runJump
 - fall
 - turnRight
+- turnRightFast
 - turnLeft
+- turnLeftFast
 - strafeLeft
+- strafeLeftFast
 - strafeRight
+- strafeRightFast
 - slideDown
 
-It supports constraining avatar from traversing slopes inclined at certain angles.
+It supports two modes or ways of moving the avatar.  
+One suitable for third/first person kind of game
+and the other suitable for top down isometric kind of game.  
+Further within the third/first person mode, two "submodes" are supported.  
+In one submode the left and right keys make the avatar turn left or right and the back key makes the avatar walk backward with back facing the camera.  
+In the other submode the left and right keys make the avatar face and move left or right and the back keys makes the avatar turn around and move towards the camera.
+See "setMode" and "Turning On/Off" below.
+
+Further it supports constraining avatar from traversing slopes inclined at certain angles.
 
 It also supports camera "elasticity". In other words if a mesh comes between the camera and avatar/player, the camera snaps to
 a position in front of the mesh. This way the avatar/player is always in view.
@@ -238,24 +251,36 @@ let agMap:{} = {
 
 - forwardFacing - Optional. If the avatar's face is forward facing (positive Z direction) set this to true. By default it is false.
 
-If using animation ranges the player skeleton is expected to have the following animation ranges named as follows
+If using animation ranges the player skeleton is expected to have the animation ranges named as follows
 
 - idle
 - idleJump
 - walk
 - walkBack
+- walkBackFast
 - run
 - runJump
 - fall
 - turnRight
+- turnRightFast
 - turnLeft
+- turnLeftFast
 - strafeLeft
+- strafeLeftFast
 - strafeRight
+- strafeRightFast
 - slideDown
 
-If an animation is not present the controller will not play that animation and will continue playing the animation it was playing just before.
+If an animation is not provided then the controller will not play that animation and will continue playing the animation it was playing just before.
 
-If your animation range is named differently from those mentioned above then use the setWalkAnim(..), setWalkBackAnim(..) etc API to specify your animation range name.
+Also there are some animations which end with string "Fast".
+If these are not present then the controller will play the non-fast version but at twice the speed.  
+So for example lets say you provided "strafeLeft" but not "strafeLeftFast" then the controller will play the "stafeLeft" animation whenever it has to play the "strafeLeftFast" but at twice the speed of "strafeLeft".
+
+The "Fast" animations are played when the user presses the "mod" key (usually "shift key) along with the normal key.
+Example: to play "strafeLeft" if the key is set to "q" then to play "strafeLeftFast" the key would be "q" and "shift".
+
+Now ff your animation range is named differently from those mentioned above then use the setWalkAnim(..), setWalkBackAnim(..) etc API to specify your animation range name.
 
 If instead of animation ranges you have animation groups then you will have to provide a map of animation name to animation group. This is explained further down below.
 
@@ -334,6 +359,7 @@ cc.setIdleJumpAnim(name: string|AnimationGroup, rate: number, loop: boolean);
 
 cc.setWalkAnim(name: string|AnimationGroup, rate: number, loop: boolean);
 cc.setWalkBackAnim(name: string|AnimationGroup, rate: number, loop: boolean);
+cc.setWalkBacFastkAnim(name: string|AnimationGroup, rate: number, loop: boolean);
 
 cc.setRunAnim(name: string|AnimationGroup, rate: number, loop: boolean);
 cc.setRunJumpAnim(name: string, rate: number, loop: boolean);
@@ -343,8 +369,14 @@ cc.setFallAnim(name: string|AnimationGroup, rate: number, loop: boolean);
 cc.setTurnRightAnim(name: string|AnimationGroup, rate: number, loop: boolean);
 cc.setTurnLeftAnim(name: string|AnimationGroup, rate: number, loop: boolean);
 
+cc.setTurnRightFastAnim(name: string|AnimationGroup, rate: number, loop: boolean);
+cc.setTurnLeftFastAnim(name: string|AnimationGroup, rate: number, loop: boolean);
+
 cc.setStrafeRightAnim(name: string|AnimationGroup, rate: number, loop: boolean);
 cc.setStrafeLeftAnim(name: string|AnimationGroup, rate: number, loop: boolean);
+
+cc.setStrafeRightFastAnim(name: string|AnimationGroup, rate: number, loop: boolean);
+cc.setStrafeLeftFastAnim(name: string|AnimationGroup, rate: number, loop: boolean);
 
 cc.setSlideBackAnim(name :string|AnimationGroup, rate: number, loop: boolean);
 ```
@@ -398,6 +430,20 @@ Example: To use "x" key to walkback do
 cc.setWalkBackKey("x");
 ```
 
+To specify spacebar key use " ". Example cc.setJumpKey(" ")
+If targetting IE11 and previous use the word "spacebar".  
+Example:
+
+```
+   var ua = window.navigator.userAgent;
+   var isIE = /MSIE|Trident/.test(ua);
+   if (isIE) {
+     //IE specific code goes here
+     cc.setJumpKey("spacebar");
+   }
+
+```
+
 Note: Currently you cannot reassign Shift, Capslock or Arrow Keys to other actions. This is on TODO list
 
 #### Controlling Avatar programmatically
@@ -444,9 +490,14 @@ setGravity(n: number);    //default 9.8 m/s^2
 setWalkSpeed(n: number);  //default 3 m/s
 setRunSpeed(n: number);   //default 6 m/s
 setBackSpeed(n: number);  //default 3 m/s
+setBackFastSpeed(n: number);  //default 6 m/s
 setJumpSpeed(n: number);  //default 6 m/s
 setLeftSpeed(n: number);  //default 3 m/s
+setLeftFastSpeed(n: number);  //default 6 m/s
 setRightSpeed(n: number); //default 3 m/s
+setRightFastSpeed(n: number); //default 6 m/s
+setTurnSpeed (n:number);//default PI/8 degree/s
+setTurnFastSpeed (n:number);//default PI/4 degree/s
 ```
 
 #### To change the slope the avatar can traverse

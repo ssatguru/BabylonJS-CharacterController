@@ -208,12 +208,17 @@ function showControls() {
 
 var w,
   wb,
+  wbf,
   r,
   j,
   tl,
+  tlf,
   tr,
+  trf,
   sl,
-  sr = false;
+  slf,
+  sr,
+  srf = false;
 
 function toggleClass(e) {
   e.target.classList.toggle("w3-pale-red");
@@ -243,6 +248,10 @@ function setControls() {
     cc.walkBack((wb = !wb));
     toggleClass(e);
   };
+  document.getElementById("wbf").onclick = function (e) {
+    cc.walkBackFast((wbf = !wbf));
+    toggleClass(e);
+  };
   document.getElementById("r").onclick = function (e) {
     cc.run((r = !r));
     toggleClass(e);
@@ -255,16 +264,32 @@ function setControls() {
     cc.turnLeft((tl = !tl));
     toggleClass(e);
   };
+  document.getElementById("tlf").onclick = function (e) {
+    cc.turnLeftFast((tlf = !tlf));
+    toggleClass(e);
+  };
   document.getElementById("tr").onclick = function (e) {
     cc.turnRight((tr = !tr));
+    toggleClass(e);
+  };
+  document.getElementById("trf").onclick = function (e) {
+    cc.turnRightFast((trf = !trf));
     toggleClass(e);
   };
   document.getElementById("sl").onclick = function (e) {
     cc.strafeLeft((sl = !sl));
     toggleClass(e);
   };
+  document.getElementById("slf").onclick = function (e) {
+    cc.strafeLeftFast((slf = !slf));
+    toggleClass(e);
+  };
   document.getElementById("sr").onclick = function (e) {
     cc.strafeRight((sr = !sr));
+    toggleClass(e);
+  };
+  document.getElementById("srf").onclick = function (e) {
+    cc.strafeRightFast((srf = !srf));
     toggleClass(e);
   };
 
