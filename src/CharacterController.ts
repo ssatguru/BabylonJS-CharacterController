@@ -113,26 +113,34 @@ export class CharacterController {
     public setRunSpeed(n: number) {
         this._runSpeed = n;
     }
-    public setBackSpeed(n: number, f?: number) {
+    public setBackSpeed(n: number) {
         this._backSpeed = n;
-        this._backFastSpeed = (f) ? f : n * 2;
+    }
+    public setBackFastSpeed(n: number) {
+        this._backFastSpeed = n;
     }
     public setJumpSpeed(n: number) {
         this._jumpSpeed = n;
     }
-    public setLeftSpeed(n: number, f?: number) {
+    public setLeftSpeed(n: number) {
         this._leftSpeed = n;
-        this._leftFastSpeed = (f) ? f : n * 2;
     }
-    public setRightSpeed(n: number, f?: number) {
+    public setLeftFastSpeed(n: number) {
+        this._leftFastSpeed = n;
+    }
+    public setRightSpeed(n: number) {
         this._rightSpeed = n;
-        this._rightFastSpeed = (f) ? f : n * 2;
+    }
+    public setRightFastSpeed(n: number) {
+        this._rightFastSpeed = n;
     }
     // get turnSpeed in degrees per second.
     // store in radians per second
-    public setTurnSpeed(n: number, f?: number) {
+    public setTurnSpeed(n: number) {
         this._turnSpeed = n * Math.PI / 180;
-        this._turnFastSpeed = (f) ? f : n * 2;
+    }
+    public setTurnFastSpeed(n: number) {
+        this._turnFastSpeed = n * Math.PI / 180;
     }
     public setGravity(n: number) {
         this._gravity = n;
