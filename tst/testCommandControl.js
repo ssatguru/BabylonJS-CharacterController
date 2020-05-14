@@ -14,7 +14,7 @@ function main() {
   scene.clearColor = new BABYLON.Color3(0.75, 0.75, 0.75);
   scene.ambientColor = new BABYLON.Color3(1, 1, 1);
 
-  // scene.debugLayer.show({ showExplorer: true, overlay: true });
+  scene.debugLayer.show({ showExplorer: true, embedMode: true });
 
   var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
   light.intensity = 0.3;
