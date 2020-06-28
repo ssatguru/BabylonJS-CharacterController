@@ -1,4 +1,9 @@
-import { Skeleton, ArcRotateCamera, Vector3, Mesh, Scene, AnimationGroup } from "babylonjs";
+import { Skeleton } from "@babylonjs/core/Bones/skeleton";
+import { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera";
+import { Vector3 } from "@babylonjs/core/Maths/math";
+import { Mesh } from "@babylonjs/core/Meshes/mesh";
+import { Scene } from "@babylonjs/core/scene";
+import { AnimationGroup } from "@babylonjs/core/Animations/animationGroup";
 export declare class CharacterController {
     private _avatar;
     private _skeleton;
