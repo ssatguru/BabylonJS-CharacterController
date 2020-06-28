@@ -5,7 +5,7 @@ var webpack = require("webpack");
 module.exports = (env, argv) => {
   return {
     mode: "development",
-    entry: "./src/CharacterController.ts",
+    entry: "./src/CharacterController-babylonjs-4.2.0.ts",
     devtool: "source-map",
     devServer: {
       // contentBase: "/tst",
@@ -25,7 +25,7 @@ module.exports = (env, argv) => {
     },
     output: {
       path: path.resolve(__dirname, "dist"),
-      filename: argv.mode === "production" ? "CharacterController.js" : "CharacterController.max.js",
+      filename: argv.mode === "production" ? "CharacterController-babylonjs-4.2.0.js" : "CharacterController-babylonjs-4.2.0.max.js",
       libraryTarget: "umd",
     },
     externals: {
