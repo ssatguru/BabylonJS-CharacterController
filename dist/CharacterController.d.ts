@@ -19,7 +19,7 @@ export declare class CharacterController {
     private _gravity;
     private _minSlopeLimit;
     private _maxSlopeLimit;
-    private _sl;
+    private _sl1;
     private _sl2;
     private _stepOffset;
     private _vMoveTot;
@@ -52,7 +52,7 @@ export declare class CharacterController {
     private _elasticCamera;
     private _cameraTarget;
     private _noFirstPerson;
-    setAvatar(avatar: Mesh): void;
+    setAvatar(avatar: Mesh, faceForward?: boolean): void;
     setAvatarSkeleton(skeleton: Skeleton): void;
     setSlopeLimit(minSlopeLimit: number, maxSlopeLimit: number): void;
     setStepOffset(stepOffset: number): void;
@@ -70,6 +70,7 @@ export declare class CharacterController {
     setGravity(n: number): void;
     setAnimationGroups(agMap: {}): void;
     setAnimationRanges(arMap: {}): void;
+    getAnimationMap(): {};
     private _setAnim;
     enableBlending(n: number): void;
     disableBlending(): void;

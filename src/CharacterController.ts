@@ -37,7 +37,7 @@ export class CharacterController {
     private _minSlopeLimit: number = 30;
     private _maxSlopeLimit: number = 45;
     //slopeLimit in radians
-    private _sl: number = Math.PI * this._minSlopeLimit / 180;
+    private _sl1: number = Math.PI * this._minSlopeLimit / 180;
     private _sl2: number = Math.PI * this._maxSlopeLimit / 180;
 
     //The av will step up a stair only if it is closer to the ground than the indicated value.
@@ -82,8 +82,10 @@ export class CharacterController {
     //should we go into first person view when camera is near avatar (radius is lowerradius limit)
     private _noFirstPerson: boolean = false;
 
-    public setAvatar(avatar: Mesh) {
+    public setAvatar(avatar: Mesh, faceForward: boolean = false) {
         this._avatar = avatar;
+        this._setRHS(avatar);
+        this.setFaceForward(faceForward);
     }
 
     public setAvatarSkeleton(skeleton: Skeleton) {
@@ -95,7 +97,7 @@ export class CharacterController {
         this._minSlopeLimit = minSlopeLimit;
         this._maxSlopeLimit = maxSlopeLimit;
 
-        this._sl = Math.PI * minSlopeLimit / 180;
+        this._sl1 = Math.PI * this._minSlopeLimit / 180;
         this._sl2 = Math.PI * this._maxSlopeLimit / 180;
     }
 
@@ -155,21 +157,39 @@ export class CharacterController {
      * let myWalkAnimationGroup:AnimationGroup = ...;
      * let agMap:{} = {
      *  "walk":myWalkAnimationGroup,
+     *  "run" : {"ag":myRunAnimationGroup,"rate":1},
+     *  "idle" : {"ag":myIdleAnimationGroup,"loop":true,"rate":1},
+     *  ....
      *   ....
      * }
      * 
      * @param agMap a map of character controller animation name to animationGroup
      */
     public setAnimationGroups(agMap: {}) {
+        if (this._prevAnim != null && this._prevAnim._exist) this._prevAnim._ag.stop();
         this._isAG = true;
+        let agData: AnimationGroup | {};
         for (let anim of this._anims) {
-            if (agMap[anim._name] != null) {
-                anim._ag = agMap[anim._name];
-                anim._exist = true;
-                anim._ag.name
+            anim._exist = false;
+            agData = agMap[anim._id];
+            if (agData != null) {
+                if (agData instanceof AnimationGroup) {
+                    anim._ag = agData;
+                    anim._name = anim._ag.name
+                    anim._exist = true;
+                } else {
+                    if (agData["ag"]) {
+                        anim._ag = agData["ag"];
+                        if (agData["loop"]) anim._loop = agData["loop"];
+                        if (agData["rate"]) anim._loop = agData["rate"];
+                        anim._exist = true;
+                    }
+                }
             }
         }
         this._checkFastAnims();
+        //force to play new anims
+        this._prevAnim = null;
     }
     /**
      * Use this to provide AnimationRanges to the character controller.
@@ -191,18 +211,46 @@ export class CharacterController {
         this._isAG = false;
         let arData: string | {};
         for (let anim of this._anims) {
-            arData = arMap[anim._name];
+            anim._exist = false;
+            arData = arMap[anim._id];
             if (arData != null) {
                 if (arData instanceof Object) {
-                    if (arData["name"]) anim._name = arData["name"];
-                    if (arData["loop"]) anim._loop = arData["loop"];
-                    if (arData["rate"]) anim._loop = arData["rate"];
+                    if (arData["name"]) {
+                        anim._name = arData["name"];
+                        if (arData["loop"]) anim._loop = arData["loop"];
+                        if (arData["rate"]) anim._loop = arData["rate"];
+                        anim._exist = true;
+                    }
                 } else {
                     anim._name = arData;
+                    anim._exist = true;
                 }
-                anim._exist = true;
             }
         }
+        this._checkFastAnims();
+        //force to play new anims
+        this._prevAnim = null;
+
+
+    }
+
+    public getAnimationMap(): {} {
+        let map = {};
+
+        for (let anim of this._anims) {
+            if (anim._exist) {
+                let data = {};
+
+                if (this._isAG) data["ag"] = anim._ag;
+                else data["name"] = anim._name;
+                data["loop"] = anim._loop;
+                data["rate"] = anim._rate;
+
+                map[anim._id] = data;
+            }
+        }
+
+        return map;
     }
 
     private _setAnim(anim: _AnimData, rangeName?: string | AnimationGroup, rate?: number, loop?: boolean) {
@@ -375,7 +423,7 @@ export class CharacterController {
      */
     private _checkFastAnims() {
         this._copySlowAnims(this._walkBackFast, this._walkBack)
-        this._copySlowAnims(this._turnRightFast, this._turnRightFast);
+        this._copySlowAnims(this._turnRightFast, this._turnRight);
         this._copySlowAnims(this._turnLeftFast, this._turnLeft);
         this._copySlowAnims(this._strafeRightFast, this._strafeRight);
         this._copySlowAnims(this._strafeLeftFast, this._strafeLeft);
@@ -434,6 +482,7 @@ export class CharacterController {
         const actualZ = Vector3.Cross(_localX, _localY);
         //same direction or opposite direction of Z
         if (Vector3.Dot(actualZ, _localZ) < 0) {
+            console.log("rhs issue");
             this._isRHS = true;
             this._signRHS = 1;
         }
@@ -560,8 +609,10 @@ export class CharacterController {
                 if (anim._exist) {
                     if (this._isAG) {
                         if (this._prevAnim != null && this._prevAnim._exist) this._prevAnim._ag.stop();
-                        anim._ag.play(anim._loop);
-                        anim._ag.speedRatio = anim._rate;
+                        //TODO use start instead of play ?
+                        //anim._ag.play(anim._loop);
+                        //anim._ag.speedRatio = anim._rate;
+                        anim._ag.start(anim._loop, anim._rate);
                     } else {
                         this._skeleton.beginAnimation(anim._name, anim._loop, anim._rate);
                     }
@@ -628,7 +679,7 @@ export class CharacterController {
                     //AV is on slope
                     //Should AV continue to slide or stop?
                     //if slope is less steeper than acceptable then stop else slide
-                    if (this._verticalSlope(actDisp) <= this._sl) {
+                    if (this._verticalSlope(actDisp) <= this._sl1) {
                         this._endJump();
                     }
                 } else {
@@ -830,8 +881,8 @@ export class CharacterController {
                 //walking up a slope
                 if (this._avatar.position.y > this._avStartPos.y) {
                     const actDisp: Vector3 = this._avatar.position.subtract(this._avStartPos);
-                    const _sl: number = this._verticalSlope(actDisp);
-                    if (_sl >= this._sl2) {
+                    const _slp: number = this._verticalSlope(actDisp);
+                    if (_slp >= this._sl2) {
                         //this._climbingSteps=true;
                         //is av trying to go up steps
                         if (this._stepOffset > 0) {
@@ -853,7 +904,7 @@ export class CharacterController {
                         }
                     } else {
                         this._vMoveTot = 0;
-                        if (_sl > this._sl) {
+                        if (_slp > this._sl1) {
                             //av is on a steep slope , continue increasing the moveFallTIme to deaccelerate it
                             this._fallFrameCount = 0;
                             this._inFreeFall = false;
@@ -868,7 +919,7 @@ export class CharacterController {
                         //AV is on slope
                         //Should AV continue to slide or walk?
                         //if slope is less steeper than acceptable then walk else slide
-                        if (this._verticalSlope(actDisp) <= this._sl) {
+                        if (this._verticalSlope(actDisp) <= this._sl1) {
                             this._endFreeFall();
                         } else {
                             //av is on a steep slope , continue increasing the moveFallTIme to deaccelerate it
@@ -940,7 +991,7 @@ export class CharacterController {
                 //AV is on slope
                 //Should AV continue to slide or stop?
                 //if slope is less steeper than accebtable then stop else slide
-                if (this._verticalSlope(actDisp) <= this._sl) {
+                if (this._verticalSlope(actDisp) <= this._sl1) {
                     //                        this.grounded = true;
                     //                        this.idleFallTime = 0;
                     this._groundIt();
@@ -1204,7 +1255,7 @@ export class CharacterController {
      * @param camera 
      * @param scene 
      * @param agMap map of animationRange name to animationRange
-	 * @param faceForward 
+     * @param faceForward 
      */
     constructor(avatar: Mesh, camera: ArcRotateCamera, scene: Scene, agMap?: {}, faceForward = false) {
 
@@ -1239,14 +1290,20 @@ export class CharacterController {
 }
 
 class _AnimData {
+    public _id: string;
+
+    //_name will be used to play animationrange
     public _name: string;
+    public _ag: AnimationGroup;
+
     public _loop: boolean = true;
     public _rate: number = 1;
-    public _ag: AnimationGroup;
+
     public _exist: boolean = false;
 
-    public constructor(name: string) {
-        this._name = name;
+    public constructor(id: string) {
+        this._id = id;
+        this._name = id;
     }
 }
 
