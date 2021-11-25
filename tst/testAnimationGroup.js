@@ -92,6 +92,7 @@ function loadPlayer(scene, engine, canvas) {
     allAGs[0].stop();
 
     var cc = new CharacterController(player, camera, scene, agMap, true);
+
     cc.setMode(0);
     //below makes the controller point the camera at the player head which is approx
     //1.5m above the player origin

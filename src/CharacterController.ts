@@ -18,20 +18,7 @@ export class CharacterController {
     private _camera: ArcRotateCamera;
     private _scene: Scene;
 
-    //avatar speed in meters/second
-    private _walkSpeed: number = 3;
-    private _walkFastSpeed: number = this._walkSpeed * 2;
-    private _runSpeed: number = this._walkSpeed * 2;
-    private _backSpeed: number = this._walkSpeed / 2;
-    private _backFastSpeed: number = this._backSpeed * 2;
-    private _jumpSpeed: number = this._walkSpeed * 2;
-    private _leftSpeed: number = this._walkSpeed / 2;
-    private _leftFastSpeed: number = this._leftSpeed * 2;
-    private _rightSpeed: number = this._walkSpeed / 2;
-    private _rightFastSpeed: number = this._rightSpeed * 2;
-    //trun speed in radian per second (equivalent to 180 degree/second by default)
-    private _turnSpeed: number = Math.PI / 8;
-    private _turnFastSpeed: number = this._turnSpeed * 2;
+
     private _gravity: number = 9.8;
     //slopeLimit in degrees
     private _minSlopeLimit: number = 30;
@@ -47,26 +34,64 @@ export class CharacterController {
     //position of av when it started moving up
     private _vMovStartPos: Vector3 = Vector3.Zero();
 
-    //animations
-    private _walk: _AnimData = new _AnimData("walk");
-    private _walkBack: _AnimData = new _AnimData("walkBack");
-    private _walkBackFast: _AnimData = new _AnimData("walkBackFast");
-    private _idle: _AnimData = new _AnimData("idle");
-    private _idleJump: _AnimData = new _AnimData("idleJump");
-    private _run: _AnimData = new _AnimData("run");
-    private _runJump: _AnimData = new _AnimData("runJump");
-    private _fall: _AnimData = new _AnimData("fall");
-    private _turnLeft: _AnimData = new _AnimData("turnLeft");
-    private _turnLeftFast: _AnimData = new _AnimData("turnLeftFast");
-    private _turnRight: _AnimData = new _AnimData("turnRight");
-    private _turnRightFast: _AnimData = new _AnimData("turnRightFast");
-    private _strafeLeft: _AnimData = new _AnimData("strafeLeft");
-    private _strafeLeftFast: _AnimData = new _AnimData("strafeLeftFast");
-    private _strafeRight: _AnimData = new _AnimData("strafeRight");
-    private _strafeRightFast: _AnimData = new _AnimData("strafeRightFast");
-    private _slideBack: _AnimData = new _AnimData("slideBack");
+    //avatar speed in meters/second
+    // private _walkSpeed: number = 3;
+    // private _walkFastSpeed: number = this._walkSpeed * 2;
+    // private _runSpeed: number = this._walkSpeed * 2;
+    // private _backSpeed: number = this._walkSpeed / 2;
+    // private _backFastSpeed: number = this._backSpeed * 2;
+    // private _jumpSpeed: number = this._walkSpeed * 2;
+    // private _leftSpeed: number = this._walkSpeed / 2;
+    // private _leftFastSpeed: number = this._leftSpeed * 2;
+    // private _rightSpeed: number = this._walkSpeed / 2;
+    // private _rightFastSpeed: number = this._rightSpeed * 2;
+    // //trun speed in radian per second (equivalent to 180 degree/second by default)
+    // private _turnSpeed: number = Math.PI / 8;
+    // private _turnFastSpeed: number = this._turnSpeed * 2;
 
-    private _anims: _AnimData[] = [this._walk, this._walkBack, this._walkBackFast, this._idle, this._idleJump, this._run, this._runJump, this._fall, this._turnLeft, this._turnLeftFast, this._turnRight, this._turnRightFast, this._strafeLeft, this._strafeLeftFast, this._strafeRight, this._strafeRightFast, this._slideBack];
+    //animations
+    //private _walk: _AnimData = new _AnimData("walk",3);
+    // private _walkBack: _AnimData = new _AnimData("walkBack",this._walk._speed/2);
+    // private _walkBackFast: _AnimData = new _AnimData("walkBackFast",this._walk._speed);
+    // private _idle: _AnimData = new _AnimData("idle",0);
+    // private _idleJump: _AnimData = new _AnimData("idleJump",this._walk._speed*2);
+    // private _run: _AnimData = new _AnimData("run",this._walk._speed*2);
+    // private _runJump: _AnimData = new _AnimData("runJump",this._walk._speed*2);
+    // private _fall: _AnimData = new _AnimData("fall",0);
+    // private _turnLeft: _AnimData = new _AnimData("turnLeft",Math.PI / 8);
+    // private _turnLeftFast: _AnimData = new _AnimData("turnLeftFast",Math.PI / 4);
+    // private _turnRight: _AnimData = new _AnimData("turnRight",Math.PI / 8);
+    // private _turnRightFast: _AnimData = new _AnimData("turnRightFast",Math.PI / 4);
+    // private _strafeLeft: _AnimData = new _AnimData("strafeLeft",this._walk._speed/2);
+    // private _strafeLeftFast: _AnimData = new _AnimData("strafeLeftFast",this._walk._speed);
+    // private _strafeRight: _AnimData = new _AnimData("strafeRight",this._walk._speed/2);
+    // private _strafeRightFast: _AnimData = new _AnimData("strafeRightFast",this._walk._speed);
+    // private _slideBack: _AnimData = new _AnimData("slideBack",0);
+
+    // private _anims: _AnimData[] = [this._walk, this._walkBack, this._walkBackFast, this._idle, this._idleJump, this._run, this._runJump, this._fall, this._turnLeft, this._turnLeftFast, this._turnRight, this._turnRightFast, this._strafeLeft, this._strafeLeftFast, this._strafeRight, this._strafeRightFast, this._slideBack];
+
+    // private _actMap: {} = {
+    //     "walk":new _AnimData("walk",3), 
+    //     "walkBack":new _AnimData("walkBack",this._walkSpeed/2), 
+    //     "walkBackFast":new _AnimData("walkBackFast",this._walkSpeed), 
+    //     "idle":new _AnimData("idle",0), 
+    //     "idleJump":new _AnimData("idleJump",this._walkSpeed*2), 
+    //     "run":new _AnimData("run",this._walkSpeed*2), 
+    //     "runJump":new _AnimData("runJump",this._walkSpeed*2), 
+    //     "fall":new _AnimData("fall",0), 
+    //     "turnLeft":new _AnimData("turnLeft",Math.PI / 8), 
+    //     "turnLeftFast":new _AnimData("turnLeftFast",Math.PI / 4), 
+    //     "turnRight":new _AnimData("turnRight",Math.PI / 8), 
+    //     "turnRightFast":new _AnimData("turnRightFast",Math.PI / 4), 
+    //     "strafeLeft":new _AnimData("strafeLeft",this._walkSpeed/2), 
+    //     "strafeLeftFast":new _AnimData("strafeLeftFast",this._walkSpeed), 
+    //     "strafeRight":new _AnimData("strafeRight",this._walkSpeed/2), 
+    //     "strafeRightFast":new _AnimData("strafeRightFast",this._walkSpeed), 
+    //     "slideBack":new _AnimData("slideBack",0)
+    // };
+
+    private _actMap: _ActMap = new _ActMap();
+
 
     //move keys
     private _walkKey: string = "w";
@@ -110,39 +135,42 @@ export class CharacterController {
     }
 
     public setWalkSpeed(n: number) {
-        this._walkSpeed = n;
+        this._actMap.walk._speed = n;
     }
     public setRunSpeed(n: number) {
-        this._runSpeed = n;
+        this._actMap.run._speed = n;
     }
     public setBackSpeed(n: number) {
-        this._backSpeed = n;
+        this._actMap.walkBack._speed = n;
     }
     public setBackFastSpeed(n: number) {
-        this._backFastSpeed = n;
+        this._actMap.walkBackFast._speed = n;
     }
     public setJumpSpeed(n: number) {
-        this._jumpSpeed = n;
+        this._actMap.idleJump._speed = n;
+        this._actMap.runJump._speed = n;
     }
     public setLeftSpeed(n: number) {
-        this._leftSpeed = n;
+        this._actMap.strafeLeft._speed = n;
     }
     public setLeftFastSpeed(n: number) {
-        this._leftFastSpeed = n;
+        this._actMap.strafeLeftFast._speed = n;
     }
     public setRightSpeed(n: number) {
-        this._rightSpeed = n;
+        this._actMap.strafeRight._speed = n;
     }
     public setRightFastSpeed(n: number) {
-        this._rightFastSpeed = n;
+        this._actMap.strafeLeftFast._speed = n;
     }
     // get turnSpeed in degrees per second.
     // store in radians per second
     public setTurnSpeed(n: number) {
-        this._turnSpeed = n * Math.PI / 180;
+        this._actMap.turnLeft._speed = n * Math.PI / 180;
+        this._actMap.turnRight._speed = n * Math.PI / 180;
     }
     public setTurnFastSpeed(n: number) {
-        this._turnFastSpeed = n * Math.PI / 180;
+        this._actMap.turnLeftFast._speed = n * Math.PI / 180;
+        this._actMap.turnRightFast._speed = n * Math.PI / 180;
     }
     public setGravity(n: number) {
         this._gravity = n;
@@ -169,7 +197,10 @@ export class CharacterController {
         if (this._prevAnim != null && this._prevAnim._exist) this._prevAnim._ag.stop();
         this._isAG = true;
         let agData: AnimationGroup | {};
-        for (let anim of this._anims) {
+        let keys: string[] = Object.keys(this._actMap);
+        for (let key of keys) {
+            let anim = this._actMap[key];
+            if (!(anim instanceof _AnimData)) continue;
             anim._exist = false;
             agData = agMap[anim._id];
             if (agData != null) {
@@ -180,8 +211,9 @@ export class CharacterController {
                 } else {
                     if (agData["ag"]) {
                         anim._ag = agData["ag"];
-                        if (agData["loop"]) anim._loop = agData["loop"];
-                        if (agData["rate"]) anim._loop = agData["rate"];
+                        if (agData["loop"] != null) anim._loop = agData["loop"];
+                        if (agData["rate"]) anim._rate = agData["rate"];
+                        if (agData["speed"]) anim._speed = agData["speed"];
                         anim._exist = true;
                     }
                 }
@@ -210,15 +242,19 @@ export class CharacterController {
     public setAnimationRanges(arMap: {}) {
         this._isAG = false;
         let arData: string | {};
-        for (let anim of this._anims) {
+        let keys: string[] = Object.keys(this._actMap);
+        for (let key of keys) {
+            let anim = this._actMap[key];
+            if (!(anim instanceof _AnimData)) continue;
             anim._exist = false;
             arData = arMap[anim._id];
             if (arData != null) {
                 if (arData instanceof Object) {
                     if (arData["name"]) {
                         anim._name = arData["name"];
-                        if (arData["loop"]) anim._loop = arData["loop"];
-                        if (arData["rate"]) anim._loop = arData["rate"];
+                        if (arData["loop"] != null) anim._loop = arData["loop"];
+                        if (arData["rate"]) anim._rate = arData["rate"];
+                        if (arData["speed"]) anim._speed = arData["speed"];
                         anim._exist = true;
                     }
                 } else {
@@ -237,7 +273,10 @@ export class CharacterController {
     public getAnimationMap(): {} {
         let map = {};
 
-        for (let anim of this._anims) {
+        let keys: string[] = Object.keys(this._actMap);
+        for (let key of keys) {
+            let anim = this._actMap[key];
+            if (!(anim instanceof _AnimData)) continue;
             if (anim._exist) {
                 let data = {};
 
@@ -245,6 +284,7 @@ export class CharacterController {
                 else data["name"] = anim._name;
                 data["loop"] = anim._loop;
                 data["rate"] = anim._rate;
+                data["speed"] = anim._speed;
 
                 map[anim._id] = data;
             }
@@ -278,9 +318,12 @@ export class CharacterController {
 
     public enableBlending(n: number) {
         if (this._isAG) {
-            for (let anim of this._anims) {
-                if (anim._exist) {
-                    let ar: AnimationGroup = anim._ag;
+            let keys: string[] = Object.keys(this._actMap);
+            for (let key of keys) {
+                let act = this._actMap[key];
+                if (!(act instanceof _AnimData)) continue;
+                if (act._exist) {
+                    let ar: AnimationGroup = act._ag;
                     for (let ta of ar.targetedAnimations) {
                         ta.animation.enableBlending = true;
                         ta.animation.blendingSpeed = n;
@@ -294,7 +337,10 @@ export class CharacterController {
 
     public disableBlending() {
         if (this._isAG) {
-            for (let anim of this._anims) {
+            let keys: string[] = Object.keys(this._actMap);
+            for (let key of keys) {
+                let anim = this._actMap[key];
+                if (!(anim instanceof _AnimData)) continue;
                 if (anim._exist) {
                     let ar: AnimationGroup = anim._ag;
                     for (let ta of ar.targetedAnimations) {
@@ -307,60 +353,60 @@ export class CharacterController {
 
     //setters for animations
     public setWalkAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this._setAnim(this._walk, rangeName, rate, loop);
+        this._setAnim(this._actMap.walk, rangeName, rate, loop);
     }
     public setRunAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this._setAnim(this._run, rangeName, rate, loop);
+        this._setAnim(this._actMap.run, rangeName, rate, loop);
     }
     public setWalkBackAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this._setAnim(this._walkBack, rangeName, rate, loop);
-        this._copySlowAnims(this._walkBackFast, this._walkBack);
+        this._setAnim(this._actMap.walkBack, rangeName, rate, loop);
+        this._copySlowAnims(this._actMap.walkBackFast, this._actMap.walkBack);
     }
     public setWalkBackFastAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this._setAnim(this._walkBackFast, rangeName, rate, loop);
+        this._setAnim(this._actMap.walkBackFast, rangeName, rate, loop);
     }
     public setSlideBackAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this._setAnim(this._slideBack, rangeName, rate, loop);
+        this._setAnim(this._actMap.slideBack, rangeName, rate, loop);
     }
     public setIdleAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this._setAnim(this._idle, rangeName, rate, loop);
+        this._setAnim(this._actMap.idle, rangeName, rate, loop);
     }
     public setTurnRightAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this._setAnim(this._turnRight, rangeName, rate, loop);
-        this._copySlowAnims(this._turnRightFast, this._turnRight);
+        this._setAnim(this._actMap.turnRight, rangeName, rate, loop);
+        this._copySlowAnims(this._actMap.turnRightFast, this._actMap.turnRight);
     }
     public setTurnRightFastAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this._setAnim(this._turnRightFast, rangeName, rate, loop);
+        this._setAnim(this._actMap.turnRightFast, rangeName, rate, loop);
     }
     public setTurnLeftAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this._setAnim(this._turnLeft, rangeName, rate, loop);
-        this._copySlowAnims(this._turnLeftFast, this._turnLeft);
+        this._setAnim(this._actMap.turnLeft, rangeName, rate, loop);
+        this._copySlowAnims(this._actMap.turnLeftFast, this._actMap.turnLeft);
     }
     public setTurnLeftFastAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this._setAnim(this._turnLeftFast, rangeName, rate, loop);
+        this._setAnim(this._actMap.turnLeftFast, rangeName, rate, loop);
     }
     public setStrafeRightAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this._setAnim(this._strafeRight, rangeName, rate, loop);
-        this._copySlowAnims(this._strafeRightFast, this._strafeRight);
+        this._setAnim(this._actMap.strafeRight, rangeName, rate, loop);
+        this._copySlowAnims(this._actMap.strafeRightFast, this._actMap.strafeRight);
     }
     public setStrafeRightFastAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this._setAnim(this._strafeRightFast, rangeName, rate, loop);
+        this._setAnim(this._actMap.strafeRightFast, rangeName, rate, loop);
     }
     public setStrafeLeftAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this._setAnim(this._strafeLeft, rangeName, rate, loop);
-        this._copySlowAnims(this._strafeLeftFast, this._strafeLeft);
+        this._setAnim(this._actMap.strafeLeft, rangeName, rate, loop);
+        this._copySlowAnims(this._actMap.strafeLeftFast, this._actMap.strafeLeft);
     }
     public setStrafeLeftFastAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this._setAnim(this._strafeLeftFast, rangeName, rate, loop);
+        this._setAnim(this._actMap.strafeLeftFast, rangeName, rate, loop);
     }
     public setIdleJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this._setAnim(this._idleJump, rangeName, rate, loop);
+        this._setAnim(this._actMap.idleJump, rangeName, rate, loop);
     }
     public setRunJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this._setAnim(this._runJump, rangeName, rate, loop);
+        this._setAnim(this._actMap.runJump, rangeName, rate, loop);
     }
     public setFallAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
-        this._setAnim(this._fall, rangeName, rate, loop);
+        this._setAnim(this._actMap.fall, rangeName, rate, loop);
     }
 
     // setters for keys
@@ -408,7 +454,10 @@ export class CharacterController {
 
 
     private checkAnims(skel: Skeleton) {
-        for (let anim of this._anims) {
+        let keys: string[] = Object.keys(this._actMap);
+        for (let key of keys) {
+            let anim = this._actMap[key];
+            if (!(anim instanceof _AnimData)) continue;
             if (skel != null) {
                 if (skel.getAnimationRange(anim._name) != null) anim._exist = true;
             } else {
@@ -422,11 +471,11 @@ export class CharacterController {
      * if fast anims do not exist then use their slow counterpart as them but double the rate at which they play
      */
     private _checkFastAnims() {
-        this._copySlowAnims(this._walkBackFast, this._walkBack)
-        this._copySlowAnims(this._turnRightFast, this._turnRight);
-        this._copySlowAnims(this._turnLeftFast, this._turnLeft);
-        this._copySlowAnims(this._strafeRightFast, this._strafeRight);
-        this._copySlowAnims(this._strafeLeftFast, this._strafeLeft);
+        this._copySlowAnims(this._actMap.walkBackFast, this._actMap.walkBack)
+        this._copySlowAnims(this._actMap.turnRightFast, this._actMap.turnRight);
+        this._copySlowAnims(this._actMap.turnLeftFast, this._actMap.turnLeft);
+        this._copySlowAnims(this._actMap.strafeRightFast, this._actMap.strafeRight);
+        this._copySlowAnims(this._actMap.strafeLeftFast, this._actMap.strafeLeft);
     }
 
     private _copySlowAnims(f: _AnimData, s: _AnimData) {
@@ -482,7 +531,6 @@ export class CharacterController {
         const actualZ = Vector3.Cross(_localX, _localY);
         //same direction or opposite direction of Z
         if (Vector3.Dot(actualZ, _localZ) < 0) {
-            console.log("rhs issue");
             this._isRHS = true;
             this._signRHS = 1;
         }
@@ -511,7 +559,10 @@ export class CharacterController {
     }
 
     private checkAGs(agMap: {}) {
-        for (let anim of this._anims) {
+        let keys: string[] = Object.keys(this._actMap);
+        for (let key of keys) {
+            let anim = this._actMap[key];
+            if (!(anim instanceof _AnimData)) continue;
             if (agMap[anim._name] != null) {
                 anim._ag = agMap[anim._name];
                 anim._exist = true;
@@ -631,34 +682,34 @@ export class CharacterController {
     private _doJump(dt: number): _AnimData {
 
         let anim: _AnimData = null;
-        anim = this._runJump;
+        anim = this._actMap.runJump;
         if (this._jumpTime === 0) {
             this._jumpStartPosY = this._avatar.position.y;
         }
-        //up velocity at the begining of the lastt frame (v=u+at)
-        const js: number = this._jumpSpeed - this._gravity * this._jumpTime;
-        //distance travelled up since last frame to this frame (s=ut+1/2*at^2)
-        const jumpDist: number = js * dt - 0.5 * this._gravity * dt * dt;
+
         this._jumpTime = this._jumpTime + dt;
 
         let forwardDist: number = 0;
+        let jumpDist: number = 0;
         let disp: Vector3;
         if (this.mode != 1 && !this._noRot) this._avatar.rotation.y = this._av2cam - this._camera.alpha;
         if (this._wasRunning || this._wasWalking) {
             if (this._wasRunning) {
-                forwardDist = this._runSpeed * dt;
+                forwardDist = this._actMap.run._speed * dt;
             } else if (this._wasWalking) {
-                forwardDist = this._walkSpeed * dt;
+                forwardDist = this._actMap.walk._speed * dt;
             }
             //find out in which horizontal direction the AV was moving when it started the jump
             disp = this._moveVector.clone();
             disp.y = 0;
             disp = disp.normalize();
             disp.scaleToRef(forwardDist, disp);
+            jumpDist = this._calcJumpDist(this._actMap.runJump._speed, dt);
             disp.y = jumpDist;
         } else {
+            jumpDist = this._calcJumpDist(this._actMap.idleJump._speed, dt);
             disp = new Vector3(0, jumpDist, 0);
-            anim = this._idleJump;
+            anim = this._actMap.idleJump;
             //this.avatar.ellipsoid.y=this._ellipsoid.y/2;
         }
         //moveWithCollision only seems to happen if length of displacment is atleast 0.001
@@ -683,11 +734,19 @@ export class CharacterController {
                         this._endJump();
                     }
                 } else {
-                    anim = this._fall;
+                    anim = this._actMap.fall;
                 }
             }
         }
         return anim;
+    }
+
+    private _calcJumpDist(speed: number, dt: number): number {
+        //up velocity at the begining of the lastt frame (v=u+at)
+        let js: number = speed - this._gravity * this._jumpTime;
+        //distance travelled up since last frame to this frame (s=ut+1/2*at^2)
+        let jumpDist: number = js * dt - 0.5 * this._gravity * dt * dt;
+        return jumpDist;
     }
 
     /**
@@ -744,12 +803,12 @@ export class CharacterController {
             switch (true) {
                 case (this._act._stepLeft):
                     sign = this._signRHS * this._isAvFacingCamera();
-                    horizDist = this._leftSpeed * dt;
+                    horizDist = this._actMap.strafeLeft._speed * dt;
                     if (this._act._speedMod) {
-                        horizDist = this._leftFastSpeed * dt;
-                        anim = (-this._ffSign * sign > 0) ? this._strafeLeftFast : this._strafeRightFast;
+                        horizDist = this._actMap.strafeLeftFast._speed * dt;
+                        anim = (-this._ffSign * sign > 0) ? this._actMap.strafeLeftFast : this._actMap.strafeRightFast;
                     } else {
-                        anim = (-this._ffSign * sign > 0) ? this._strafeLeft : this._strafeRight;
+                        anim = (-this._ffSign * sign > 0) ? this._actMap.strafeLeft : this._actMap.strafeRight;
                     }
 
                     this._moveVector = this._avatar.calcMovePOV(sign * horizDist, -this._freeFallDist, 0);
@@ -757,12 +816,12 @@ export class CharacterController {
                     break;
                 case (this._act._stepRight):
                     sign = -this._signRHS * this._isAvFacingCamera();
-                    horizDist = this._rightSpeed * dt;
+                    horizDist = this._actMap.strafeRight._speed * dt;
                     if (this._act._speedMod) {
-                        horizDist = this._rightFastSpeed * dt;
-                        anim = (-this._ffSign * sign > 0) ? this._strafeLeftFast : this._strafeRightFast;
+                        horizDist = this._actMap.strafeRightFast._speed * dt;
+                        anim = (-this._ffSign * sign > 0) ? this._actMap.strafeLeftFast : this._actMap.strafeRightFast;
                     } else {
-                        anim = (-this._ffSign * sign > 0) ? this._strafeLeft : this._strafeRight;
+                        anim = (-this._ffSign * sign > 0) ? this._actMap.strafeLeft : this._actMap.strafeRight;
                     }
                     this._moveVector = this._avatar.calcMovePOV(sign * horizDist, -this._freeFallDist, 0);
                     moving = true;
@@ -770,23 +829,23 @@ export class CharacterController {
                 case (this._act._walk || (this._noRot && this.mode == 0)):
                     if (this._act._speedMod) {
                         this._wasRunning = true;
-                        horizDist = this._walkFastSpeed * dt;
-                        anim = this._run;
+                        horizDist = this._actMap.run._speed * dt;
+                        anim = this._actMap.run;
                     } else {
                         this._wasWalking = true;
-                        horizDist = this._walkSpeed * dt;
-                        anim = this._walk;
+                        horizDist = this._actMap.walk._speed * dt;
+                        anim = this._actMap.walk;
                     }
                     this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, this._ffSign * horizDist);
                     moving = true;
                     break;
                 case (this._act._walkback):
-                    horizDist = this._backSpeed * dt;
+                    horizDist = this._actMap.walkBack._speed * dt;
                     if (this._act._speedMod) {
-                        horizDist = this._backFastSpeed * dt;
-                        anim = this._walkBackFast;
+                        horizDist = this._actMap.walkBackFast._speed * dt;
+                        anim = this._actMap.walkBackFast;
                     } else {
-                        anim = this._walkBack;
+                        anim = this._actMap.walkBack;
                     }
                     this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, -this._ffSign * horizDist);
                     moving = true;
@@ -797,7 +856,7 @@ export class CharacterController {
         }
 
         if (!(this._noRot && this.mode == 0) && (!this._act._stepLeft && !this._act._stepRight) && (this._act._turnLeft || this._act._turnRight)) {
-            let turnAngle = this._turnSpeed * dt;
+            let turnAngle = this._actMap.turnLeft._speed * dt;
             if (this._act._speedMod) {
                 turnAngle = 2 * turnAngle;
             }
@@ -816,14 +875,14 @@ export class CharacterController {
                     if (this._act._walk) { }
                     else if (this._act._walkback) a = -this._sign;
                     else {
-                        anim = (this._sign > 0) ? this._turnRight : this._turnLeft;
+                        anim = (this._sign > 0) ? this._actMap.turnRight : this._actMap.turnLeft;
                     }
                 } else {
                     if (this._act._walk) a = -this._sign;
                     else if (this._act._walkback) { }
                     else {
                         a = -this._sign;
-                        anim = (this._sign > 0) ? this._turnLeft : this._turnRight;
+                        anim = (this._sign > 0) ? this._actMap.turnLeft : this._actMap.turnRight;
                     }
                 }
                 this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
@@ -831,10 +890,10 @@ export class CharacterController {
                 let a = 1;
                 if (this._act._turnLeft) {
                     if (this._act._walkback) a = -1;
-                    if (!moving) anim = this._turnLeft;
+                    if (!moving) anim = this._actMap.turnLeft;
                 } else {
                     if (this._act._walk) a = -1;
-                    if (!moving) { a = -1; anim = this._turnRight; }
+                    if (!moving) { a = -1; anim = this._actMap.turnRight; }
                 }
                 this._camera.alpha = this._camera.alpha + turnAngle * a;
             }
@@ -933,7 +992,7 @@ export class CharacterController {
                         //to remove anim flicker, check if AV has been falling down continously for last few consecutive frames
                         //before changing to free fall animation
                         if (this._fallFrameCount > this._fallFrameCountMin) {
-                            anim = this._fall;
+                            anim = this._actMap.fall;
                         }
                     }
                 } else {
@@ -954,12 +1013,12 @@ export class CharacterController {
     private _idleFallTime: number = 0;
     private _doIdle(dt: number): _AnimData {
         if (this._grounded) {
-            return this._idle;
+            return this._actMap.idle;
         }
         this._wasWalking = false;
         this._wasRunning = false;
         this._movFallTime = 0;
-        let anim: _AnimData = this._idle;
+        let anim: _AnimData = this._actMap.idle;
         this._fallFrameCount = 0;
 
 
@@ -998,7 +1057,7 @@ export class CharacterController {
                     this._avatar.position.copyFrom(this._avStartPos);
                 } else {
                     this._unGroundIt();
-                    anim = this._slideBack;
+                    anim = this._actMap.slideBack;
                 }
             }
         }
@@ -1172,12 +1231,6 @@ export class CharacterController {
     }
 
 
-    // public disableKeyBoard() {
-    //     let canvas: HTMLCanvasElement = this._scene.getEngine().getRenderingCanvas();
-    //     canvas.removeEventListener("keyup", this._handleKeyUp, false);
-    //     canvas.removeEventListener("keydown", this._handleKeyDown, false);
-    // }
-
     public enableKeyBoard(b: boolean) {
         let canvas: HTMLCanvasElement = this._scene.getEngine().getRenderingCanvas();
         if (b) {
@@ -1291,6 +1344,8 @@ export class CharacterController {
 
 class _AnimData {
     public _id: string;
+    public _speed: number;
+    public _sound: string;
 
     //_name will be used to play animationrange
     public _name: string;
@@ -1301,9 +1356,10 @@ class _AnimData {
 
     public _exist: boolean = false;
 
-    public constructor(id: string) {
+    public constructor(id: string, speed = 1) {
         this._id = id;
         this._name = id;
+        this._speed = speed;
     }
 }
 
@@ -1334,3 +1390,24 @@ class _Action {
         this._speedMod = false;
     }
 }
+
+class _ActMap {
+    private _walkSpeed = 3;
+    public walk = new _AnimData("walk", 3);
+    public walkBack = new _AnimData("walkBack", this._walkSpeed / 2);
+    public walkBackFast = new _AnimData("walkBackFast", this._walkSpeed);
+    public idle = new _AnimData("idle", 0);
+    public idleJump = new _AnimData("idleJump", this._walkSpeed * 2);
+    public run = new _AnimData("run", this._walkSpeed * 2);
+    public runJump = new _AnimData("runJump", this._walkSpeed * 2);
+    public fall = new _AnimData("fall", 0);
+    public turnLeft = new _AnimData("turnLeft", Math.PI / 8);
+    public turnLeftFast = new _AnimData("turnLeftFast", Math.PI / 4);
+    public turnRight = new _AnimData("turnRight", Math.PI / 8);
+    public turnRightFast = new _AnimData("turnRightFast", Math.PI / 4);
+    public strafeLeft = new _AnimData("strafeLeft", this._walkSpeed / 2);
+    public strafeLeftFast = new _AnimData("strafeLeftFast", this._walkSpeed);
+    public strafeRight = new _AnimData("strafeRight", this._walkSpeed / 2);
+    public strafeRightFast = new _AnimData("strafeRightFast", this._walkSpeed);
+    public slideBack = new _AnimData("slideBack", 0)
+};
