@@ -300,19 +300,18 @@ var CharacterController = (function () {
             var act = this._actionMap[key];
             if (!(act instanceof _ActionData))
                 continue;
-            if (act._exist) {
-                var data = {};
-                if (this._isAG)
-                    data["ag"] = act._ag;
-                else
-                    data["name"] = act._name;
-                data["loop"] = act._loop;
-                data["rate"] = act._rate;
-                data["speed"] = act._speed;
-                data["key"] = act._key;
-                data["sound"] = act._sound;
-                map[act._id] = data;
-            }
+            var data = {};
+            if (this._isAG)
+                data["ag"] = act._ag;
+            else
+                data["name"] = act._name;
+            data["loop"] = act._loop;
+            data["rate"] = act._rate;
+            data["speed"] = act._speed;
+            data["key"] = act._key;
+            data["sound"] = act._sound;
+            data["exists"] = act._exist;
+            map[act._id] = data;
         }
         return map;
     };
@@ -506,7 +505,8 @@ var CharacterController = (function () {
             if (!(anim instanceof _ActionData))
                 continue;
             if (skel != null) {
-                if (skel.getAnimationRange(anim._name) != null) {
+                if (skel.getAnimationRange(anim._id) != null) {
+                    anim._name = anim._id;
                     anim._exist = true;
                     this._hasAnims = true;
                 }
@@ -1233,7 +1233,9 @@ var CharacterController = (function () {
         this._skeleton = this._findSkel(avatar);
         if (this._skeleton != null && this._skeleton.overrideMesh)
             this._isAG = true;
-        this._actionMap = new _ActionMap();
+        else
+            this._isAG = false;
+        this._actionMap.reset();
         if (!this._isAG && this._skeleton != null)
             this._checkAnimRanges(this._skeleton);
         this._setRHS(avatar);
@@ -1247,6 +1249,8 @@ var CharacterController = (function () {
         this._skeleton = skeleton;
         if (this._skeleton != null && this._skeleton.overrideMesh)
             this._isAG = true;
+        else
+            this._isAG = false;
         if (!this._isAG && this._skeleton != null)
             this._checkAnimRanges(this._skeleton);
     };
@@ -1283,14 +1287,25 @@ var _Action = (function () {
 var _ActionData = (function () {
     function _ActionData(id, speed, key) {
         if (speed === void 0) { speed = 1; }
+        this._name = "";
         this._loop = true;
         this._rate = 1;
         this._exist = false;
         this._id = id;
-        this._name = id;
         this._speed = speed;
+        this._ds = speed;
         this._key = key;
+        this._dk = key;
     }
+    _ActionData.prototype.reset = function () {
+        this._name = "";
+        this._speed = this._ds;
+        this._key = this._dk;
+        this._loop = true;
+        this._rate = 1;
+        this._sound = "";
+        this._exist = false;
+    };
     return _ActionData;
 }());
 var _ActionMap = (function () {
@@ -1313,6 +1328,16 @@ var _ActionMap = (function () {
         this.strafeRightFast = new _ActionData("strafeRightFast", 3, "na");
         this.slideBack = new _ActionData("slideBack", 0, "na");
     }
+    _ActionMap.prototype.reset = function () {
+        var keys = Object.keys(this);
+        for (var _i = 0, keys_7 = keys; _i < keys_7.length; _i++) {
+            var key = keys_7[_i];
+            var act = this[key];
+            if (!(act instanceof _ActionData))
+                continue;
+            act.reset();
+        }
+    };
     return _ActionMap;
 }());
 ;

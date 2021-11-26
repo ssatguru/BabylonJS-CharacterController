@@ -215,20 +215,21 @@ export class CharacterController {
         for (let key of keys) {
             let act = this._actionMap[key];
             if (!(act instanceof _ActionData)) continue;
-            if (act._exist) {
-                let data = {};
 
-                if (this._isAG) data["ag"] = act._ag;
-                else data["name"] = act._name;
+            let data = {};
 
-                data["loop"] = act._loop;
-                data["rate"] = act._rate;
-                data["speed"] = act._speed;
-                data["key"] = act._key;
-                data["sound"] = act._sound;
+            if (this._isAG) data["ag"] = act._ag;
+            else data["name"] = act._name;
 
-                map[act._id] = data;
-            }
+            data["loop"] = act._loop;
+            data["rate"] = act._rate;
+            data["speed"] = act._speed;
+            data["key"] = act._key;
+            data["sound"] = act._sound;
+            data["exists"] = act._exist;
+
+            map[act._id] = data;
+
         }
 
         return map;
@@ -435,7 +436,8 @@ export class CharacterController {
             let anim = this._actionMap[key];
             if (!(anim instanceof _ActionData)) continue;
             if (skel != null) {
-                if (skel.getAnimationRange(anim._name) != null) {
+                if (skel.getAnimationRange(anim._id) != null) {
+                    anim._name = anim._id;
                     anim._exist = true;
                     this._hasAnims = true;
                 }
@@ -1339,9 +1341,9 @@ export class CharacterController {
 
         this._skeleton = this._findSkel(avatar);
         //skeletons animated by animation groups seem to have "overrideMesh" property
-        if (this._skeleton != null && this._skeleton.overrideMesh) this._isAG = true;
+        if (this._skeleton != null && this._skeleton.overrideMesh) this._isAG = true; else this._isAG = false;
 
-        this._actionMap = new _ActionMap();
+        this._actionMap.reset();
 
         //animation ranges
         if (!this._isAG && this._skeleton != null) this._checkAnimRanges(this._skeleton);
@@ -1362,7 +1364,7 @@ export class CharacterController {
         this._skeleton = skeleton;
 
         //skeletons animated by animation groups seem to have "overrideMesh" property
-        if (this._skeleton != null && this._skeleton.overrideMesh) this._isAG = true;
+        if (this._skeleton != null && this._skeleton.overrideMesh) this._isAG = true; else this._isAG = false;
 
         if (!this._isAG && this._skeleton != null) this._checkAnimRanges(this._skeleton);
     }
@@ -1460,13 +1462,17 @@ class _Action {
 class _ActionData {
     public _id: string;
     public _speed: number;
+    //_ds default speed.  speed is set to this on reset
+    public _ds: number;
     public _sound: string;
     public _key: string;
+    //_dk defailt key
+    public _dk: string;
 
-    //_name will be used to play animationrange
-    public _name: string;
+    //animation data
+    //if _ag is null then _name will be used to play animationrange
+    public _name: string = "";
     public _ag: AnimationGroup;
-
     public _loop: boolean = true;
     public _rate: number = 1;
 
@@ -1474,10 +1480,22 @@ class _ActionData {
 
     public constructor(id: string, speed = 1, key: string) {
         this._id = id;
-        this._name = id;
         this._speed = speed;
+        this._ds = speed;
         this._key = key;
+        this._dk = key;
     }
+
+    public reset() {
+        this._name = "";
+        this._speed = this._ds;
+        this._key = this._dk;
+        this._loop = true;
+        this._rate = 1;
+        this._sound = "";
+        this._exist = false;
+    }
+
 }
 
 class _ActionMap {
@@ -1497,7 +1515,16 @@ class _ActionMap {
     public strafeLeftFast = new _ActionData("strafeLeftFast", 3, "na");
     public strafeRight = new _ActionData("strafeRight", 1.5, "e");
     public strafeRightFast = new _ActionData("strafeRightFast", 3, "na");
-    public slideBack = new _ActionData("slideBack", 0, "na")
+    public slideBack = new _ActionData("slideBack", 0, "na");
+
+    public reset() {
+        let keys: string[] = Object.keys(this);
+        for (let key of keys) {
+            let act = this[key];
+            if (!(act instanceof _ActionData)) continue;
+            act.reset()
+        }
+    }
 };
 
 export class CCSettings {
