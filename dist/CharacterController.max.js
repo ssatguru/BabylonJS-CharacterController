@@ -100,17 +100,18 @@ return /******/ (function(modules) { // webpackBootstrap
 /*!************************************!*\
   !*** ./src/CharacterController.ts ***!
   \************************************/
-/*! exports provided: CharacterController */
+/*! exports provided: CharacterController, CCSettings */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CharacterController", function() { return CharacterController; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CCSettings", function() { return CCSettings; });
 /* harmony import */ var babylonjs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! babylonjs */ "babylonjs");
 /* harmony import */ var babylonjs__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(babylonjs__WEBPACK_IMPORTED_MODULE_0__);
 
 var CharacterController = (function () {
-    function CharacterController(avatar, camera, scene, agMap, faceForward) {
+    function CharacterController(avatar, camera, scene, actionData, faceForward) {
         var _this = this;
         if (faceForward === void 0) { faceForward = false; }
         this._gravity = 9.8;
@@ -121,18 +122,11 @@ var CharacterController = (function () {
         this._stepOffset = 0.25;
         this._vMoveTot = 0;
         this._vMovStartPos = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].Zero();
-        this._actMap = new _ActMap();
-        this._walkKey = "w";
-        this._walkBackKey = "s";
-        this._turnLeftKey = "a";
-        this._turnRightKey = "d";
-        this._strafeLeftKey = "q";
-        this._strafeRightKey = "e";
-        this._jumpKey = " ";
-        this._elasticCamera = true;
+        this._actionMap = new _ActionMap();
+        this._cameraElastic = true;
         this._cameraTarget = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].Zero();
         this._noFirstPerson = false;
-        this.mode = 0;
+        this._mode = 0;
         this._saveMode = 0;
         this._isRHS = false;
         this._signRHS = -1;
@@ -165,21 +159,19 @@ var CharacterController = (function () {
         this._move = false;
         this._isAG = false;
         this._hasAnims = false;
-        this._avatar = avatar;
-        this._setRHS(avatar);
-        this.setFaceForward(faceForward);
+        var success = this.setAvatar(avatar, faceForward);
+        if (!success) {
+            console.error("unable to set avatar");
+        }
         this._scene = scene;
-        if (agMap != null) {
-            this._isAG = true;
-            this.setAnimationGroups(agMap);
+        var dataType = null;
+        if (actionData != null) {
+            dataType = this.setActionData(actionData);
         }
-        if (this._isAG || this._skeleton !== null) {
-            this._hasAnims = true;
-        }
-        if (!this._isAG)
-            this._skeleton = avatar.skeleton;
         if (!this._isAG && this._skeleton != null)
-            this.checkAnims(this._skeleton);
+            this._checkAnimRanges(this._skeleton);
+        if (this._isAG) {
+        }
         this._camera = camera;
         this._savedCameraCollision = this._camera.checkCollisions;
         this._act = new _Action();
@@ -187,15 +179,8 @@ var CharacterController = (function () {
         this._handleKeyUp = function (e) { _this._onKeyUp(e); };
         this._handleKeyDown = function (e) { _this._onKeyDown(e); };
     }
-    CharacterController.prototype.setAvatar = function (avatar, faceForward) {
-        if (faceForward === void 0) { faceForward = false; }
-        this._avatar = avatar;
-        this._setRHS(avatar);
-        this.setFaceForward(faceForward);
-    };
-    CharacterController.prototype.setAvatarSkeleton = function (skeleton) {
-        this._skeleton = skeleton;
-        this.checkAnims(skeleton);
+    CharacterController.prototype.getScene = function () {
+        return this._scene;
     };
     CharacterController.prototype.setSlopeLimit = function (minSlopeLimit, maxSlopeLimit) {
         this._minSlopeLimit = minSlopeLimit;
@@ -207,40 +192,40 @@ var CharacterController = (function () {
         this._stepOffset = stepOffset;
     };
     CharacterController.prototype.setWalkSpeed = function (n) {
-        this._actMap.walk._speed = n;
+        this._actionMap.walk._speed = n;
     };
     CharacterController.prototype.setRunSpeed = function (n) {
-        this._actMap.run._speed = n;
+        this._actionMap.run._speed = n;
     };
     CharacterController.prototype.setBackSpeed = function (n) {
-        this._actMap.walkBack._speed = n;
+        this._actionMap.walkBack._speed = n;
     };
     CharacterController.prototype.setBackFastSpeed = function (n) {
-        this._actMap.walkBackFast._speed = n;
+        this._actionMap.walkBackFast._speed = n;
     };
     CharacterController.prototype.setJumpSpeed = function (n) {
-        this._actMap.idleJump._speed = n;
-        this._actMap.runJump._speed = n;
+        this._actionMap.idleJump._speed = n;
+        this._actionMap.runJump._speed = n;
     };
     CharacterController.prototype.setLeftSpeed = function (n) {
-        this._actMap.strafeLeft._speed = n;
+        this._actionMap.strafeLeft._speed = n;
     };
     CharacterController.prototype.setLeftFastSpeed = function (n) {
-        this._actMap.strafeLeftFast._speed = n;
+        this._actionMap.strafeLeftFast._speed = n;
     };
     CharacterController.prototype.setRightSpeed = function (n) {
-        this._actMap.strafeRight._speed = n;
+        this._actionMap.strafeRight._speed = n;
     };
     CharacterController.prototype.setRightFastSpeed = function (n) {
-        this._actMap.strafeLeftFast._speed = n;
+        this._actionMap.strafeLeftFast._speed = n;
     };
     CharacterController.prototype.setTurnSpeed = function (n) {
-        this._actMap.turnLeft._speed = n * Math.PI / 180;
-        this._actMap.turnRight._speed = n * Math.PI / 180;
+        this._actionMap.turnLeft._speed = n * Math.PI / 180;
+        this._actionMap.turnRight._speed = n * Math.PI / 180;
     };
     CharacterController.prototype.setTurnFastSpeed = function (n) {
-        this._actMap.turnLeftFast._speed = n * Math.PI / 180;
-        this._actMap.turnRightFast._speed = n * Math.PI / 180;
+        this._actionMap.turnLeftFast._speed = n * Math.PI / 180;
+        this._actionMap.turnRightFast._speed = n * Math.PI / 180;
     };
     CharacterController.prototype.setGravity = function (n) {
         this._gravity = n;
@@ -249,92 +234,112 @@ var CharacterController = (function () {
         if (this._prevAnim != null && this._prevAnim._exist)
             this._prevAnim._ag.stop();
         this._isAG = true;
-        var agData;
-        var keys = Object.keys(this._actMap);
-        for (var _i = 0, keys_1 = keys; _i < keys_1.length; _i++) {
-            var key = keys_1[_i];
-            var anim = this._actMap[key];
-            if (!(anim instanceof _AnimData))
-                continue;
-            anim._exist = false;
-            agData = agMap[anim._id];
-            if (agData != null) {
-                if (agData instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__["AnimationGroup"]) {
-                    anim._ag = agData;
-                    anim._name = anim._ag.name;
-                    anim._exist = true;
-                }
-                else {
-                    if (agData["ag"]) {
-                        anim._ag = agData["ag"];
-                        if (agData["loop"] != null)
-                            anim._loop = agData["loop"];
-                        if (agData["rate"])
-                            anim._rate = agData["rate"];
-                        if (agData["speed"])
-                            anim._speed = agData["speed"];
-                        anim._exist = true;
-                    }
-                }
-            }
-        }
-        this._checkFastAnims();
-        this._prevAnim = null;
+        this.setActionData(agMap);
     };
     CharacterController.prototype.setAnimationRanges = function (arMap) {
         this._isAG = false;
-        var arData;
-        var keys = Object.keys(this._actMap);
-        for (var _i = 0, keys_2 = keys; _i < keys_2.length; _i++) {
-            var key = keys_2[_i];
-            var anim = this._actMap[key];
-            if (!(anim instanceof _AnimData))
+        this.setActionData(arMap);
+    };
+    CharacterController.prototype.setActionData = function (actmap) {
+        var agMap = false;
+        var actData;
+        var keys = Object.keys(this._actionMap);
+        for (var _i = 0, keys_1 = keys; _i < keys_1.length; _i++) {
+            var key = keys_1[_i];
+            var act = this._actionMap[key];
+            if (!(act instanceof _ActionData))
                 continue;
-            anim._exist = false;
-            arData = arMap[anim._id];
-            if (arData != null) {
-                if (arData instanceof Object) {
-                    if (arData["name"]) {
-                        anim._name = arData["name"];
-                        if (arData["loop"] != null)
-                            anim._loop = arData["loop"];
-                        if (arData["rate"])
-                            anim._rate = arData["rate"];
-                        if (arData["speed"])
-                            anim._speed = arData["speed"];
-                        anim._exist = true;
-                    }
+            act._exist = false;
+            actData = actmap[act._id];
+            if (actData != null) {
+                this._hasAnims = true;
+                act._exist = true;
+                if (actData instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__["AnimationGroup"]) {
+                    act._ag = actData;
+                    act._name = act._ag.name;
+                    agMap = true;
                 }
                 else {
-                    anim._name = arData;
-                    anim._exist = true;
+                    if (actData instanceof Object) {
+                        if (actData["ag"]) {
+                            act._ag = actData["ag"];
+                            agMap = true;
+                        }
+                        if (actData["name"]) {
+                            act._name = actData["name"];
+                        }
+                        if (actData["loop"] != null)
+                            act._loop = actData["loop"];
+                        if (actData["rate"])
+                            act._rate = actData["rate"];
+                        if (actData["speed"])
+                            act._speed = actData["speed"];
+                        if (actData["key"])
+                            act._speed = actData["key"];
+                        if (actData["sound"])
+                            act._speed = actData["sound"];
+                    }
+                    else {
+                        act._name = actData;
+                    }
                 }
             }
         }
         this._checkFastAnims();
         this._prevAnim = null;
+        if (agMap)
+            return "ag";
+        else
+            return "ar";
     };
-    CharacterController.prototype.getAnimationMap = function () {
+    CharacterController.prototype.getActionMap = function () {
         var map = {};
-        var keys = Object.keys(this._actMap);
-        for (var _i = 0, keys_3 = keys; _i < keys_3.length; _i++) {
-            var key = keys_3[_i];
-            var anim = this._actMap[key];
-            if (!(anim instanceof _AnimData))
+        var keys = Object.keys(this._actionMap);
+        for (var _i = 0, keys_2 = keys; _i < keys_2.length; _i++) {
+            var key = keys_2[_i];
+            var act = this._actionMap[key];
+            if (!(act instanceof _ActionData))
                 continue;
-            if (anim._exist) {
+            if (act._exist) {
                 var data = {};
                 if (this._isAG)
-                    data["ag"] = anim._ag;
+                    data["ag"] = act._ag;
                 else
-                    data["name"] = anim._name;
-                data["loop"] = anim._loop;
-                data["rate"] = anim._rate;
-                data["speed"] = anim._speed;
-                map[anim._id] = data;
+                    data["name"] = act._name;
+                data["loop"] = act._loop;
+                data["rate"] = act._rate;
+                data["speed"] = act._speed;
+                data["key"] = act._key;
+                data["sound"] = act._sound;
+                map[act._id] = data;
             }
         }
         return map;
+    };
+    CharacterController.prototype.getSettings = function () {
+        var ccs = new CCSettings();
+        ccs.cameraRotate = this.getMode() == 0 ? true : false;
+        ccs.cameraTarget = this._cameraTarget.clone();
+        ccs.cameraElastic = this._cameraElastic;
+        ccs.gravity = this._gravity;
+        ccs.keyboard = this._ekb;
+        ccs.maxSlopeLimit = this._maxSlopeLimit;
+        ccs.minSlopeLimit = this._minSlopeLimit;
+        ccs.noFirstPerson = this._noFirstPerson;
+        ccs.stepOffset = this._stepOffset;
+        ccs.turningOff = this.isTurningOff();
+        return ccs;
+    };
+    CharacterController.prototype.setSettings = function (ccs) {
+        this.setMode(ccs.cameraRotate ? 0 : 1);
+        this.setCameraTarget(ccs.cameraTarget);
+        this.setCameraElasticity(ccs.cameraElastic);
+        this.setGravity(ccs.gravity);
+        this.enableKeyBoard(ccs.keyboard);
+        this.setSlopeLimit(ccs.minSlopeLimit, ccs.maxSlopeLimit);
+        this.setNoFirstPerson(ccs.noFirstPerson);
+        this.setStepOffset(ccs.stepOffset);
+        this.setTurningOff(ccs.turningOff);
     };
     CharacterController.prototype._setAnim = function (anim, rangeName, rate, loop) {
         if (!this._isAG && this._skeleton == null)
@@ -366,11 +371,11 @@ var CharacterController = (function () {
     };
     CharacterController.prototype.enableBlending = function (n) {
         if (this._isAG) {
-            var keys = Object.keys(this._actMap);
-            for (var _i = 0, keys_4 = keys; _i < keys_4.length; _i++) {
-                var key = keys_4[_i];
-                var act = this._actMap[key];
-                if (!(act instanceof _AnimData))
+            var keys = Object.keys(this._actionMap);
+            for (var _i = 0, keys_3 = keys; _i < keys_3.length; _i++) {
+                var key = keys_3[_i];
+                var act = this._actionMap[key];
+                if (!(act instanceof _ActionData))
                     continue;
                 if (act._exist) {
                     var ar = act._ag;
@@ -388,11 +393,11 @@ var CharacterController = (function () {
     };
     CharacterController.prototype.disableBlending = function () {
         if (this._isAG) {
-            var keys = Object.keys(this._actMap);
-            for (var _i = 0, keys_5 = keys; _i < keys_5.length; _i++) {
-                var key = keys_5[_i];
-                var anim = this._actMap[key];
-                if (!(anim instanceof _AnimData))
+            var keys = Object.keys(this._actionMap);
+            for (var _i = 0, keys_4 = keys; _i < keys_4.length; _i++) {
+                var key = keys_4[_i];
+                var anim = this._actionMap[key];
+                if (!(anim instanceof _ActionData))
                     continue;
                 if (anim._exist) {
                     var ar = anim._ag;
@@ -405,84 +410,84 @@ var CharacterController = (function () {
         }
     };
     CharacterController.prototype.setWalkAnim = function (rangeName, rate, loop) {
-        this._setAnim(this._actMap.walk, rangeName, rate, loop);
+        this._setAnim(this._actionMap.walk, rangeName, rate, loop);
     };
     CharacterController.prototype.setRunAnim = function (rangeName, rate, loop) {
-        this._setAnim(this._actMap.run, rangeName, rate, loop);
+        this._setAnim(this._actionMap.run, rangeName, rate, loop);
     };
     CharacterController.prototype.setWalkBackAnim = function (rangeName, rate, loop) {
-        this._setAnim(this._actMap.walkBack, rangeName, rate, loop);
-        this._copySlowAnims(this._actMap.walkBackFast, this._actMap.walkBack);
+        this._setAnim(this._actionMap.walkBack, rangeName, rate, loop);
+        this._copySlowAnims(this._actionMap.walkBackFast, this._actionMap.walkBack);
     };
     CharacterController.prototype.setWalkBackFastAnim = function (rangeName, rate, loop) {
-        this._setAnim(this._actMap.walkBackFast, rangeName, rate, loop);
+        this._setAnim(this._actionMap.walkBackFast, rangeName, rate, loop);
     };
     CharacterController.prototype.setSlideBackAnim = function (rangeName, rate, loop) {
-        this._setAnim(this._actMap.slideBack, rangeName, rate, loop);
+        this._setAnim(this._actionMap.slideBack, rangeName, rate, loop);
     };
     CharacterController.prototype.setIdleAnim = function (rangeName, rate, loop) {
-        this._setAnim(this._actMap.idle, rangeName, rate, loop);
+        this._setAnim(this._actionMap.idle, rangeName, rate, loop);
     };
     CharacterController.prototype.setTurnRightAnim = function (rangeName, rate, loop) {
-        this._setAnim(this._actMap.turnRight, rangeName, rate, loop);
-        this._copySlowAnims(this._actMap.turnRightFast, this._actMap.turnRight);
+        this._setAnim(this._actionMap.turnRight, rangeName, rate, loop);
+        this._copySlowAnims(this._actionMap.turnRightFast, this._actionMap.turnRight);
     };
     CharacterController.prototype.setTurnRightFastAnim = function (rangeName, rate, loop) {
-        this._setAnim(this._actMap.turnRightFast, rangeName, rate, loop);
+        this._setAnim(this._actionMap.turnRightFast, rangeName, rate, loop);
     };
     CharacterController.prototype.setTurnLeftAnim = function (rangeName, rate, loop) {
-        this._setAnim(this._actMap.turnLeft, rangeName, rate, loop);
-        this._copySlowAnims(this._actMap.turnLeftFast, this._actMap.turnLeft);
+        this._setAnim(this._actionMap.turnLeft, rangeName, rate, loop);
+        this._copySlowAnims(this._actionMap.turnLeftFast, this._actionMap.turnLeft);
     };
     CharacterController.prototype.setTurnLeftFastAnim = function (rangeName, rate, loop) {
-        this._setAnim(this._actMap.turnLeftFast, rangeName, rate, loop);
+        this._setAnim(this._actionMap.turnLeftFast, rangeName, rate, loop);
     };
     CharacterController.prototype.setStrafeRightAnim = function (rangeName, rate, loop) {
-        this._setAnim(this._actMap.strafeRight, rangeName, rate, loop);
-        this._copySlowAnims(this._actMap.strafeRightFast, this._actMap.strafeRight);
+        this._setAnim(this._actionMap.strafeRight, rangeName, rate, loop);
+        this._copySlowAnims(this._actionMap.strafeRightFast, this._actionMap.strafeRight);
     };
     CharacterController.prototype.setStrafeRightFastAnim = function (rangeName, rate, loop) {
-        this._setAnim(this._actMap.strafeRightFast, rangeName, rate, loop);
+        this._setAnim(this._actionMap.strafeRightFast, rangeName, rate, loop);
     };
     CharacterController.prototype.setStrafeLeftAnim = function (rangeName, rate, loop) {
-        this._setAnim(this._actMap.strafeLeft, rangeName, rate, loop);
-        this._copySlowAnims(this._actMap.strafeLeftFast, this._actMap.strafeLeft);
+        this._setAnim(this._actionMap.strafeLeft, rangeName, rate, loop);
+        this._copySlowAnims(this._actionMap.strafeLeftFast, this._actionMap.strafeLeft);
     };
     CharacterController.prototype.setStrafeLeftFastAnim = function (rangeName, rate, loop) {
-        this._setAnim(this._actMap.strafeLeftFast, rangeName, rate, loop);
+        this._setAnim(this._actionMap.strafeLeftFast, rangeName, rate, loop);
     };
     CharacterController.prototype.setIdleJumpAnim = function (rangeName, rate, loop) {
-        this._setAnim(this._actMap.idleJump, rangeName, rate, loop);
+        this._setAnim(this._actionMap.idleJump, rangeName, rate, loop);
     };
     CharacterController.prototype.setRunJumpAnim = function (rangeName, rate, loop) {
-        this._setAnim(this._actMap.runJump, rangeName, rate, loop);
+        this._setAnim(this._actionMap.runJump, rangeName, rate, loop);
     };
     CharacterController.prototype.setFallAnim = function (rangeName, rate, loop) {
-        this._setAnim(this._actMap.fall, rangeName, rate, loop);
+        this._setAnim(this._actionMap.fall, rangeName, rate, loop);
     };
     CharacterController.prototype.setWalkKey = function (key) {
-        this._walkKey = key.toLowerCase();
+        this._actionMap.walk._key = key.toLowerCase();
     };
     CharacterController.prototype.setWalkBackKey = function (key) {
-        this._walkBackKey = key.toLowerCase();
+        this._actionMap.walkBack._key = key.toLowerCase();
     };
     CharacterController.prototype.setTurnLeftKey = function (key) {
-        this._turnLeftKey = key.toLowerCase();
+        this._actionMap.turnLeft._key = key.toLowerCase();
     };
     CharacterController.prototype.setTurnRightKey = function (key) {
-        this._turnRightKey = key.toLowerCase();
+        this._actionMap.turnRight._key = key.toLowerCase();
     };
     CharacterController.prototype.setStrafeLeftKey = function (key) {
-        this._strafeLeftKey = key.toLowerCase();
+        this._actionMap.strafeLeft._key = key.toLowerCase();
     };
     CharacterController.prototype.setStrafeRightKey = function (key) {
-        this._strafeRightKey = key.toLowerCase();
+        this._actionMap.strafeRight._key = key.toLowerCase();
     };
     CharacterController.prototype.setJumpKey = function (key) {
-        this._jumpKey = key.toLowerCase();
+        this._actionMap.idleJump._key = key.toLowerCase();
     };
     CharacterController.prototype.setCameraElasticity = function (b) {
-        this._elasticCamera = b;
+        this._cameraElastic = b;
     };
     CharacterController.prototype.setCameraTarget = function (v) {
         this._cameraTarget.copyFrom(v);
@@ -493,16 +498,18 @@ var CharacterController = (function () {
     CharacterController.prototype.setNoFirstPerson = function (b) {
         this._noFirstPerson = b;
     };
-    CharacterController.prototype.checkAnims = function (skel) {
-        var keys = Object.keys(this._actMap);
-        for (var _i = 0, keys_6 = keys; _i < keys_6.length; _i++) {
-            var key = keys_6[_i];
-            var anim = this._actMap[key];
-            if (!(anim instanceof _AnimData))
+    CharacterController.prototype._checkAnimRanges = function (skel) {
+        var keys = Object.keys(this._actionMap);
+        for (var _i = 0, keys_5 = keys; _i < keys_5.length; _i++) {
+            var key = keys_5[_i];
+            var anim = this._actionMap[key];
+            if (!(anim instanceof _ActionData))
                 continue;
             if (skel != null) {
-                if (skel.getAnimationRange(anim._name) != null)
+                if (skel.getAnimationRange(anim._name) != null) {
                     anim._exist = true;
+                    this._hasAnims = true;
+                }
             }
             else {
                 anim._exist = false;
@@ -511,11 +518,11 @@ var CharacterController = (function () {
         this._checkFastAnims();
     };
     CharacterController.prototype._checkFastAnims = function () {
-        this._copySlowAnims(this._actMap.walkBackFast, this._actMap.walkBack);
-        this._copySlowAnims(this._actMap.turnRightFast, this._actMap.turnRight);
-        this._copySlowAnims(this._actMap.turnLeftFast, this._actMap.turnLeft);
-        this._copySlowAnims(this._actMap.strafeRightFast, this._actMap.strafeRight);
-        this._copySlowAnims(this._actMap.strafeLeftFast, this._actMap.strafeLeft);
+        this._copySlowAnims(this._actionMap.walkBackFast, this._actionMap.walkBack);
+        this._copySlowAnims(this._actionMap.turnRightFast, this._actionMap.turnRight);
+        this._copySlowAnims(this._actionMap.turnLeftFast, this._actionMap.turnLeft);
+        this._copySlowAnims(this._actionMap.strafeRightFast, this._actionMap.strafeRight);
+        this._copySlowAnims(this._actionMap.strafeLeftFast, this._actionMap.strafeLeft);
     };
     CharacterController.prototype._copySlowAnims = function (f, s) {
         if (f._exist)
@@ -528,11 +535,17 @@ var CharacterController = (function () {
         f._rate = s._rate * 2;
     };
     CharacterController.prototype.setMode = function (n) {
-        this.mode = n;
+        this._mode = n;
         this._saveMode = n;
+    };
+    CharacterController.prototype.getMode = function () {
+        return this._mode;
     };
     CharacterController.prototype.setTurningOff = function (b) {
         this._noRot = b;
+    };
+    CharacterController.prototype.isTurningOff = function () {
+        return this._noRot;
     };
     CharacterController.prototype._setRHS = function (mesh) {
         var meshMatrix = mesh.getWorldMatrix();
@@ -550,6 +563,7 @@ var CharacterController = (function () {
         }
     };
     CharacterController.prototype.setFaceForward = function (b) {
+        this._ff = b;
         if (this._isRHS) {
             this._av2cam = b ? Math.PI / 2 : 3 * Math.PI / 2;
             this._ffSign = b ? 1 : -1;
@@ -559,12 +573,15 @@ var CharacterController = (function () {
             this._ffSign = b ? -1 : 1;
         }
     };
+    CharacterController.prototype.isFaceForward = function () {
+        return this._ff;
+    };
     CharacterController.prototype.checkAGs = function (agMap) {
-        var keys = Object.keys(this._actMap);
-        for (var _i = 0, keys_7 = keys; _i < keys_7.length; _i++) {
-            var key = keys_7[_i];
-            var anim = this._actMap[key];
-            if (!(anim instanceof _AnimData))
+        var keys = Object.keys(this._actionMap);
+        for (var _i = 0, keys_6 = keys; _i < keys_6.length; _i++) {
+            var key = keys_6[_i];
+            var anim = this._actionMap[key];
+            if (!(anim instanceof _ActionData))
                 continue;
             if (agMap[anim._name] != null) {
                 anim._ag = agMap[anim._name];
@@ -641,7 +658,7 @@ var CharacterController = (function () {
     };
     CharacterController.prototype._doJump = function (dt) {
         var anim = null;
-        anim = this._actMap.runJump;
+        anim = this._actionMap.runJump;
         if (this._jumpTime === 0) {
             this._jumpStartPosY = this._avatar.position.y;
         }
@@ -649,26 +666,26 @@ var CharacterController = (function () {
         var forwardDist = 0;
         var jumpDist = 0;
         var disp;
-        if (this.mode != 1 && !this._noRot)
+        if (this._mode != 1 && !this._noRot)
             this._avatar.rotation.y = this._av2cam - this._camera.alpha;
         if (this._wasRunning || this._wasWalking) {
             if (this._wasRunning) {
-                forwardDist = this._actMap.run._speed * dt;
+                forwardDist = this._actionMap.run._speed * dt;
             }
             else if (this._wasWalking) {
-                forwardDist = this._actMap.walk._speed * dt;
+                forwardDist = this._actionMap.walk._speed * dt;
             }
             disp = this._moveVector.clone();
             disp.y = 0;
             disp = disp.normalize();
             disp.scaleToRef(forwardDist, disp);
-            jumpDist = this._calcJumpDist(this._actMap.runJump._speed, dt);
+            jumpDist = this._calcJumpDist(this._actionMap.runJump._speed, dt);
             disp.y = jumpDist;
         }
         else {
-            jumpDist = this._calcJumpDist(this._actMap.idleJump._speed, dt);
+            jumpDist = this._calcJumpDist(this._actionMap.idleJump._speed, dt);
             disp = new babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"](0, jumpDist, 0);
-            anim = this._actMap.idleJump;
+            anim = this._actionMap.idleJump;
         }
         this._avatar.moveWithCollisions(disp);
         if (jumpDist < 0) {
@@ -683,7 +700,7 @@ var CharacterController = (function () {
                     }
                 }
                 else {
-                    anim = this._actMap.fall;
+                    anim = this._actionMap.fall;
                 }
             }
         }
@@ -724,64 +741,64 @@ var CharacterController = (function () {
             switch (true) {
                 case (this._act._stepLeft):
                     sign = this._signRHS * this._isAvFacingCamera();
-                    horizDist = this._actMap.strafeLeft._speed * dt;
+                    horizDist = this._actionMap.strafeLeft._speed * dt;
                     if (this._act._speedMod) {
-                        horizDist = this._actMap.strafeLeftFast._speed * dt;
-                        anim = (-this._ffSign * sign > 0) ? this._actMap.strafeLeftFast : this._actMap.strafeRightFast;
+                        horizDist = this._actionMap.strafeLeftFast._speed * dt;
+                        anim = (-this._ffSign * sign > 0) ? this._actionMap.strafeLeftFast : this._actionMap.strafeRightFast;
                     }
                     else {
-                        anim = (-this._ffSign * sign > 0) ? this._actMap.strafeLeft : this._actMap.strafeRight;
+                        anim = (-this._ffSign * sign > 0) ? this._actionMap.strafeLeft : this._actionMap.strafeRight;
                     }
                     this._moveVector = this._avatar.calcMovePOV(sign * horizDist, -this._freeFallDist, 0);
                     moving = true;
                     break;
                 case (this._act._stepRight):
                     sign = -this._signRHS * this._isAvFacingCamera();
-                    horizDist = this._actMap.strafeRight._speed * dt;
+                    horizDist = this._actionMap.strafeRight._speed * dt;
                     if (this._act._speedMod) {
-                        horizDist = this._actMap.strafeRightFast._speed * dt;
-                        anim = (-this._ffSign * sign > 0) ? this._actMap.strafeLeftFast : this._actMap.strafeRightFast;
+                        horizDist = this._actionMap.strafeRightFast._speed * dt;
+                        anim = (-this._ffSign * sign > 0) ? this._actionMap.strafeLeftFast : this._actionMap.strafeRightFast;
                     }
                     else {
-                        anim = (-this._ffSign * sign > 0) ? this._actMap.strafeLeft : this._actMap.strafeRight;
+                        anim = (-this._ffSign * sign > 0) ? this._actionMap.strafeLeft : this._actionMap.strafeRight;
                     }
                     this._moveVector = this._avatar.calcMovePOV(sign * horizDist, -this._freeFallDist, 0);
                     moving = true;
                     break;
-                case (this._act._walk || (this._noRot && this.mode == 0)):
+                case (this._act._walk || (this._noRot && this._mode == 0)):
                     if (this._act._speedMod) {
                         this._wasRunning = true;
-                        horizDist = this._actMap.run._speed * dt;
-                        anim = this._actMap.run;
+                        horizDist = this._actionMap.run._speed * dt;
+                        anim = this._actionMap.run;
                     }
                     else {
                         this._wasWalking = true;
-                        horizDist = this._actMap.walk._speed * dt;
-                        anim = this._actMap.walk;
+                        horizDist = this._actionMap.walk._speed * dt;
+                        anim = this._actionMap.walk;
                     }
                     this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, this._ffSign * horizDist);
                     moving = true;
                     break;
                 case (this._act._walkback):
-                    horizDist = this._actMap.walkBack._speed * dt;
+                    horizDist = this._actionMap.walkBack._speed * dt;
                     if (this._act._speedMod) {
-                        horizDist = this._actMap.walkBackFast._speed * dt;
-                        anim = this._actMap.walkBackFast;
+                        horizDist = this._actionMap.walkBackFast._speed * dt;
+                        anim = this._actionMap.walkBackFast;
                     }
                     else {
-                        anim = this._actMap.walkBack;
+                        anim = this._actionMap.walkBack;
                     }
                     this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, -this._ffSign * horizDist);
                     moving = true;
                     break;
             }
         }
-        if (!(this._noRot && this.mode == 0) && (!this._act._stepLeft && !this._act._stepRight) && (this._act._turnLeft || this._act._turnRight)) {
-            var turnAngle = this._actMap.turnLeft._speed * dt;
+        if (!(this._noRot && this._mode == 0) && (!this._act._stepLeft && !this._act._stepRight) && (this._act._turnLeft || this._act._turnRight)) {
+            var turnAngle = this._actionMap.turnLeft._speed * dt;
             if (this._act._speedMod) {
                 turnAngle = 2 * turnAngle;
             }
-            if (this.mode == 1) {
+            if (this._mode == 1) {
                 if (!this._isTurning) {
                     this._sign = -this._ffSign * this._isAvFacingCamera();
                     if (this._isRHS)
@@ -794,7 +811,7 @@ var CharacterController = (function () {
                     else if (this._act._walkback)
                         a = -this._sign;
                     else {
-                        anim = (this._sign > 0) ? this._actMap.turnRight : this._actMap.turnLeft;
+                        anim = (this._sign > 0) ? this._actionMap.turnRight : this._actionMap.turnLeft;
                     }
                 }
                 else {
@@ -803,7 +820,7 @@ var CharacterController = (function () {
                     else if (this._act._walkback) { }
                     else {
                         a = -this._sign;
-                        anim = (this._sign > 0) ? this._actMap.turnLeft : this._actMap.turnRight;
+                        anim = (this._sign > 0) ? this._actionMap.turnLeft : this._actionMap.turnRight;
                     }
                 }
                 this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
@@ -814,20 +831,20 @@ var CharacterController = (function () {
                     if (this._act._walkback)
                         a = -1;
                     if (!moving)
-                        anim = this._actMap.turnLeft;
+                        anim = this._actionMap.turnLeft;
                 }
                 else {
                     if (this._act._walk)
                         a = -1;
                     if (!moving) {
                         a = -1;
-                        anim = this._actMap.turnRight;
+                        anim = this._actionMap.turnRight;
                     }
                 }
                 this._camera.alpha = this._camera.alpha + turnAngle * a;
             }
         }
-        if (this.mode != 1) {
+        if (this._mode != 1) {
             if (this._noRot) {
                 switch (true) {
                     case (this._act._walk && this._act._turnRight):
@@ -911,7 +928,7 @@ var CharacterController = (function () {
                         this._inFreeFall = true;
                         this._fallFrameCount++;
                         if (this._fallFrameCount > this._fallFrameCountMin) {
-                            anim = this._actMap.fall;
+                            anim = this._actionMap.fall;
                         }
                     }
                 }
@@ -929,12 +946,12 @@ var CharacterController = (function () {
     };
     CharacterController.prototype._doIdle = function (dt) {
         if (this._grounded) {
-            return this._actMap.idle;
+            return this._actionMap.idle;
         }
         this._wasWalking = false;
         this._wasRunning = false;
         this._movFallTime = 0;
-        var anim = this._actMap.idle;
+        var anim = this._actionMap.idle;
         this._fallFrameCount = 0;
         if (dt === 0) {
             this._freeFallDist = 5;
@@ -947,7 +964,7 @@ var CharacterController = (function () {
         if (this._freeFallDist < 0.01)
             return anim;
         var disp = new babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"](0, -this._freeFallDist, 0);
-        if (this.mode != 1 && !this._noRot)
+        if (this._mode != 1 && !this._noRot)
             this._avatar.rotation.y = this._av2cam - this._camera.alpha;
         this._avatar.moveWithCollisions(disp);
         if ((this._avatar.position.y > this._avStartPos.y) || (this._avatar.position.y === this._avStartPos.y)) {
@@ -962,7 +979,7 @@ var CharacterController = (function () {
                 }
                 else {
                     this._unGroundIt();
-                    anim = this._actMap.slideBack;
+                    anim = this._actionMap.slideBack;
                 }
             }
         }
@@ -983,21 +1000,21 @@ var CharacterController = (function () {
         if (this._vMoveTot == 0)
             this._avatar.position.addToRef(this._cameraTarget, this._camera.target);
         if (this._camera.radius > this._camera.lowerRadiusLimit) {
-            if (this._elasticCamera)
+            if (this._cameraElastic)
                 this._snapCamera();
         }
         if (this._camera.radius <= this._camera.lowerRadiusLimit) {
             if (!this._noFirstPerson && !this._inFP) {
                 this._avatar.visibility = 0;
                 this._camera.checkCollisions = false;
-                this._saveMode = this.mode;
-                this.mode = 0;
+                this._saveMode = this._mode;
+                this._mode = 0;
                 this._inFP = true;
             }
         }
         else {
             this._inFP = false;
-            this.mode = this._saveMode;
+            this._mode = this._saveMode;
             this._avatar.visibility = 1;
             this._camera.checkCollisions = this._savedCameraCollision;
         }
@@ -1034,7 +1051,7 @@ var CharacterController = (function () {
         if (e.repeat)
             return;
         switch (e.key.toLowerCase()) {
-            case this._jumpKey:
+            case this._actionMap.idleJump._key:
                 this._act._jump = true;
                 break;
             case "capslock":
@@ -1045,28 +1062,28 @@ var CharacterController = (function () {
                 break;
             case "up":
             case "arrowup":
-            case this._walkKey:
+            case this._actionMap.walk._key:
                 this._act._walk = true;
                 break;
             case "left":
             case "arrowleft":
-            case this._turnLeftKey:
+            case this._actionMap.turnLeft._key:
                 this._act._turnLeft = true;
                 break;
             case "right":
             case "arrowright":
-            case this._turnRightKey:
+            case this._actionMap.turnRight._key:
                 this._act._turnRight = true;
                 break;
             case "down":
             case "arrowdown":
-            case this._walkBackKey:
+            case this._actionMap.walkBack._key:
                 this._act._walkback = true;
                 break;
-            case this._strafeLeftKey:
+            case this._actionMap.strafeLeft._key:
                 this._act._stepLeft = true;
                 break;
-            case this._strafeRightKey:
+            case this._actionMap.strafeRight._key:
                 this._act._stepRight = true;
                 break;
         }
@@ -1081,36 +1098,37 @@ var CharacterController = (function () {
                 break;
             case "up":
             case "arrowup":
-            case this._walkKey:
+            case this._actionMap.walk._key:
                 this._act._walk = false;
                 break;
             case "left":
             case "arrowleft":
-            case this._turnLeftKey:
+            case this._actionMap.turnLeft._key:
                 this._act._turnLeft = false;
                 this._isTurning = false;
                 break;
             case "right":
             case "arrowright":
-            case this._turnRightKey:
+            case this._actionMap.turnRight._key:
                 this._act._turnRight = false;
                 this._isTurning = false;
                 break;
             case "down":
             case "arrowdown":
-            case this._walkBackKey:
+            case this._actionMap.walkBack._key:
                 this._act._walkback = false;
                 break;
-            case this._strafeLeftKey:
+            case this._actionMap.strafeLeft._key:
                 this._act._stepLeft = false;
                 break;
-            case this._strafeRightKey:
+            case this._actionMap.strafeRight._key:
                 this._act._stepRight = false;
                 break;
         }
         this._move = this.anyMovement();
     };
     CharacterController.prototype.enableKeyBoard = function (b) {
+        this._ekb = b;
         var canvas = this._scene.getEngine().getRenderingCanvas();
         if (b) {
             canvas.addEventListener("keyup", this._handleKeyUp, false);
@@ -1177,31 +1195,77 @@ var CharacterController = (function () {
     CharacterController.prototype.idle = function () {
         this._act.reset();
     };
+    CharacterController.prototype.isAg = function () {
+        return this._isAG;
+    };
+    CharacterController.prototype._findSkel = function (n) {
+        var root = this._root(n);
+        if (root instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__["Mesh"] && root.skeleton)
+            return root.skeleton;
+        var ms = root.getChildMeshes(false, function (cm) {
+            if (cm instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__["Mesh"]) {
+                if (cm.skeleton) {
+                    return true;
+                }
+            }
+            return false;
+        });
+        if (ms.length > 0)
+            return ms[0].skeleton;
+        else
+            return null;
+    };
+    CharacterController.prototype._root = function (tn) {
+        if (tn.parent == null)
+            return tn;
+        return this._root(tn.parent);
+    };
+    CharacterController.prototype.setAvatar = function (avatar, faceForward) {
+        if (faceForward === void 0) { faceForward = false; }
+        var rootNode = this._root(avatar);
+        if (rootNode instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__["Mesh"]) {
+            this._avatar = rootNode;
+        }
+        else {
+            console.error("Cannot move this mesh. The root node of the mesh provided is not a mesh");
+            return false;
+        }
+        this._skeleton = this._findSkel(avatar);
+        if (this._skeleton != null && this._skeleton.overrideMesh)
+            this._isAG = true;
+        this._actionMap = new _ActionMap();
+        if (!this._isAG && this._skeleton != null)
+            this._checkAnimRanges(this._skeleton);
+        this._setRHS(avatar);
+        this.setFaceForward(faceForward);
+        return true;
+    };
+    CharacterController.prototype.getAvatar = function () {
+        return this._avatar;
+    };
+    CharacterController.prototype.setAvatarSkeleton = function (skeleton) {
+        this._skeleton = skeleton;
+        if (this._skeleton != null && this._skeleton.overrideMesh)
+            this._isAG = true;
+        if (!this._isAG && this._skeleton != null)
+            this._checkAnimRanges(this._skeleton);
+    };
+    CharacterController.prototype.getSkeleton = function () {
+        return this._skeleton;
+    };
     return CharacterController;
 }());
 
-var _AnimData = (function () {
-    function _AnimData(id, speed) {
-        if (speed === void 0) { speed = 1; }
-        this._loop = true;
-        this._rate = 1;
-        this._exist = false;
-        this._id = id;
-        this._name = id;
-        this._speed = speed;
-    }
-    return _AnimData;
-}());
 var _Action = (function () {
     function _Action() {
         this._walk = false;
         this._walkback = false;
-        this._speedMod = false;
         this._turnRight = false;
         this._turnLeft = false;
         this._stepRight = false;
         this._stepLeft = false;
         this._jump = false;
+        this._speedMod = false;
         this.reset();
     }
     _Action.prototype.reset = function () {
@@ -1216,30 +1280,54 @@ var _Action = (function () {
     };
     return _Action;
 }());
-var _ActMap = (function () {
-    function _ActMap() {
-        this._walkSpeed = 3;
-        this.walk = new _AnimData("walk", 3);
-        this.walkBack = new _AnimData("walkBack", this._walkSpeed / 2);
-        this.walkBackFast = new _AnimData("walkBackFast", this._walkSpeed);
-        this.idle = new _AnimData("idle", 0);
-        this.idleJump = new _AnimData("idleJump", this._walkSpeed * 2);
-        this.run = new _AnimData("run", this._walkSpeed * 2);
-        this.runJump = new _AnimData("runJump", this._walkSpeed * 2);
-        this.fall = new _AnimData("fall", 0);
-        this.turnLeft = new _AnimData("turnLeft", Math.PI / 8);
-        this.turnLeftFast = new _AnimData("turnLeftFast", Math.PI / 4);
-        this.turnRight = new _AnimData("turnRight", Math.PI / 8);
-        this.turnRightFast = new _AnimData("turnRightFast", Math.PI / 4);
-        this.strafeLeft = new _AnimData("strafeLeft", this._walkSpeed / 2);
-        this.strafeLeftFast = new _AnimData("strafeLeftFast", this._walkSpeed);
-        this.strafeRight = new _AnimData("strafeRight", this._walkSpeed / 2);
-        this.strafeRightFast = new _AnimData("strafeRightFast", this._walkSpeed);
-        this.slideBack = new _AnimData("slideBack", 0);
+var _ActionData = (function () {
+    function _ActionData(id, speed, key) {
+        if (speed === void 0) { speed = 1; }
+        this._loop = true;
+        this._rate = 1;
+        this._exist = false;
+        this._id = id;
+        this._name = id;
+        this._speed = speed;
+        this._key = key;
     }
-    return _ActMap;
+    return _ActionData;
+}());
+var _ActionMap = (function () {
+    function _ActionMap() {
+        this.walk = new _ActionData("walk", 3, "w");
+        this.walkBack = new _ActionData("walkBack", 1.5, "s");
+        this.walkBackFast = new _ActionData("walkBackFast", 3, "na");
+        this.idle = new _ActionData("idle", 0, "na");
+        this.idleJump = new _ActionData("idleJump", 6, " ");
+        this.run = new _ActionData("run", 6, "na");
+        this.runJump = new _ActionData("runJump", 6, "na");
+        this.fall = new _ActionData("fall", 0, "na");
+        this.turnLeft = new _ActionData("turnLeft", Math.PI / 8, "a");
+        this.turnLeftFast = new _ActionData("turnLeftFast", Math.PI / 4, "na");
+        this.turnRight = new _ActionData("turnRight", Math.PI / 8, "d");
+        this.turnRightFast = new _ActionData("turnRightFast", Math.PI / 4, "na");
+        this.strafeLeft = new _ActionData("strafeLeft", 1.5, "q");
+        this.strafeLeftFast = new _ActionData("strafeLeftFast", 3, "na");
+        this.strafeRight = new _ActionData("strafeRight", 1.5, "e");
+        this.strafeRightFast = new _ActionData("strafeRightFast", 3, "na");
+        this.slideBack = new _ActionData("slideBack", 0, "na");
+    }
+    return _ActionMap;
 }());
 ;
+var CCSettings = (function () {
+    function CCSettings() {
+        this.cameraElastic = true;
+        this.cameraTarget = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].Zero();
+        this.noFirstPerson = false;
+        this.turningOff = true;
+        this.cameraRotate = true;
+        this.keyboard = true;
+    }
+    return CCSettings;
+}());
+
 
 
 /***/ }),
