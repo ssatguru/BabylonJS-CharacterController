@@ -100,18 +100,20 @@ return /******/ (function(modules) { // webpackBootstrap
 /*!************************************!*\
   !*** ./src/CharacterController.ts ***!
   \************************************/
-/*! exports provided: CharacterController, CCSettings */
+/*! exports provided: CharacterController, ActionData, ActionMap, CCSettings */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CharacterController", function() { return CharacterController; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ActionData", function() { return ActionData; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ActionMap", function() { return ActionMap; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CCSettings", function() { return CCSettings; });
 /* harmony import */ var babylonjs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! babylonjs */ "babylonjs");
 /* harmony import */ var babylonjs__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(babylonjs__WEBPACK_IMPORTED_MODULE_0__);
 
 var CharacterController = (function () {
-    function CharacterController(avatar, camera, scene, actionData, faceForward) {
+    function CharacterController(avatar, camera, scene, actionMap, faceForward) {
         var _this = this;
         if (faceForward === void 0) { faceForward = false; }
         this._gravity = 9.8;
@@ -122,7 +124,7 @@ var CharacterController = (function () {
         this._stepOffset = 0.25;
         this._vMoveTot = 0;
         this._vMovStartPos = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].Zero();
-        this._actionMap = new _ActionMap();
+        this._actionMap = new ActionMap();
         this._cameraElastic = true;
         this._cameraTarget = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].Zero();
         this._noFirstPerson = false;
@@ -165,8 +167,8 @@ var CharacterController = (function () {
         }
         this._scene = scene;
         var dataType = null;
-        if (actionData != null) {
-            dataType = this.setActionData(actionData);
+        if (actionMap != null) {
+            dataType = this.setActionMap(actionMap);
         }
         if (!this._isAG && this._skeleton != null)
             this._checkAnimRanges(this._skeleton);
@@ -192,99 +194,98 @@ var CharacterController = (function () {
         this._stepOffset = stepOffset;
     };
     CharacterController.prototype.setWalkSpeed = function (n) {
-        this._actionMap.walk._speed = n;
+        this._actionMap.walk.speed = n;
     };
     CharacterController.prototype.setRunSpeed = function (n) {
-        this._actionMap.run._speed = n;
+        this._actionMap.run.speed = n;
     };
     CharacterController.prototype.setBackSpeed = function (n) {
-        this._actionMap.walkBack._speed = n;
+        this._actionMap.walkBack.speed = n;
     };
     CharacterController.prototype.setBackFastSpeed = function (n) {
-        this._actionMap.walkBackFast._speed = n;
+        this._actionMap.walkBackFast.speed = n;
     };
     CharacterController.prototype.setJumpSpeed = function (n) {
-        this._actionMap.idleJump._speed = n;
-        this._actionMap.runJump._speed = n;
+        this._actionMap.idleJump.speed = n;
+        this._actionMap.runJump.speed = n;
     };
     CharacterController.prototype.setLeftSpeed = function (n) {
-        this._actionMap.strafeLeft._speed = n;
+        this._actionMap.strafeLeft.speed = n;
     };
     CharacterController.prototype.setLeftFastSpeed = function (n) {
-        this._actionMap.strafeLeftFast._speed = n;
+        this._actionMap.strafeLeftFast.speed = n;
     };
     CharacterController.prototype.setRightSpeed = function (n) {
-        this._actionMap.strafeRight._speed = n;
+        this._actionMap.strafeRight.speed = n;
     };
     CharacterController.prototype.setRightFastSpeed = function (n) {
-        this._actionMap.strafeLeftFast._speed = n;
+        this._actionMap.strafeLeftFast.speed = n;
     };
     CharacterController.prototype.setTurnSpeed = function (n) {
-        this._actionMap.turnLeft._speed = n * Math.PI / 180;
-        this._actionMap.turnRight._speed = n * Math.PI / 180;
+        this._actionMap.turnLeft.speed = n * Math.PI / 180;
+        this._actionMap.turnRight.speed = n * Math.PI / 180;
     };
     CharacterController.prototype.setTurnFastSpeed = function (n) {
-        this._actionMap.turnLeftFast._speed = n * Math.PI / 180;
-        this._actionMap.turnRightFast._speed = n * Math.PI / 180;
+        this._actionMap.turnLeftFast.speed = n * Math.PI / 180;
+        this._actionMap.turnRightFast.speed = n * Math.PI / 180;
     };
     CharacterController.prototype.setGravity = function (n) {
         this._gravity = n;
     };
     CharacterController.prototype.setAnimationGroups = function (agMap) {
-        if (this._prevAnim != null && this._prevAnim._exist)
-            this._prevAnim._ag.stop();
+        if (this._prevAnim != null && this._prevAnim.exist)
+            this._prevAnim.ag.stop();
         this._isAG = true;
-        this.setActionData(agMap);
+        this.setActionMap(agMap);
     };
     CharacterController.prototype.setAnimationRanges = function (arMap) {
         this._isAG = false;
-        this.setActionData(arMap);
+        this.setActionMap(arMap);
     };
-    CharacterController.prototype.setActionData = function (actmap) {
+    CharacterController.prototype.setActionMap = function (actmapI) {
         var agMap = false;
-        var actData;
+        var actDataI;
         var keys = Object.keys(this._actionMap);
         for (var _i = 0, keys_1 = keys; _i < keys_1.length; _i++) {
             var key = keys_1[_i];
-            var act = this._actionMap[key];
-            if (!(act instanceof _ActionData))
+            var actDataO = this._actionMap[key];
+            if (!(actDataO instanceof ActionData))
                 continue;
-            act._exist = false;
-            actData = actmap[act._id];
-            if (actData != null) {
+            actDataI = actmapI[actDataO.id];
+            actDataO.exist = false;
+            if (actDataI != null && actDataI.exist) {
                 this._hasAnims = true;
-                act._exist = true;
-                if (actData instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__["AnimationGroup"]) {
-                    act._ag = actData;
-                    act._name = act._ag.name;
+                actDataO.exist = true;
+                if (actDataI instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__["AnimationGroup"]) {
+                    actDataO.ag = actDataI;
+                    actDataO.name = actDataO.ag.name;
                     agMap = true;
                 }
                 else {
-                    if (actData instanceof Object) {
-                        if (actData["ag"]) {
-                            act._ag = actData["ag"];
+                    if (actDataI instanceof Object) {
+                        if (actDataI.ag) {
+                            actDataO.ag = actDataI.ag;
                             agMap = true;
                         }
-                        if (actData["name"]) {
-                            act._name = actData["name"];
+                        if (actDataI.name) {
+                            actDataO.name = actDataI.name;
                         }
-                        if (actData["loop"] != null)
-                            act._loop = actData["loop"];
-                        if (actData["rate"])
-                            act._rate = actData["rate"];
-                        if (actData["speed"])
-                            act._speed = actData["speed"];
-                        if (actData["key"])
-                            act._speed = actData["key"];
-                        if (actData["sound"])
-                            act._speed = actData["sound"];
+                        if (actDataI.loop != null)
+                            actDataO.loop = actDataI.loop;
+                        if (actDataI.rate)
+                            actDataO.rate = actDataI.rate;
+                        if (actDataI.speed)
+                            actDataO.speed = actDataI.speed;
+                        if (actDataI.sound)
+                            actDataO.sound = actDataI.sound;
                     }
                     else {
-                        act._name = actData;
+                        actDataO.name = actDataI;
                     }
                 }
             }
         }
+        console.log(this._actionMap);
         this._checkFastAnims();
         this._prevAnim = null;
         if (agMap)
@@ -293,31 +294,32 @@ var CharacterController = (function () {
             return "ar";
     };
     CharacterController.prototype.getActionMap = function () {
-        var map = {};
+        var map = new ActionMap();
         var keys = Object.keys(this._actionMap);
         for (var _i = 0, keys_2 = keys; _i < keys_2.length; _i++) {
             var key = keys_2[_i];
-            var act = this._actionMap[key];
-            if (!(act instanceof _ActionData))
+            var actDataI = this._actionMap[key];
+            if (!(actDataI instanceof ActionData))
                 continue;
-            var data = {};
-            if (this._isAG)
-                data["ag"] = act._ag;
-            else
-                data["name"] = act._name;
-            data["loop"] = act._loop;
-            data["rate"] = act._rate;
-            data["speed"] = act._speed;
-            data["key"] = act._key;
-            data["sound"] = act._sound;
-            data["exists"] = act._exist;
-            map[act._id] = data;
+            if (!actDataI.exist)
+                continue;
+            var actDataO = map[actDataI.id];
+            actDataO.ag = actDataI.ag;
+            actDataO.name = actDataI.name;
+            actDataO.loop = actDataI.loop;
+            actDataO.rate = actDataI.rate;
+            actDataO.speed = actDataI.speed;
+            actDataO.key = actDataI.key;
+            actDataO.sound = actDataI.sound;
+            actDataO.exist = actDataI.exist;
         }
         return map;
     };
     CharacterController.prototype.getSettings = function () {
         var ccs = new CCSettings();
-        ccs.cameraRotate = this.getMode() == 0 ? true : false;
+        ccs.faceForward = this.isFaceForward();
+        ccs.topDown = this.getMode() == 1 ? true : false;
+        ccs.turningOff = this.isTurningOff();
         ccs.cameraTarget = this._cameraTarget.clone();
         ccs.cameraElastic = this._cameraElastic;
         ccs.gravity = this._gravity;
@@ -326,11 +328,12 @@ var CharacterController = (function () {
         ccs.minSlopeLimit = this._minSlopeLimit;
         ccs.noFirstPerson = this._noFirstPerson;
         ccs.stepOffset = this._stepOffset;
-        ccs.turningOff = this.isTurningOff();
         return ccs;
     };
     CharacterController.prototype.setSettings = function (ccs) {
-        this.setMode(ccs.cameraRotate ? 0 : 1);
+        this.setFaceForward(ccs.faceForward);
+        this.setMode(ccs.topDown ? 1 : 0);
+        this.setTurningOff(ccs.turningOff);
         this.setCameraTarget(ccs.cameraTarget);
         this.setCameraElasticity(ccs.cameraElastic);
         this.setGravity(ccs.gravity);
@@ -338,35 +341,33 @@ var CharacterController = (function () {
         this.setSlopeLimit(ccs.minSlopeLimit, ccs.maxSlopeLimit);
         this.setNoFirstPerson(ccs.noFirstPerson);
         this.setStepOffset(ccs.stepOffset);
-        this.setTurningOff(ccs.turningOff);
     };
     CharacterController.prototype._setAnim = function (anim, rangeName, rate, loop) {
         if (!this._isAG && this._skeleton == null)
             return;
-        if (loop != null)
-            anim._loop = loop;
-        if (!this._isAG) {
-            if (rangeName != null)
-                anim._name = rangeName;
-            if (rate != null)
-                anim._rate = rate;
-            if (this._skeleton.getAnimationRange(anim._name) != null) {
-                anim._exist = true;
-            }
-            else {
-                anim._exist = false;
+        if (this._isAG) {
+            if (!(rangeName instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__["AnimationGroup"]))
+                return;
+            if (rangeName != null) {
+                anim.ag = rangeName;
+                anim.exist = true;
             }
         }
         else {
-            if (rangeName != null) {
-                anim._ag = rangeName;
-                anim._exist = true;
+            if (this._skeleton.getAnimationRange(anim.name) != null) {
+                anim.exist = true;
             }
-            if (rate != null && anim._exist) {
-                anim._rate = rate;
-                anim._ag.speedRatio = rate;
+            else {
+                anim.exist = false;
+                return;
             }
+            if (rangeName != null)
+                anim.name = rangeName;
         }
+        if (loop != null)
+            anim.loop = loop;
+        if (rate != null)
+            anim.rate = rate;
     };
     CharacterController.prototype.enableBlending = function (n) {
         if (this._isAG) {
@@ -374,10 +375,10 @@ var CharacterController = (function () {
             for (var _i = 0, keys_3 = keys; _i < keys_3.length; _i++) {
                 var key = keys_3[_i];
                 var act = this._actionMap[key];
-                if (!(act instanceof _ActionData))
+                if (!(act instanceof ActionData))
                     continue;
-                if (act._exist) {
-                    var ar = act._ag;
+                if (act.exist) {
+                    var ar = act.ag;
                     for (var _a = 0, _b = ar.targetedAnimations; _a < _b.length; _a++) {
                         var ta = _b[_a];
                         ta.animation.enableBlending = true;
@@ -396,10 +397,10 @@ var CharacterController = (function () {
             for (var _i = 0, keys_4 = keys; _i < keys_4.length; _i++) {
                 var key = keys_4[_i];
                 var anim = this._actionMap[key];
-                if (!(anim instanceof _ActionData))
+                if (!(anim instanceof ActionData))
                     continue;
-                if (anim._exist) {
-                    var ar = anim._ag;
+                if (anim.exist) {
+                    var ar = anim.ag;
                     for (var _a = 0, _b = ar.targetedAnimations; _a < _b.length; _a++) {
                         var ta = _b[_a];
                         ta.animation.enableBlending = false;
@@ -465,25 +466,25 @@ var CharacterController = (function () {
         this._setAnim(this._actionMap.fall, rangeName, rate, loop);
     };
     CharacterController.prototype.setWalkKey = function (key) {
-        this._actionMap.walk._key = key.toLowerCase();
+        this._actionMap.walk.key = key.toLowerCase();
     };
     CharacterController.prototype.setWalkBackKey = function (key) {
-        this._actionMap.walkBack._key = key.toLowerCase();
+        this._actionMap.walkBack.key = key.toLowerCase();
     };
     CharacterController.prototype.setTurnLeftKey = function (key) {
-        this._actionMap.turnLeft._key = key.toLowerCase();
+        this._actionMap.turnLeft.key = key.toLowerCase();
     };
     CharacterController.prototype.setTurnRightKey = function (key) {
-        this._actionMap.turnRight._key = key.toLowerCase();
+        this._actionMap.turnRight.key = key.toLowerCase();
     };
     CharacterController.prototype.setStrafeLeftKey = function (key) {
-        this._actionMap.strafeLeft._key = key.toLowerCase();
+        this._actionMap.strafeLeft.key = key.toLowerCase();
     };
     CharacterController.prototype.setStrafeRightKey = function (key) {
-        this._actionMap.strafeRight._key = key.toLowerCase();
+        this._actionMap.strafeRight.key = key.toLowerCase();
     };
     CharacterController.prototype.setJumpKey = function (key) {
-        this._actionMap.idleJump._key = key.toLowerCase();
+        this._actionMap.idleJump.key = key.toLowerCase();
     };
     CharacterController.prototype.setCameraElasticity = function (b) {
         this._cameraElastic = b;
@@ -502,17 +503,17 @@ var CharacterController = (function () {
         for (var _i = 0, keys_5 = keys; _i < keys_5.length; _i++) {
             var key = keys_5[_i];
             var anim = this._actionMap[key];
-            if (!(anim instanceof _ActionData))
+            if (!(anim instanceof ActionData))
                 continue;
             if (skel != null) {
-                if (skel.getAnimationRange(anim._id) != null) {
-                    anim._name = anim._id;
-                    anim._exist = true;
+                if (skel.getAnimationRange(anim.id) != null) {
+                    anim.name = anim.id;
+                    anim.exist = true;
                     this._hasAnims = true;
                 }
             }
             else {
-                anim._exist = false;
+                anim.exist = false;
             }
         }
         this._checkFastAnims();
@@ -525,14 +526,14 @@ var CharacterController = (function () {
         this._copySlowAnims(this._actionMap.strafeLeftFast, this._actionMap.strafeLeft);
     };
     CharacterController.prototype._copySlowAnims = function (f, s) {
-        if (f._exist)
+        if (f.exist)
             return;
-        if (!s._exist)
+        if (!s.exist)
             return;
-        f._exist = true;
-        f._ag = s._ag;
-        f._name = s._name;
-        f._rate = s._rate * 2;
+        f.exist = true;
+        f.ag = s.ag;
+        f.name = s.name;
+        f.rate = s.rate * 2;
     };
     CharacterController.prototype.setMode = function (n) {
         this._mode = n;
@@ -581,11 +582,11 @@ var CharacterController = (function () {
         for (var _i = 0, keys_6 = keys; _i < keys_6.length; _i++) {
             var key = keys_6[_i];
             var anim = this._actionMap[key];
-            if (!(anim instanceof _ActionData))
+            if (!(anim instanceof ActionData))
                 continue;
-            if (agMap[anim._name] != null) {
-                anim._ag = agMap[anim._name];
-                anim._exist = true;
+            if (agMap[anim.name] != null) {
+                anim.ag = agMap[anim.name];
+                anim.exist = true;
             }
         }
     };
@@ -640,14 +641,14 @@ var CharacterController = (function () {
         }
         if (!this._stopAnim && this._hasAnims && anim != null) {
             if (this._prevAnim !== anim) {
-                if (anim._exist) {
+                if (anim.exist) {
                     if (this._isAG) {
-                        if (this._prevAnim != null && this._prevAnim._exist)
-                            this._prevAnim._ag.stop();
-                        anim._ag.start(anim._loop, anim._rate);
+                        if (this._prevAnim != null && this._prevAnim.exist)
+                            this._prevAnim.ag.stop();
+                        anim.ag.start(anim.loop, anim.rate);
                     }
                     else {
-                        this._skeleton.beginAnimation(anim._name, anim._loop, anim._rate);
+                        this._skeleton.beginAnimation(anim.name, anim.loop, anim.rate);
                     }
                 }
                 this._prevAnim = anim;
@@ -670,20 +671,20 @@ var CharacterController = (function () {
             this._avatar.rotation.y = this._av2cam - this._camera.alpha;
         if (this._wasRunning || this._wasWalking) {
             if (this._wasRunning) {
-                forwardDist = this._actionMap.run._speed * dt;
+                forwardDist = this._actionMap.run.speed * dt;
             }
             else if (this._wasWalking) {
-                forwardDist = this._actionMap.walk._speed * dt;
+                forwardDist = this._actionMap.walk.speed * dt;
             }
             disp = this._moveVector.clone();
             disp.y = 0;
             disp = disp.normalize();
             disp.scaleToRef(forwardDist, disp);
-            jumpDist = this._calcJumpDist(this._actionMap.runJump._speed, dt);
+            jumpDist = this._calcJumpDist(this._actionMap.runJump.speed, dt);
             disp.y = jumpDist;
         }
         else {
-            jumpDist = this._calcJumpDist(this._actionMap.idleJump._speed, dt);
+            jumpDist = this._calcJumpDist(this._actionMap.idleJump.speed, dt);
             disp = new babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"](0, jumpDist, 0);
             anim = this._actionMap.idleJump;
         }
@@ -741,9 +742,9 @@ var CharacterController = (function () {
             switch (true) {
                 case (this._act._stepLeft):
                     sign = this._signRHS * this._isAvFacingCamera();
-                    horizDist = this._actionMap.strafeLeft._speed * dt;
+                    horizDist = this._actionMap.strafeLeft.speed * dt;
                     if (this._act._speedMod) {
-                        horizDist = this._actionMap.strafeLeftFast._speed * dt;
+                        horizDist = this._actionMap.strafeLeftFast.speed * dt;
                         anim = (-this._ffSign * sign > 0) ? this._actionMap.strafeLeftFast : this._actionMap.strafeRightFast;
                     }
                     else {
@@ -754,9 +755,9 @@ var CharacterController = (function () {
                     break;
                 case (this._act._stepRight):
                     sign = -this._signRHS * this._isAvFacingCamera();
-                    horizDist = this._actionMap.strafeRight._speed * dt;
+                    horizDist = this._actionMap.strafeRight.speed * dt;
                     if (this._act._speedMod) {
-                        horizDist = this._actionMap.strafeRightFast._speed * dt;
+                        horizDist = this._actionMap.strafeRightFast.speed * dt;
                         anim = (-this._ffSign * sign > 0) ? this._actionMap.strafeLeftFast : this._actionMap.strafeRightFast;
                     }
                     else {
@@ -768,21 +769,21 @@ var CharacterController = (function () {
                 case (this._act._walk || (this._noRot && this._mode == 0)):
                     if (this._act._speedMod) {
                         this._wasRunning = true;
-                        horizDist = this._actionMap.run._speed * dt;
+                        horizDist = this._actionMap.run.speed * dt;
                         anim = this._actionMap.run;
                     }
                     else {
                         this._wasWalking = true;
-                        horizDist = this._actionMap.walk._speed * dt;
+                        horizDist = this._actionMap.walk.speed * dt;
                         anim = this._actionMap.walk;
                     }
                     this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, this._ffSign * horizDist);
                     moving = true;
                     break;
                 case (this._act._walkback):
-                    horizDist = this._actionMap.walkBack._speed * dt;
+                    horizDist = this._actionMap.walkBack.speed * dt;
                     if (this._act._speedMod) {
-                        horizDist = this._actionMap.walkBackFast._speed * dt;
+                        horizDist = this._actionMap.walkBackFast.speed * dt;
                         anim = this._actionMap.walkBackFast;
                     }
                     else {
@@ -794,7 +795,7 @@ var CharacterController = (function () {
             }
         }
         if (!(this._noRot && this._mode == 0) && (!this._act._stepLeft && !this._act._stepRight) && (this._act._turnLeft || this._act._turnRight)) {
-            var turnAngle = this._actionMap.turnLeft._speed * dt;
+            var turnAngle = this._actionMap.turnLeft.speed * dt;
             if (this._act._speedMod) {
                 turnAngle = 2 * turnAngle;
             }
@@ -1051,7 +1052,7 @@ var CharacterController = (function () {
         if (e.repeat)
             return;
         switch (e.key.toLowerCase()) {
-            case this._actionMap.idleJump._key:
+            case this._actionMap.idleJump.key:
                 this._act._jump = true;
                 break;
             case "capslock":
@@ -1062,28 +1063,28 @@ var CharacterController = (function () {
                 break;
             case "up":
             case "arrowup":
-            case this._actionMap.walk._key:
+            case this._actionMap.walk.key:
                 this._act._walk = true;
                 break;
             case "left":
             case "arrowleft":
-            case this._actionMap.turnLeft._key:
+            case this._actionMap.turnLeft.key:
                 this._act._turnLeft = true;
                 break;
             case "right":
             case "arrowright":
-            case this._actionMap.turnRight._key:
+            case this._actionMap.turnRight.key:
                 this._act._turnRight = true;
                 break;
             case "down":
             case "arrowdown":
-            case this._actionMap.walkBack._key:
+            case this._actionMap.walkBack.key:
                 this._act._walkback = true;
                 break;
-            case this._actionMap.strafeLeft._key:
+            case this._actionMap.strafeLeft.key:
                 this._act._stepLeft = true;
                 break;
-            case this._actionMap.strafeRight._key:
+            case this._actionMap.strafeRight.key:
                 this._act._stepRight = true;
                 break;
         }
@@ -1098,30 +1099,30 @@ var CharacterController = (function () {
                 break;
             case "up":
             case "arrowup":
-            case this._actionMap.walk._key:
+            case this._actionMap.walk.key:
                 this._act._walk = false;
                 break;
             case "left":
             case "arrowleft":
-            case this._actionMap.turnLeft._key:
+            case this._actionMap.turnLeft.key:
                 this._act._turnLeft = false;
                 this._isTurning = false;
                 break;
             case "right":
             case "arrowright":
-            case this._actionMap.turnRight._key:
+            case this._actionMap.turnRight.key:
                 this._act._turnRight = false;
                 this._isTurning = false;
                 break;
             case "down":
             case "arrowdown":
-            case this._actionMap.walkBack._key:
+            case this._actionMap.walkBack.key:
                 this._act._walkback = false;
                 break;
-            case this._actionMap.strafeLeft._key:
+            case this._actionMap.strafeLeft.key:
                 this._act._stepLeft = false;
                 break;
-            case this._actionMap.strafeRight._key:
+            case this._actionMap.strafeRight.key:
                 this._act._stepRight = false;
                 break;
         }
@@ -1284,70 +1285,72 @@ var _Action = (function () {
     };
     return _Action;
 }());
-var _ActionData = (function () {
-    function _ActionData(id, speed, key) {
+var ActionData = (function () {
+    function ActionData(id, speed, key) {
         if (speed === void 0) { speed = 1; }
-        this._name = "";
-        this._loop = true;
-        this._rate = 1;
-        this._exist = false;
-        this._id = id;
-        this._speed = speed;
-        this._ds = speed;
-        this._key = key;
-        this._dk = key;
+        this.name = "";
+        this.loop = true;
+        this.rate = 1;
+        this.exist = false;
+        this.id = id;
+        this.speed = speed;
+        this.ds = speed;
+        this.key = key;
+        this.dk = key;
     }
-    _ActionData.prototype.reset = function () {
-        this._name = "";
-        this._speed = this._ds;
-        this._key = this._dk;
-        this._loop = true;
-        this._rate = 1;
-        this._sound = "";
-        this._exist = false;
+    ActionData.prototype.reset = function () {
+        this.name = "";
+        this.speed = this.ds;
+        this.key = this.dk;
+        this.loop = true;
+        this.rate = 1;
+        this.sound = "";
+        this.exist = false;
     };
-    return _ActionData;
+    return ActionData;
 }());
-var _ActionMap = (function () {
-    function _ActionMap() {
-        this.walk = new _ActionData("walk", 3, "w");
-        this.walkBack = new _ActionData("walkBack", 1.5, "s");
-        this.walkBackFast = new _ActionData("walkBackFast", 3, "na");
-        this.idle = new _ActionData("idle", 0, "na");
-        this.idleJump = new _ActionData("idleJump", 6, " ");
-        this.run = new _ActionData("run", 6, "na");
-        this.runJump = new _ActionData("runJump", 6, "na");
-        this.fall = new _ActionData("fall", 0, "na");
-        this.turnLeft = new _ActionData("turnLeft", Math.PI / 8, "a");
-        this.turnLeftFast = new _ActionData("turnLeftFast", Math.PI / 4, "na");
-        this.turnRight = new _ActionData("turnRight", Math.PI / 8, "d");
-        this.turnRightFast = new _ActionData("turnRightFast", Math.PI / 4, "na");
-        this.strafeLeft = new _ActionData("strafeLeft", 1.5, "q");
-        this.strafeLeftFast = new _ActionData("strafeLeftFast", 3, "na");
-        this.strafeRight = new _ActionData("strafeRight", 1.5, "e");
-        this.strafeRightFast = new _ActionData("strafeRightFast", 3, "na");
-        this.slideBack = new _ActionData("slideBack", 0, "na");
+
+var ActionMap = (function () {
+    function ActionMap() {
+        this.walk = new ActionData("walk", 3, "w");
+        this.walkBack = new ActionData("walkBack", 1.5, "s");
+        this.walkBackFast = new ActionData("walkBackFast", 3, "na");
+        this.idle = new ActionData("idle", 0, "na");
+        this.idleJump = new ActionData("idleJump", 6, " ");
+        this.run = new ActionData("run", 6, "na");
+        this.runJump = new ActionData("runJump", 6, "na");
+        this.fall = new ActionData("fall", 0, "na");
+        this.turnLeft = new ActionData("turnLeft", Math.PI / 8, "a");
+        this.turnLeftFast = new ActionData("turnLeftFast", Math.PI / 4, "na");
+        this.turnRight = new ActionData("turnRight", Math.PI / 8, "d");
+        this.turnRightFast = new ActionData("turnRightFast", Math.PI / 4, "na");
+        this.strafeLeft = new ActionData("strafeLeft", 1.5, "q");
+        this.strafeLeftFast = new ActionData("strafeLeftFast", 3, "na");
+        this.strafeRight = new ActionData("strafeRight", 1.5, "e");
+        this.strafeRightFast = new ActionData("strafeRightFast", 3, "na");
+        this.slideBack = new ActionData("slideBack", 0, "na");
     }
-    _ActionMap.prototype.reset = function () {
+    ActionMap.prototype.reset = function () {
         var keys = Object.keys(this);
         for (var _i = 0, keys_7 = keys; _i < keys_7.length; _i++) {
             var key = keys_7[_i];
             var act = this[key];
-            if (!(act instanceof _ActionData))
+            if (!(act instanceof ActionData))
                 continue;
             act.reset();
         }
     };
-    return _ActionMap;
+    return ActionMap;
 }());
+
 ;
 var CCSettings = (function () {
     function CCSettings() {
         this.cameraElastic = true;
         this.cameraTarget = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].Zero();
         this.noFirstPerson = false;
+        this.topDown = true;
         this.turningOff = true;
-        this.cameraRotate = true;
         this.keyboard = true;
     }
     return CCSettings;

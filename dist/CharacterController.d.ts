@@ -33,8 +33,8 @@ export declare class CharacterController {
     setGravity(n: number): void;
     setAnimationGroups(agMap: {}): void;
     setAnimationRanges(arMap: {}): void;
-    setActionData(actmap: {}): string;
-    getActionMap(): {};
+    setActionMap(actmapI: ActionMap): string;
+    getActionMap(): ActionMap;
     getSettings(): CCSettings;
     setSettings(ccs: CCSettings): void;
     private _setAnim;
@@ -164,9 +164,45 @@ export declare class CharacterController {
     setAvatarSkeleton(skeleton: Skeleton): void;
     getSkeleton(): Skeleton;
     private _hasAnims;
-    constructor(avatar: Mesh, camera: ArcRotateCamera, scene: Scene, actionData?: {}, faceForward?: boolean);
+    constructor(avatar: Mesh, camera: ArcRotateCamera, scene: Scene, actionMap?: {}, faceForward?: boolean);
+}
+export declare class ActionData {
+    id: string;
+    speed: number;
+    ds: number;
+    sound: string;
+    key: string;
+    dk: string;
+    name: string;
+    ag: AnimationGroup;
+    loop: boolean;
+    rate: number;
+    exist: boolean;
+    constructor(id?: string, speed?: number, key?: string);
+    reset(): void;
+}
+export declare class ActionMap {
+    walk: ActionData;
+    walkBack: ActionData;
+    walkBackFast: ActionData;
+    idle: ActionData;
+    idleJump: ActionData;
+    run: ActionData;
+    runJump: ActionData;
+    fall: ActionData;
+    turnLeft: ActionData;
+    turnLeftFast: ActionData;
+    turnRight: ActionData;
+    turnRightFast: ActionData;
+    strafeLeft: ActionData;
+    strafeLeftFast: ActionData;
+    strafeRight: ActionData;
+    strafeRightFast: ActionData;
+    slideBack: ActionData;
+    reset(): void;
 }
 export declare class CCSettings {
+    faceForward: boolean;
     gravity: number;
     minSlopeLimit: number;
     maxSlopeLimit: number;
@@ -174,7 +210,7 @@ export declare class CCSettings {
     cameraElastic: boolean;
     cameraTarget: Vector3;
     noFirstPerson: boolean;
+    topDown: boolean;
     turningOff: boolean;
-    cameraRotate: boolean;
     keyboard: boolean;
 }
