@@ -86,6 +86,8 @@ export declare class CharacterController {
     setFaceForward(b: boolean): void;
     isFaceForward(): boolean;
     private checkAGs;
+    private _containsAG;
+    private _getRoot;
     private _started;
     start(): void;
     stop(): void;

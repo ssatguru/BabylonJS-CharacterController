@@ -9,14 +9,15 @@ import {
     PickingInfo,
     AnimationGroup,
     TransformNode,
-    Matrix
+    Matrix,
+    TargetedAnimation
 } from "babylonjs"
 import { Action } from "babylonjs/Actions/action";
 
 export class CharacterController {
 
-    private _avatar: Mesh;
-    private _skeleton: Skeleton;
+    private _avatar: Mesh = null;;
+    private _skeleton: Skeleton = null;
     private _camera: ArcRotateCamera;
     private _scene: Scene;
     public getScene(): Scene {
@@ -308,7 +309,8 @@ export class CharacterController {
                 }
             }
         } else {
-            this._skeleton.enableBlending(n);
+            if (this._skeleton !== null)
+                this._skeleton.enableBlending(n);
         }
     }
 
@@ -566,6 +568,35 @@ export class CharacterController {
                 anim.exist = true;
             }
         }
+    }
+
+    // check if any of the mesh on the node tree has any aniamtion group
+    private _containsAG(node: Node, ags: AnimationGroup[], fromRoot: boolean) {
+        let r: Node;
+        let ns: Node[];
+
+        if (fromRoot) {
+            r = this._getRoot(node);
+            ns = r.getChildren((n) => { return (n instanceof TransformNode) }, false);
+        } else {
+            r = node;
+            ns = [r];
+        }
+        for (let ag of ags) {
+            let tas: TargetedAnimation[] = ag.targetedAnimations;
+            for (let ta of tas) {
+                if (ns.indexOf(ta.target) > -1) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    //get the root of Node
+    private _getRoot(tn: Node): Node {
+        if (tn.parent == null) return tn;
+        return this._getRoot(tn.parent);
     }
 
     private _started: boolean = false;
@@ -1346,8 +1377,7 @@ export class CharacterController {
 
 
         this._skeleton = this._findSkel(avatar);
-        //skeletons animated by animation groups seem to have "overrideMesh" property
-        if (this._skeleton != null && this._skeleton.overrideMesh) this._isAG = true; else this._isAG = false;
+        this._isAG = this._containsAG(avatar, this._scene.animationGroups, true);
 
         this._actionMap.reset();
 
@@ -1401,12 +1431,14 @@ export class CharacterController {
      */
     constructor(avatar: Mesh, camera: ArcRotateCamera, scene: Scene, actionMap?: {}, faceForward = false) {
 
+        this._camera = camera;
+        this._scene = scene;
+
         let success = this.setAvatar(avatar, faceForward);
         if (!success) {
             console.error("unable to set avatar");
         }
 
-        this._scene = scene;
 
         let dataType: string = null;
         if (actionMap != null) {
@@ -1422,7 +1454,7 @@ export class CharacterController {
 
         }
 
-        this._camera = camera;
+
         this._savedCameraCollision = this._camera.checkCollisions;
 
         this._act = new _Action();

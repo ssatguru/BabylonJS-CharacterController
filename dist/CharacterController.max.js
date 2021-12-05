@@ -116,6 +116,8 @@ var CharacterController = (function () {
     function CharacterController(avatar, camera, scene, actionMap, faceForward) {
         var _this = this;
         if (faceForward === void 0) { faceForward = false; }
+        this._avatar = null;
+        this._skeleton = null;
         this._gravity = 9.8;
         this._minSlopeLimit = 30;
         this._maxSlopeLimit = 45;
@@ -161,11 +163,12 @@ var CharacterController = (function () {
         this._move = false;
         this._isAG = false;
         this._hasAnims = false;
+        this._camera = camera;
+        this._scene = scene;
         var success = this.setAvatar(avatar, faceForward);
         if (!success) {
             console.error("unable to set avatar");
         }
-        this._scene = scene;
         var dataType = null;
         if (actionMap != null) {
             dataType = this.setActionMap(actionMap);
@@ -174,13 +177,13 @@ var CharacterController = (function () {
             this._checkAnimRanges(this._skeleton);
         if (this._isAG) {
         }
-        this._camera = camera;
         this._savedCameraCollision = this._camera.checkCollisions;
         this._act = new _Action();
         this._renderer = function () { _this._moveAVandCamera(); };
         this._handleKeyUp = function (e) { _this._onKeyUp(e); };
         this._handleKeyDown = function (e) { _this._onKeyDown(e); };
     }
+    ;
     CharacterController.prototype.getScene = function () {
         return this._scene;
     };
@@ -388,7 +391,8 @@ var CharacterController = (function () {
             }
         }
         else {
-            this._skeleton.enableBlending(n);
+            if (this._skeleton !== null)
+                this._skeleton.enableBlending(n);
         }
     };
     CharacterController.prototype.disableBlending = function () {
@@ -589,6 +593,34 @@ var CharacterController = (function () {
                 anim.exist = true;
             }
         }
+    };
+    CharacterController.prototype._containsAG = function (node, ags, fromRoot) {
+        var r;
+        var ns;
+        if (fromRoot) {
+            r = this._getRoot(node);
+            ns = r.getChildren(function (n) { return (n instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__["TransformNode"]); }, false);
+        }
+        else {
+            r = node;
+            ns = [r];
+        }
+        for (var _i = 0, ags_1 = ags; _i < ags_1.length; _i++) {
+            var ag = ags_1[_i];
+            var tas = ag.targetedAnimations;
+            for (var _a = 0, tas_1 = tas; _a < tas_1.length; _a++) {
+                var ta = tas_1[_a];
+                if (ns.indexOf(ta.target) > -1) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+    CharacterController.prototype._getRoot = function (tn) {
+        if (tn.parent == null)
+            return tn;
+        return this._getRoot(tn.parent);
     };
     CharacterController.prototype.start = function () {
         if (this._started)
@@ -1232,10 +1264,7 @@ var CharacterController = (function () {
             return false;
         }
         this._skeleton = this._findSkel(avatar);
-        if (this._skeleton != null && this._skeleton.overrideMesh)
-            this._isAG = true;
-        else
-            this._isAG = false;
+        this._isAG = this._containsAG(avatar, this._scene.animationGroups, true);
         this._actionMap.reset();
         if (!this._isAG && this._skeleton != null)
             this._checkAnimRanges(this._skeleton);
