@@ -9,10 +9,10 @@ import {
     PickingInfo,
     AnimationGroup,
     TransformNode,
+    TargetedAnimation,
     Matrix,
-    TargetedAnimation
-} from "babylonjs"
-import { Action } from "babylonjs/Actions/action";
+    DeepImmutable
+} from "babylonjs";
 
 export class CharacterController {
 
@@ -520,9 +520,9 @@ export class CharacterController {
     private _signRHS = -1;
     private _setRHS(mesh: TransformNode) {
         const meshMatrix: Matrix = mesh.getWorldMatrix();
-        const _localX = Vector3.FromFloatArray(meshMatrix.m, 0);
-        const _localY = Vector3.FromFloatArray(meshMatrix.m, 4);
-        const _localZ = Vector3.FromFloatArray(meshMatrix.m, 8);
+        const _localX = Vector3.FromFloatArray(<DeepImmutable<Float32Array>>meshMatrix.m, 0);
+        const _localY = Vector3.FromFloatArray(<DeepImmutable<Float32Array>>meshMatrix.m, 4);
+        const _localZ = Vector3.FromFloatArray(<DeepImmutable<Float32Array>>meshMatrix.m, 8);
         const actualZ = Vector3.Cross(_localX, _localY);
         //same direction or opposite direction of Z
         if (Vector3.Dot(actualZ, _localZ) < 0) {

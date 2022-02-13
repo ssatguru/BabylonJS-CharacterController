@@ -168,12 +168,12 @@ AMD Module
 		baseUrl: ".",
 		paths: {
 			"babylonjs": "./lib/babylon",
-			"ec": "./lib/CharacterController"
+			"cc": "./lib/CharacterController"
 		}
 	});
 
 	require(['babylonjs', 'cc'], function (BABYLON, cc) {
-		let CharacterController = ec.CharacterController;
+		let CharacterController = cc.CharacterController;
 		...
 		let engine = new BABYLON.Engine(canvas, true);
 		...
@@ -583,7 +583,7 @@ Run "npm install", once, to install all the dependencies.
 
 ### To build
 
-1. Run "npm build"  
+1. Run "npm run build"  
    This will create a production build.
    This will both compile, minify and store the build called CharacterController.js in "dist" folder.
 2. Run "npm run build-dev"  
