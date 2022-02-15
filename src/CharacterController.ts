@@ -16,7 +16,7 @@ import {
 
 export class CharacterController {
 
-    private _avatar: Mesh = null;;
+    private _avatar: Mesh = null;
     private _skeleton: Skeleton = null;
     private _camera: ArcRotateCamera;
     private _scene: Scene;
