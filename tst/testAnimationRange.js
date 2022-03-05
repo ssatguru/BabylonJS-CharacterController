@@ -6,6 +6,7 @@ function main() {
   var helpButton = document.getElementById("help");
   var closeButton = document.getElementById("closehelp");
   var el = document.getElementById("overlay");
+
   helpButton.onclick = closeButton.onclick = () => {
     el.style.visibility = el.style.visibility == "visible" ? "hidden" : "visible";
   };
@@ -16,20 +17,9 @@ function main() {
   var canvas = document.querySelector("#renderCanvas");
   var engine = new BABYLON.Engine(canvas, true);
   var scene = new BABYLON.Scene(engine);
+
   scene.clearColor = new BABYLON.Color3(0.75, 0.75, 0.75);
   scene.ambientColor = new BABYLON.Color3(1, 1, 1);
-
-  // var isLocked = false;
-  // scene.onPointerDown = function (evt) {
-  //   //true/false check if we're locked, faster than checking pointerlock on each single click.
-  //   if (!isLocked) {
-  //     canvas.requestPointerLock = canvas.requestPointerLock || canvas.msRequestPointerLock || canvas.mozRequestPointerLock || canvas.webkitRequestPointerLock || false;
-  //     if (canvas.requestPointerLock) {
-  //       canvas.requestPointerLock();
-  //     }
-  //   }
-
-  // };
 
   scene.debugLayer.show({ showExplorer: true, embedMode: true });
 
@@ -79,15 +69,17 @@ function loadPlayer(scene, engine, canvas) {
 
     var camera = new BABYLON.ArcRotateCamera("ArcRotateCamera", alpha, beta, 5, target, scene);
 
-    //standard camera setting
-    camera.wheelPrecision = 15;
-    camera.checkCollisions = false;
     //make sure the keyboard keys controlling camera are different from those controlling player
     //here we will not use any keyboard keys to control camera
     camera.keysLeft = [];
     camera.keysRight = [];
     camera.keysUp = [];
     camera.keysDown = [];
+
+    // below are all standard camera settings.
+    // nothing specific to charcter controller
+    camera.wheelPrecision = 15;
+    camera.checkCollisions = false;
     //how close can the camera come to player
     camera.lowerRadiusLimit = 2;
     //how far can the camera go from the player
@@ -95,6 +87,7 @@ function loadPlayer(scene, engine, canvas) {
     camera.attachControl(canvas, false);
 
     var cc = new CharacterController(player, camera, scene);
+
     cc.setFaceForward(true);
     cc.setMode(0);
 

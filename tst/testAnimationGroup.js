@@ -6,6 +6,7 @@ function main() {
   var helpButton = document.getElementById("help");
   var el = document.getElementById("overlay");
   var closeButton = document.getElementById("closehelp");
+
   helpButton.onclick = closeButton.onclick = () => {
     el.style.visibility = el.style.visibility == "visible" ? "hidden" : "visible";
   };
@@ -45,8 +46,10 @@ function loadPlayer(scene, engine, canvas) {
 
     player.position = new BABYLON.Vector3(0, 12, 0);
     player.checkCollisions = true;
+
     player.ellipsoid = new BABYLON.Vector3(0.5, 1, 0.5);
     player.ellipsoidOffset = new BABYLON.Vector3(0, 1, 0);
+
     // character controller  needs rotation in euler.
     // if your mesh has rotation in quaternion then convert that to euler.
     // NOTE: The GLTF/GLB files have rotation in quaternion
@@ -59,7 +62,6 @@ function loadPlayer(scene, engine, canvas) {
     var alpha = (3 * Math.PI) / 2 - player.rotation.y;
     var beta = Math.PI / 2.5;
     var target = new BABYLON.Vector3(player.position.x, player.position.y + 1.5, player.position.z);
-
     var camera = new BABYLON.ArcRotateCamera("ArcRotateCamera", alpha, beta, 5, target, scene);
 
     // make sure the keyboard keys controlling camera are different from those controlling player
@@ -69,8 +71,8 @@ function loadPlayer(scene, engine, canvas) {
     camera.keysUp = [];
     camera.keysDown = [];
 
-    // Below are all standard camera settings.
-    // Nothing specific to charcter controller
+    // below are all standard camera settings.
+    // nothing specific to charcter controller
     camera.wheelPrecision = 15;
     camera.checkCollisions = false;
     // how close can the camera come to player
@@ -80,8 +82,10 @@ function loadPlayer(scene, engine, canvas) {
     camera.attachControl(canvas, false);
 
     // provide all your animation groups as a map to the character controller
-    // the map should have a key whose value is the name of the character controller  animation
-    // and the value is the AnimationGroup corresponding to that animation.
+    // the map should have
+    // key = the name of the character controller  animation
+    // and
+    // value = the AnimationGroup corresponding to that animation.
     // In our example the name of the AnimationGroup is the same as the name of name of the character controller  animation
     // so the following will work.
     var agMap = {};
@@ -98,7 +102,7 @@ function loadPlayer(scene, engine, canvas) {
     //1.5m above the player origin
     cc.setCameraTarget(new BABYLON.Vector3(0, 1.5, 0));
 
-    //if the camera comes close to the player we want to enter first person mode.
+    //if the camera comes close to the player then we want cc to enter first person mode.
     cc.setNoFirstPerson(false);
     //the height of steps which the player can climb
     cc.setStepOffset(0.4);
@@ -111,7 +115,6 @@ function loadPlayer(scene, engine, canvas) {
     // - rate at which to play that animation range
     // - wether the animation range should be looped
     //use this if name, rate or looping is different from default
-    //set the animation range name to "null" to not prevent the controller from playing
     //set a parm to null if you donot want to change that
     cc.setIdleAnim(null, 1, true);
     cc.setTurnLeftAnim(null, 0.5, true);
@@ -123,6 +126,7 @@ function loadPlayer(scene, engine, canvas) {
     cc.setFallAnim(null, 2, false);
     cc.setSlideBackAnim(null, 1, false);
 
+    //set how smmothly should we transition from one animation to another
     cc.enableBlending(0.05);
 
     cc.start();

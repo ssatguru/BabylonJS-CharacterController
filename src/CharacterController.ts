@@ -153,7 +153,9 @@ export class CharacterController {
     }
 
     /**
-     * sets the action data.
+     * updates action data in the cc actionMap
+     * with action data from the provided/input actionMap 
+     * 
      * 
      * return "ar" or "ag" depending on if the data provided
      * was animation range or animation group data respt.
@@ -164,48 +166,53 @@ export class CharacterController {
      * or if animation group provided make sure the animation group
      * can be played on this avataor
      * 
-     * @param actmapI 
+     * @param inActMap 
      * @returns 
      */
-    public setActionMap(actmapI: ActionMap): string {
+    public setActionMap(inActMap: ActionMap): string {
         let agMap: boolean = false;
-        let actDataI: ActionData;
-        let keys: string[] = Object.keys(this._actionMap);
-        for (let key of keys) {
-            let actDataO = this._actionMap[key];
-            if (!(actDataO instanceof ActionData)) continue;
+        let inActData: ActionData;
 
-            actDataI = actmapI[actDataO.id];
-            actDataO.exist = false;
-            if (actDataI != null && actDataI.exist) {
-                this._hasAnims = true;
-                actDataO.exist = true;
-                if (actDataI instanceof AnimationGroup) {
-                    actDataO.ag = actDataI;
-                    actDataO.name = actDataO.ag.name
+
+        let ccActionNames: string[] = Object.keys(this._actionMap);
+        for (let ccActionName of ccActionNames) {
+            let ccActData = this._actionMap[ccActionName];
+            //some keys could map to functions (like reset())
+            if (!(ccActData instanceof ActionData)) continue;
+            ccActData.exist = false;
+
+            inActData = inActMap[ccActData.id];
+            //in previous version of cc the key value was AnimationGroup rather than ActionData
+            //lets accomodate that for backward compatibility
+            if (inActData != null) {
+                if (inActData instanceof AnimationGroup) {
+                    ccActData.ag = inActData;
+                    ccActData.name = ccActData.ag.name;
+                    ccActData.exist = true;
                     agMap = true;
-                } else {
-                    if (actDataI instanceof Object) {
-                        if (actDataI.ag) {
-                            actDataO.ag = actDataI.ag;
+                    this._hasAnims = true;
+                } else if (inActData.exist) {
+                    this._hasAnims = true;
+                    ccActData.exist = true;
+                    if (inActData instanceof Object) {
+                        if (inActData.ag) {
+                            ccActData.ag = inActData.ag;
                             agMap = true;
                         }
-                        if (actDataI.name) {
-                            actDataO.name = actDataI.name;
+                        if (inActData.name) {
+                            ccActData.name = inActData.name;
                         }
-                        if (actDataI.loop != null) actDataO.loop = actDataI.loop;
-                        if (actDataI.rate) actDataO.rate = actDataI.rate;
-                        if (actDataI.speed) actDataO.speed = actDataI.speed;
+                        if (inActData.loop != null) ccActData.loop = inActData.loop;
+                        if (inActData.rate) ccActData.rate = inActData.rate;
+                        if (inActData.speed) ccActData.speed = inActData.speed;
                         // if (actDataI.key) actDataO.key = actDataI.key;
-                        if (actDataI.sound) actDataO.sound = actDataI.sound;
+                        if (inActData.sound) ccActData.sound = inActData.sound;
                     } else {
-                        actDataO.name = actDataI;
+                        ccActData.name = inActData;
                     }
-
                 }
             }
         }
-        console.log(this._actionMap);
         this._checkFastAnims();
         //force to play new anims
         this._prevAnim = null;
@@ -267,27 +274,25 @@ export class CharacterController {
 
     }
 
+    private _setAnim(anim: ActionData, animName?: string | AnimationGroup, rate?: number, loop?: boolean) {
 
-
-    private _setAnim(anim: ActionData, rangeName?: string | AnimationGroup, rate?: number, loop?: boolean) {
-
-        //aniamtion range need skeleton
+        //animation range need skeleton
         if (!this._isAG && this._skeleton == null) return;
 
-        if (this._isAG) {
-            if (!(rangeName instanceof AnimationGroup)) return;
-            if (rangeName != null) {
-                anim.ag = <AnimationGroup>rangeName;
-                anim.exist = true;
-            }
-        } else {
-            if (this._skeleton.getAnimationRange(anim.name) != null) {
+        if (animName != null) {
+            if (this._isAG) {
+                if (!(animName instanceof AnimationGroup)) return;
+                anim.ag = <AnimationGroup>animName;
                 anim.exist = true;
             } else {
-                anim.exist = false;
-                return;
+                if (this._skeleton.getAnimationRange(anim.name) != null) {
+                    anim.name = <string>animName;
+                    anim.exist = true;
+                } else {
+                    anim.exist = false;
+                    return;
+                }
             }
-            if (rangeName != null) anim.name = <string>rangeName;
         }
 
         if (loop != null) anim.loop = loop;
@@ -1375,7 +1380,6 @@ export class CharacterController {
             return false;
         }
 
-
         this._skeleton = this._findSkel(avatar);
         this._isAG = this._containsAG(avatar, this._scene.animationGroups, true);
 
@@ -1426,7 +1430,10 @@ export class CharacterController {
      * @param avatar 
      * @param camera 
      * @param scene 
-     * @param actionMap - maps actions to animations and other data like speed,sound etc
+     * @param actionMap/animationGroupMap 
+     *        maps actions to animations and other data like speed,sound etc 
+     *        or 
+     *        for backward compatibility could be AnimationGroup Map
      * @param faceForward 
      */
     constructor(avatar: Mesh, camera: ArcRotateCamera, scene: Scene, actionMap?: {}, faceForward = false) {
@@ -1451,7 +1458,7 @@ export class CharacterController {
         if (!this._isAG && this._skeleton != null) this._checkAnimRanges(this._skeleton);
         //animation groups
         if (this._isAG) {
-
+            //TODO
         }
 
 
@@ -1508,7 +1515,7 @@ export class ActionData {
     public dk: string;
 
     //animation data
-    //if _ag is null then _name will be used to play animationrange
+    //if _ag is null then assuming animation range and use _name to play animationrange
     public name: string = "";
     public ag: AnimationGroup;
     public loop: boolean = true;
@@ -1536,6 +1543,7 @@ export class ActionData {
 
 }
 
+//not really a "Map"
 export class ActionMap {
     public walk = new ActionData("walk", 3, "w");
     public walkBack = new ActionData("walkBack", 1.5, "s");

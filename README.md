@@ -207,9 +207,9 @@ let characterController = new CharacterController(player, camera, scene);
 // if using animation ranges
 var cc = new CharacterController(player, camera, scene);
 
-// if using animation groups
+// if using animation groups (.glb files use animation groups)
 var cc = new CharacterController(player, camera, scene, agMap);
-//agMap is a Map of animation name to animationGroup
+//agMap is a Map which maps an "animation name" to "animationGroup object".
 
 // if the avatar face is forward facing (positive Z direction)
 var cc = new CharacterController(player, camera, scene, agMap, true);
@@ -225,6 +225,7 @@ let cc = new CharacterController(player, camera, scene);
 
 // if using animation groups (.glb files use animation groups)
 let cc = new CharacterController(player, camera, scene, agMap);
+//agMap is a Map which maps an "animation name" to "animationGroup object".
 
 // if the avatar face is forward facing (positive Z direction)
 let cc = new CharacterController(player, camera, scene, agMap, true);
@@ -236,9 +237,9 @@ Takes five parms
 - camera - arc rotate camera
 - scene - scene
 - agMap - This is optional and is only needed if using animation groups instead of animation ranges. ".glb" files have animation groups.  
-  It is a Map of animation name to animationGroup object.  
+  It is a Map which maps an "animation name" to "animationGroup object" .  
   In this Map the key would be the character controller animation name and
-  the key value would be the animationGroup.  
+  the key value would be the animationGroup object.  
    example:
 
 ```
@@ -273,16 +274,16 @@ If using animation ranges the player skeleton is expected to have the animation 
 
 If an animation is not provided then the controller will not play that animation and will continue playing the animation it was playing just before.
 
-Also there are some animations which end with string "Fast".
+Note that there are some animations with name ending with string "Fast".
 If these are not present then the controller will play the non-fast version but at twice the speed.  
 So for example lets say you provided "strafeLeft" but not "strafeLeftFast" then the controller will play the "stafeLeft" animation whenever it has to play the "strafeLeftFast" but at twice the speed of "strafeLeft".
 
 The "Fast" animations are played when the user presses the "mod" key (usually "shift key) along with the normal key.
 Example: to play "strafeLeft" if the key is set to "q" then to play "strafeLeftFast" the key would be "q" and "shift".
 
-Now ff your animation range is named differently from those mentioned above then use the setWalkAnim(..), setWalkBackAnim(..) etc API to specify your animation range name.
+Now if your animation range is named differently from those mentioned above then use the setWalkAnim(..), setWalkBackAnim(..) etc API to specify your animation range name.
 
-If instead of animation ranges you have animation groups then you will have to provide a map of animation name to animation group. This is explained further down below.
+If instead of animation ranges you have animation groups then you will have to provide a map of animation name to animation group object. This is explained further down below.
 
 NOTE :
 If your mesh rotation is in quaternion then switch to euler before creating character controller.
@@ -330,7 +331,7 @@ cc.setMode(n: number); // 0 or 1
 
 ##### Turning on/off
 
-Use this to set turning on/off.
+Use this to set turning on/off.  
 When turining is off  
 a) turn left or turn right keys result in avatar facing and moving left or right with respect to camera rather then just turning left or right  
 b) walkback/runback key results in avatar facing back, towards the camera and walking/running towards camera rather than walking backwards with back to the camera
@@ -597,9 +598,9 @@ Two ways to test.
 1. using the webpack-dev-server.  
    Start the development server  
    "npm run start"  
-   This will start the live dev server on port 8080 (could be different if this port is already in use) and open the browser with the file http://localhost:8080/tst/test.html.  
+   This will start the live dev server on port 8080 (could be different if this port is already in use) and open the browser pointing at http://localhost:8080/tst/test.html.  
    The dev server will live compile your code any time you make changes.  
-   Note: The dev server does not write the build to disk, instead it serves it from memory. In our case the build, "CharacterController.max.js", is served from location http://localhost:8080/dest. (see publicPath in wepack.config.js file).
+   Note: The dev server does not write the build to disk, instead it just builds and serves from memory. In our case it builds "CharacterController.max.js" in memory and serves it from location http://localhost:8080/dest. (see publicPath in wepack.config.js file).
 
 2. using any other http server.  
    Start the server , say http-server, from the project root folder (not from within "/tst " folder).  

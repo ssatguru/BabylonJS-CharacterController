@@ -245,50 +245,51 @@ var CharacterController = (function () {
         this._isAG = false;
         this.setActionMap(arMap);
     };
-    CharacterController.prototype.setActionMap = function (actmapI) {
+    CharacterController.prototype.setActionMap = function (inActMap) {
         var agMap = false;
-        var actDataI;
-        var keys = Object.keys(this._actionMap);
-        for (var _i = 0, keys_1 = keys; _i < keys_1.length; _i++) {
-            var key = keys_1[_i];
-            var actDataO = this._actionMap[key];
-            if (!(actDataO instanceof ActionData))
+        var inActData;
+        var ccActionNames = Object.keys(this._actionMap);
+        for (var _i = 0, ccActionNames_1 = ccActionNames; _i < ccActionNames_1.length; _i++) {
+            var ccActionName = ccActionNames_1[_i];
+            var ccActData = this._actionMap[ccActionName];
+            if (!(ccActData instanceof ActionData))
                 continue;
-            actDataI = actmapI[actDataO.id];
-            actDataO.exist = false;
-            if (actDataI != null && actDataI.exist) {
-                this._hasAnims = true;
-                actDataO.exist = true;
-                if (actDataI instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__["AnimationGroup"]) {
-                    actDataO.ag = actDataI;
-                    actDataO.name = actDataO.ag.name;
+            ccActData.exist = false;
+            inActData = inActMap[ccActData.id];
+            if (inActData != null) {
+                if (inActData instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__["AnimationGroup"]) {
+                    ccActData.ag = inActData;
+                    ccActData.name = ccActData.ag.name;
+                    ccActData.exist = true;
                     agMap = true;
+                    this._hasAnims = true;
                 }
-                else {
-                    if (actDataI instanceof Object) {
-                        if (actDataI.ag) {
-                            actDataO.ag = actDataI.ag;
+                else if (inActData.exist) {
+                    this._hasAnims = true;
+                    ccActData.exist = true;
+                    if (inActData instanceof Object) {
+                        if (inActData.ag) {
+                            ccActData.ag = inActData.ag;
                             agMap = true;
                         }
-                        if (actDataI.name) {
-                            actDataO.name = actDataI.name;
+                        if (inActData.name) {
+                            ccActData.name = inActData.name;
                         }
-                        if (actDataI.loop != null)
-                            actDataO.loop = actDataI.loop;
-                        if (actDataI.rate)
-                            actDataO.rate = actDataI.rate;
-                        if (actDataI.speed)
-                            actDataO.speed = actDataI.speed;
-                        if (actDataI.sound)
-                            actDataO.sound = actDataI.sound;
+                        if (inActData.loop != null)
+                            ccActData.loop = inActData.loop;
+                        if (inActData.rate)
+                            ccActData.rate = inActData.rate;
+                        if (inActData.speed)
+                            ccActData.speed = inActData.speed;
+                        if (inActData.sound)
+                            ccActData.sound = inActData.sound;
                     }
                     else {
-                        actDataO.name = actDataI;
+                        ccActData.name = inActData;
                     }
                 }
             }
         }
-        console.log(this._actionMap);
         this._checkFastAnims();
         this._prevAnim = null;
         if (agMap)
@@ -299,8 +300,8 @@ var CharacterController = (function () {
     CharacterController.prototype.getActionMap = function () {
         var map = new ActionMap();
         var keys = Object.keys(this._actionMap);
-        for (var _i = 0, keys_2 = keys; _i < keys_2.length; _i++) {
-            var key = keys_2[_i];
+        for (var _i = 0, keys_1 = keys; _i < keys_1.length; _i++) {
+            var key = keys_1[_i];
             var actDataI = this._actionMap[key];
             if (!(actDataI instanceof ActionData))
                 continue;
@@ -345,27 +346,26 @@ var CharacterController = (function () {
         this.setNoFirstPerson(ccs.noFirstPerson);
         this.setStepOffset(ccs.stepOffset);
     };
-    CharacterController.prototype._setAnim = function (anim, rangeName, rate, loop) {
+    CharacterController.prototype._setAnim = function (anim, animName, rate, loop) {
         if (!this._isAG && this._skeleton == null)
             return;
-        if (this._isAG) {
-            if (!(rangeName instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__["AnimationGroup"]))
-                return;
-            if (rangeName != null) {
-                anim.ag = rangeName;
-                anim.exist = true;
-            }
-        }
-        else {
-            if (this._skeleton.getAnimationRange(anim.name) != null) {
+        if (animName != null) {
+            if (this._isAG) {
+                if (!(animName instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__["AnimationGroup"]))
+                    return;
+                anim.ag = animName;
                 anim.exist = true;
             }
             else {
-                anim.exist = false;
-                return;
+                if (this._skeleton.getAnimationRange(anim.name) != null) {
+                    anim.name = animName;
+                    anim.exist = true;
+                }
+                else {
+                    anim.exist = false;
+                    return;
+                }
             }
-            if (rangeName != null)
-                anim.name = rangeName;
         }
         if (loop != null)
             anim.loop = loop;
@@ -375,8 +375,8 @@ var CharacterController = (function () {
     CharacterController.prototype.enableBlending = function (n) {
         if (this._isAG) {
             var keys = Object.keys(this._actionMap);
-            for (var _i = 0, keys_3 = keys; _i < keys_3.length; _i++) {
-                var key = keys_3[_i];
+            for (var _i = 0, keys_2 = keys; _i < keys_2.length; _i++) {
+                var key = keys_2[_i];
                 var act = this._actionMap[key];
                 if (!(act instanceof ActionData))
                     continue;
@@ -398,8 +398,8 @@ var CharacterController = (function () {
     CharacterController.prototype.disableBlending = function () {
         if (this._isAG) {
             var keys = Object.keys(this._actionMap);
-            for (var _i = 0, keys_4 = keys; _i < keys_4.length; _i++) {
-                var key = keys_4[_i];
+            for (var _i = 0, keys_3 = keys; _i < keys_3.length; _i++) {
+                var key = keys_3[_i];
                 var anim = this._actionMap[key];
                 if (!(anim instanceof ActionData))
                     continue;
@@ -504,8 +504,8 @@ var CharacterController = (function () {
     };
     CharacterController.prototype._checkAnimRanges = function (skel) {
         var keys = Object.keys(this._actionMap);
-        for (var _i = 0, keys_5 = keys; _i < keys_5.length; _i++) {
-            var key = keys_5[_i];
+        for (var _i = 0, keys_4 = keys; _i < keys_4.length; _i++) {
+            var key = keys_4[_i];
             var anim = this._actionMap[key];
             if (!(anim instanceof ActionData))
                 continue;
@@ -583,8 +583,8 @@ var CharacterController = (function () {
     };
     CharacterController.prototype.checkAGs = function (agMap) {
         var keys = Object.keys(this._actionMap);
-        for (var _i = 0, keys_6 = keys; _i < keys_6.length; _i++) {
-            var key = keys_6[_i];
+        for (var _i = 0, keys_5 = keys; _i < keys_5.length; _i++) {
+            var key = keys_5[_i];
             var anim = this._actionMap[key];
             if (!(anim instanceof ActionData))
                 continue;
@@ -1361,8 +1361,8 @@ var ActionMap = (function () {
     }
     ActionMap.prototype.reset = function () {
         var keys = Object.keys(this);
-        for (var _i = 0, keys_7 = keys; _i < keys_7.length; _i++) {
-            var key = keys_7[_i];
+        for (var _i = 0, keys_6 = keys; _i < keys_6.length; _i++) {
+            var key = keys_6[_i];
             var act = this[key];
             if (!(act instanceof ActionData))
                 continue;

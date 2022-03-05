@@ -33,7 +33,7 @@ export declare class CharacterController {
     setGravity(n: number): void;
     setAnimationGroups(agMap: {}): void;
     setAnimationRanges(arMap: {}): void;
-    setActionMap(actmapI: ActionMap): string;
+    setActionMap(inActMap: ActionMap): string;
     getActionMap(): ActionMap;
     getSettings(): CCSettings;
     setSettings(ccs: CCSettings): void;
