@@ -16,14 +16,13 @@ import {
 
 export class CharacterController {
 
-    private _avatar: Mesh = null;;
+    private _avatar: Mesh = null;
     private _skeleton: Skeleton = null;
     private _camera: ArcRotateCamera;
     private _scene: Scene;
     public getScene(): Scene {
         return this._scene;
     }
-
 
     private _gravity: number = 9.8;
     //slopeLimit in degrees
@@ -40,15 +39,12 @@ export class CharacterController {
     //position of av when it started moving up
     private _vMovStartPos: Vector3 = Vector3.Zero();
 
-
     private _actionMap: ActionMap = new ActionMap();
 
     private _cameraElastic: boolean = true;
     private _cameraTarget: Vector3 = Vector3.Zero();
     //should we go into first person view when camera is near avatar (radius is lowerradius limit)
     private _noFirstPerson: boolean = false;
-
-
 
     public setSlopeLimit(minSlopeLimit: number, maxSlopeLimit: number) {
         this._minSlopeLimit = minSlopeLimit;
@@ -65,7 +61,6 @@ export class CharacterController {
     public setStepOffset(stepOffset: number) {
         this._stepOffset = stepOffset;
     }
-
     public setWalkSpeed(n: number) {
         this._actionMap.walk.speed = n;
     }
@@ -172,8 +167,6 @@ export class CharacterController {
     public setActionMap(inActMap: ActionMap): string {
         let agMap: boolean = false;
         let inActData: ActionData;
-
-
         let ccActionNames: string[] = Object.keys(this._actionMap);
         for (let ccActionName of ccActionNames) {
             let ccActData = this._actionMap[ccActionName];
@@ -251,7 +244,6 @@ export class CharacterController {
         ccs.cameraTarget = this._cameraTarget.clone();
         ccs.cameraElastic = this._cameraElastic;
         ccs.gravity = this._gravity;
-        ccs.keyboard = this._ekb;
         ccs.maxSlopeLimit = this._maxSlopeLimit;
         ccs.minSlopeLimit = this._minSlopeLimit;
         ccs.noFirstPerson = this._noFirstPerson;
@@ -267,11 +259,9 @@ export class CharacterController {
         this.setCameraTarget(ccs.cameraTarget);
         this.setCameraElasticity(ccs.cameraElastic);
         this.setGravity(ccs.gravity);
-        this.enableKeyBoard(ccs.keyboard);
         this.setSlopeLimit(ccs.minSlopeLimit, ccs.maxSlopeLimit);
         this.setNoFirstPerson(ccs.noFirstPerson);
         this.setStepOffset(ccs.stepOffset);
-
     }
 
     private _setAnim(anim: ActionData, animName?: string | AnimationGroup, rate?: number, loop?: boolean) {
@@ -614,7 +604,6 @@ export class CharacterController {
         this._idleFallTime = 0.001;
         this._grounded = false;
         this._updateTargetValue();
-        this.enableKeyBoard(true);
         this._scene.registerBeforeRender(this._renderer);
     }
 
@@ -622,7 +611,6 @@ export class CharacterController {
         if (!this._started) return;
         this._started = false;
         this._scene.unregisterBeforeRender(this._renderer);
-        this.enableKeyBoard(false);
         this._prevAnim = null;
     }
 
@@ -884,9 +872,7 @@ export class CharacterController {
                     this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, -this._ffSign * horizDist);
                     moving = true;
                     break;
-
             }
-
         }
 
         if (!(this._noRot && this._mode == 0) && (!this._act._stepLeft && !this._act._stepRight) && (this._act._turnLeft || this._act._turnRight)) {
@@ -964,8 +950,6 @@ export class CharacterController {
             } else {
                 this._avatar.rotation.y = this._av2cam - this._camera.alpha;
             }
-        } else {
-
         }
 
         if (moving) {
@@ -1054,7 +1038,6 @@ export class CharacterController {
         this._movFallTime = 0;
         let anim: ActionData = this._actionMap.idle;
         this._fallFrameCount = 0;
-
 
         if (dt === 0) {
             this._freeFallDist = 5;
@@ -1183,98 +1166,71 @@ export class CharacterController {
         return (this._act._walk || this._act._walkback || this._act._turnLeft || this._act._turnRight || this._act._stepLeft || this._act._stepRight);
     }
 
-    private _onKeyDown(e: KeyboardEvent) {
-        if (!e.key) return;
-        if (e.repeat) return;
-        switch (e.key.toLowerCase()) {
-            case this._actionMap.idleJump.key:
-                this._act._jump = true;
-                break;
-            case "capslock":
-                this._act._speedMod = !this._act._speedMod;
-                break;
-            case "shift":
-                this._act._speedMod = true;
-                break;
-            case "up":
-            case "arrowup":
-            case this._actionMap.walk.key:
-                this._act._walk = true;
-                break;
-            case "left":
-            case "arrowleft":
-            case this._actionMap.turnLeft.key:
-                this._act._turnLeft = true;
-                break;
-            case "right":
-            case "arrowright":
-            case this._actionMap.turnRight.key:
-                this._act._turnRight = true;
-                break;
-            case "down":
-            case "arrowdown":
-            case this._actionMap.walkBack.key:
-                this._act._walkback = true;
-                break;
-            case this._actionMap.strafeLeft.key:
-                this._act._stepLeft = true;
-                break;
-            case this._actionMap.strafeRight.key:
-                this._act._stepRight = true;
-                break;
-        }
+    private _onKeyboardObservable() {
+        this._scene.onKeyboardObservable.add((kbInfo) => {
+            if (kbInfo.type == 1) {                        
+                switch (kbInfo.event.key.toLowerCase())
+                {
+                    case this._actionMap.idleJump.key:
+                        this._act._jump = true;
+                        break;
+                    case "capslock":
+                        this._act._speedMod = !this._act._speedMod;
+                        break;
+                    case "shift":
+                        this._act._speedMod = true;
+                        break;
+                    case "up": case "arrowup": case this._actionMap.walk.key:
+                        this._act._walk = true;
+                        break;
+                    case "left": case "arrowleft": case this._actionMap.turnLeft.key:
+                        this._act._turnLeft = true;
+                        break;
+                    case "right": case "arrowright": case this._actionMap.turnRight.key:
+                        this._act._turnRight = true;
+                        break;
+                    case "down": case "arrowdown": case this._actionMap.walkBack.key:
+                        this._act._walkback = true;
+                        break;
+                    case this._actionMap.strafeLeft.key:
+                        this._act._stepLeft = true;
+                        break;
+                    case this._actionMap.strafeRight.key:
+                        this._act._stepRight = true;
+                        break;
+                }
+            }
+            else if (kbInfo.type == 2) 
+            {
+                switch (kbInfo.event.key.toLowerCase())
+                {       
+                    case "shift":
+                        this._act._speedMod = false;
+                        break;
+                    case "up": case "arrowup": case this._actionMap.walk.key:
+                        this._act._walk = false;
+                        break;
+                    case "left": case "arrowleft": case this._actionMap.turnLeft.key:
+                        this._act._turnLeft = false;
+                        this._isTurning = false;
+                        break;
+                    case "right": case "arrowright": case this._actionMap.turnRight.key:
+                        this._act._turnRight = false;
+                        this._isTurning = false;
+                        break;
+                    case "down": case "arrowdown": case this._actionMap.walkBack.key:
+                        this._act._walkback = false;
+                        break;
+                    case this._actionMap.strafeLeft.key:
+                        this._act._stepLeft = false;
+                        break;
+                    case this._actionMap.strafeRight.key:
+                        this._act._stepRight = false;
+                        break;
+                }                
+            }
+        });
         this._move = this.anyMovement();
-    }
-
-    private _onKeyUp(e: KeyboardEvent) {
-        if (!e.key) return;
-        switch (e.key.toLowerCase()) {
-            case "shift":
-                this._act._speedMod = false;
-                break;
-            case "up":
-            case "arrowup":
-            case this._actionMap.walk.key:
-                this._act._walk = false;
-                break;
-            case "left":
-            case "arrowleft":
-            case this._actionMap.turnLeft.key:
-                this._act._turnLeft = false;
-                this._isTurning = false;
-                break;
-            case "right":
-            case "arrowright":
-            case this._actionMap.turnRight.key:
-                this._act._turnRight = false;
-                this._isTurning = false;
-                break;
-            case "down":
-            case "arrowdown":
-            case this._actionMap.walkBack.key:
-                this._act._walkback = false;
-                break;
-            case this._actionMap.strafeLeft.key:
-                this._act._stepLeft = false;
-                break;
-            case this._actionMap.strafeRight.key:
-                this._act._stepRight = false;
-                break;
-        }
-        this._move = this.anyMovement();
-    }
-
-    private _ekb: boolean;
-    public enableKeyBoard(b: boolean) {
-        this._ekb = b;
-        let canvas: HTMLCanvasElement = this._scene.getEngine().getRenderingCanvas();
-        if (b) {
-            canvas.addEventListener("keyup", this._handleKeyUp, false);
-            canvas.addEventListener("keydown", this._handleKeyDown, false);
-        } else {
-            canvas.removeEventListener("keyup", this._handleKeyUp, false);
-            canvas.removeEventListener("keydown", this._handleKeyDown, false);
-        }
     }
 
     // control movement by commands rather than keyboard.
@@ -1332,16 +1288,11 @@ export class CharacterController {
     }
 
     private _act: _Action;
-    private _renderer: () => void;
-    private _handleKeyUp: (e) => void;
-    private _handleKeyDown: (e) => void;
+    private _renderer: () => void;	
     private _isAG: boolean = false;
     public isAg() {
         return this._isAG;
     }
-
-
-
 
     private _findSkel(n: Node): Skeleton {
         let root = this._root(n);
@@ -1362,7 +1313,6 @@ export class CharacterController {
 
         //return the skeleton of the first child mesh
         if (ms.length > 0) return ms[0].skeleton; else return null;
-
     }
 
     private _root(tn: Node): Node {
@@ -1461,18 +1411,14 @@ export class CharacterController {
             //TODO
         }
 
-
         this._savedCameraCollision = this._camera.checkCollisions;
 
         this._act = new _Action();
 
         this._renderer = () => { this._moveAVandCamera() };
-        this._handleKeyUp = (e) => { this._onKeyUp(e) };
-        this._handleKeyDown = (e) => { this._onKeyDown(e) };
+		this._onKeyboardObservable();
     }
 }
-
-
 
 class _Action {
 
@@ -1486,7 +1432,6 @@ class _Action {
 
     // speed modifier - changes speed of movement
     public _speedMod: boolean = false;
-
 
     constructor() {
         this.reset();
@@ -1540,7 +1485,6 @@ export class ActionData {
         this.sound = "";
         this.exist = false;
     }
-
 }
 
 //not really a "Map"
@@ -1571,7 +1515,7 @@ export class ActionMap {
             act.reset()
         }
     }
-};
+}
 
 export class CCSettings {
     public faceForward: boolean;
