@@ -1168,6 +1168,7 @@ export class CharacterController {
 
     private _onKeyboardObservable() {
         this._scene.onKeyboardObservable.add((kbInfo) => {
+	    if (kbInfo.event.repeat == true || !kbInfo.event.key) return;
             if (kbInfo.type == 1) {                        
                 switch (kbInfo.event.key.toLowerCase())
                 {
