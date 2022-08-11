@@ -1169,7 +1169,7 @@ export class CharacterController {
     private _onKeyboardObservable() {
         this._scene.onKeyboardObservable.add((kbInfo) => {
 	    if (kbInfo.event.repeat == true || !kbInfo.event.key) return;
-            if (kbInfo.type == 1) {                        
+            if (kbInfo.type == BABYLON.KeyboardEventTypes.KEYDOWN) {                        
                 switch (kbInfo.event.key.toLowerCase())
                 {
                     case this._actionMap.idleJump.key:
@@ -1201,7 +1201,7 @@ export class CharacterController {
                         break;
                 }
             }
-            else if (kbInfo.type == 2) 
+            else if (kbInfo.type == BABYLON.KeyboardEventTypes.KEYUP) 
             {
                 switch (kbInfo.event.key.toLowerCase())
                 {       
