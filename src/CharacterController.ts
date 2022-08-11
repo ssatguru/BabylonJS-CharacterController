@@ -1233,6 +1233,15 @@ export class CharacterController {
         });
         this._move = this.anyMovement();
     }
+    
+    public enableKeyBoardObservable(b: boolean)
+    {
+	if (b == true && this._scene.onKeyboardObservable.observers.length == 0) {
+            this._onKeyboardObservable();
+        } else if (b == false && this._scene.onKeyboardObservable.observers.length > 0) {
+            this._scene.onKeyboardObservable.clear();
+        }		
+    }
 
     // control movement by commands rather than keyboard.
     public walk(b: boolean) {
