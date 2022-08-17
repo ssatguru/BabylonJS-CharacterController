@@ -1234,8 +1234,10 @@ export class CharacterController {
         this._move = this.anyMovement();
     }
     
+    private _ekb: boolean;
     public enableKeyBoardObservable(b: boolean)
     {
+	this._ekb = b;
 	if (b == true && this._scene.onKeyboardObservable.observers.length == 0) {
             this._onKeyboardObservable();
         } else if (b == false && this._scene.onKeyboardObservable.observers.length > 0) {
