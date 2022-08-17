@@ -1242,6 +1242,15 @@ export class CharacterController {
             this._scene.onKeyboardObservable.clear();
         }		
     }
+    
+    /*
+    @obsolete
+    */
+    public enableKeyBoard(b: boolean)
+    {
+	console.info("Warning: this function is obsolete. Use enableKeyBoardObservable(true/false) instead");
+	this.enableKeyBoardObservable(b);		
+    }
 
     // control movement by commands rather than keyboard.
     public walk(b: boolean) {
