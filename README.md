@@ -482,6 +482,12 @@ cc.enableKeyBoard(b: boolean);
 cc.enableKeyBoard(true) enables the keyboard  
 cc.enableKeyBoard(false) disables the keyboard
 
+Since version 4.5.0 you can use enableKeyBoardObservable() instead of enableKeyBoard().
+
+```
+cc.enableKeyBoardObservable(b: boolean);
+```
+
 #### To change gravity or speed at which avatar/player is moved
 
 Speed is specified in meters/second
