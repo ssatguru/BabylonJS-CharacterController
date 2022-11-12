@@ -575,7 +575,7 @@ export class CharacterController {
         }
     }
 
-    // check if any of the mesh on the node tree has any aniamtion group
+    // check if any of the mesh on the node tree is refrenced by any animation group
     private _containsAG(node: Node, ags: AnimationGroup[], fromRoot: boolean) {
         let r: Node;
         let ns: Node[];
@@ -587,6 +587,7 @@ export class CharacterController {
             r = node;
             ns = [r];
         }
+
         for (let ag of ags) {
             let tas: TargetedAnimation[] = ag.targetedAnimations;
             for (let ta of tas) {
@@ -1403,10 +1404,16 @@ export class CharacterController {
     public setAvatarSkeleton(skeleton: Skeleton) {
         this._skeleton = skeleton;
 
-        //skeletons animated by animation groups seem to have "overrideMesh" property
-        if (this._skeleton != null && this._skeleton.overrideMesh) this._isAG = true; else this._isAG = false;
+
+        if (this._skeleton != null && this._skelDrivenByAG(skeleton)) this._isAG = true; else this._isAG = false;
 
         if (!this._isAG && this._skeleton != null) this._checkAnimRanges(this._skeleton);
+    }
+
+
+    // this check if any of this skeleton animations is referenced by any targetedAnimation in any of the animationgroup in the scene.
+    private _skelDrivenByAG(skeleton: Skeleton) {
+        return skeleton.animations.some(sa => this._scene.animationGroups.some(ag => ag.children.some(ta => ta.animation == sa)));
     }
 
     public getSkeleton() {

@@ -164,6 +164,7 @@ export declare class CharacterController {
     setAvatar(avatar: Mesh, faceForward?: boolean): boolean;
     getAvatar(): Mesh;
     setAvatarSkeleton(skeleton: Skeleton): void;
+    private _skelDrivenByAG;
     getSkeleton(): Skeleton;
     private _hasAnims;
     constructor(avatar: Mesh, camera: ArcRotateCamera, scene: Scene, actionMap?: {}, faceForward?: boolean);
