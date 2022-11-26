@@ -23,6 +23,30 @@ function main() {
   light2.position = new BABYLON.Vector3(0, 128, 0);
   light2.intensity = 0.7;
 
+  var myMaterial = new BABYLON.StandardMaterial("myMaterial", scene);
+
+  //boxes to check camera elasticity and making obstructions invisibile checks
+
+  var box = BABYLON.Mesh.CreateBox("box1", 2, scene);
+  box.checkCollisions = false;
+  box.position = new BABYLON.Vector3(0, 8, 5);
+  box.material = myMaterial;
+  box.isVisible = false;
+
+  var box2 = BABYLON.Mesh.CreateBox("box2", 2, scene);
+  box2.checkCollisions = true;
+  box2.position = new BABYLON.Vector3(0, 8, 7);
+
+  let box3 = box.createInstance("box3");
+  box3.position = new BABYLON.Vector3(0, 8, -7);
+  box3.checkCollisions = true;
+
+  //check for visibility
+  let box4 = BABYLON.Mesh.CreateBox("box4", 2, scene);
+  box4.position = new BABYLON.Vector3(5, 8, 5);
+  box4.checkCollisions = false;
+  box4.visibility = 0;
+
   let groundMaterial = createGroundMaterial(scene);
   var ground = createGround(scene, groundMaterial);
   loadPlayer(scene, engine, canvas);
@@ -66,7 +90,7 @@ function loadPlayer(scene, engine, canvas) {
 
     //standard camera setting
     camera.wheelPrecision = 15;
-    camera.checkCollisions = false;
+    camera.checkCollisions = true;
     //make sure the keyboard keys controlling camera are different from those controlling player
     //here we will not use any keyboard keys to control camera
     camera.keysLeft = [];
@@ -116,6 +140,8 @@ function loadPlayer(scene, engine, canvas) {
       cc.setJumpKey("spacebar");
     }
 
+    cc.setCameraElasticity(true);
+    cc.makeObstructionInvisible(true);
     cc.start();
 
     engine.runRenderLoop(function () {

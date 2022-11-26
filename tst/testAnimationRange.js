@@ -35,6 +35,10 @@ function main() {
 
   loadPlayer(scene, engine, canvas);
 
+  var box = BABYLON.Mesh.CreateBox("box", 2, scene);
+  box.checkCollisions = true;
+  box.position = new BABYLON.Vector3(0, 8, 5);
+
   window.addEventListener("resize", function () {
     engine.resize();
   });

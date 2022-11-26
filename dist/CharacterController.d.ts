@@ -65,6 +65,8 @@ export declare class CharacterController {
     setStrafeRightKey(key: string): void;
     setJumpKey(key: string): void;
     setCameraElasticity(b: boolean): void;
+    setElasticiSteps(n: number): void;
+    makeObstructionInvisible(b: boolean): void;
     setCameraTarget(v: Vector3): void;
     cameraCollisionChanged(): void;
     setNoFirstPerson(b: boolean): void;
@@ -131,8 +133,13 @@ export declare class CharacterController {
     private _ray;
     private _rayDir;
     private _cameraSkin;
-    private _skip;
-    private _snapCamera;
+    private _prevPickedMeshes;
+    private _pickedMeshes;
+    private _makeInvisible;
+    private _elasticSteps;
+    private _alreadyInvisible;
+    private _handleObstruction;
+    private _isSeeAble;
     private _move;
     anyMovement(): boolean;
     private _onKeyDown;
@@ -211,6 +218,8 @@ export declare class CCSettings {
     maxSlopeLimit: number;
     stepOffset: number;
     cameraElastic: boolean;
+    elasticSteps: number;
+    makeInvisble: boolean;
     cameraTarget: Vector3;
     noFirstPerson: boolean;
     topDown: boolean;

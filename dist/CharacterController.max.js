@@ -159,7 +159,9 @@ var CharacterController = (function () {
         this._ray = new babylonjs__WEBPACK_IMPORTED_MODULE_0__["Ray"](babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].Zero(), babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].One(), 1);
         this._rayDir = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].Zero();
         this._cameraSkin = 0.5;
-        this._skip = 0;
+        this._pickedMeshes = new Array();
+        this._makeInvisible = false;
+        this._elasticSteps = 50;
         this._move = false;
         this._isAG = false;
         this._hasAnims = false;
@@ -326,6 +328,8 @@ var CharacterController = (function () {
         ccs.turningOff = this.isTurningOff();
         ccs.cameraTarget = this._cameraTarget.clone();
         ccs.cameraElastic = this._cameraElastic;
+        ccs.elasticSteps = this._elasticSteps;
+        ccs.makeInvisble = this._makeInvisible;
         ccs.gravity = this._gravity;
         ccs.keyboard = this._ekb;
         ccs.maxSlopeLimit = this._maxSlopeLimit;
@@ -340,6 +344,8 @@ var CharacterController = (function () {
         this.setTurningOff(ccs.turningOff);
         this.setCameraTarget(ccs.cameraTarget);
         this.setCameraElasticity(ccs.cameraElastic);
+        this.setElasticiSteps(ccs.elasticSteps);
+        this.makeObstructionInvisible(ccs.makeInvisble);
         this.setGravity(ccs.gravity);
         this.enableKeyBoard(ccs.keyboard);
         this.setSlopeLimit(ccs.minSlopeLimit, ccs.maxSlopeLimit);
@@ -492,6 +498,12 @@ var CharacterController = (function () {
     };
     CharacterController.prototype.setCameraElasticity = function (b) {
         this._cameraElastic = b;
+    };
+    CharacterController.prototype.setElasticiSteps = function (n) {
+        this._elasticSteps = n;
+    };
+    CharacterController.prototype.makeObstructionInvisible = function (b) {
+        this._makeInvisible = b;
     };
     CharacterController.prototype.setCameraTarget = function (v) {
         this._cameraTarget.copyFrom(v);
@@ -1033,8 +1045,8 @@ var CharacterController = (function () {
         if (this._vMoveTot == 0)
             this._avatar.position.addToRef(this._cameraTarget, this._camera.target);
         if (this._camera.radius > this._camera.lowerRadiusLimit) {
-            if (this._cameraElastic)
-                this._snapCamera();
+            if (this._cameraElastic || this._makeInvisible)
+                this._handleObstruction();
         }
         if (this._camera.radius <= this._camera.lowerRadiusLimit) {
             if (!this._noFirstPerson && !this._inFP) {
@@ -1052,28 +1064,94 @@ var CharacterController = (function () {
             this._camera.checkCollisions = this._savedCameraCollision;
         }
     };
-    CharacterController.prototype._snapCamera = function () {
+    ;
+    CharacterController.prototype._handleObstruction = function () {
         var _this = this;
         this._camera.position.subtractToRef(this._camera.target, this._rayDir);
         this._ray.origin = this._camera.target;
         this._ray.length = this._rayDir.length();
         this._ray.direction = this._rayDir.normalize();
-        var pi = this._scene.pickWithRay(this._ray, function (mesh) {
-            if (mesh == _this._avatar || !mesh.checkCollisions)
+        var pis = this._scene.multiPickWithRay(this._ray, function (mesh) {
+            if (mesh == _this._avatar)
                 return false;
             else
                 return true;
-        }, true);
-        if (pi.hit) {
-            if (this._camera.checkCollisions) {
-                var newPos = this._camera.target.subtract(pi.pickedPoint).normalize().scale(this._cameraSkin);
-                pi.pickedPoint.addToRef(newPos, this._camera.position);
+        });
+        if (this._makeInvisible) {
+            this._prevPickedMeshes = this._pickedMeshes;
+            if (pis.length > 0) {
+                this._pickedMeshes = new Array();
+                for (var _i = 0, pis_1 = pis; _i < pis_1.length; _i++) {
+                    var pi = pis_1[_i];
+                    if (pi.pickedMesh.isVisible || this._prevPickedMeshes.includes(pi.pickedMesh)) {
+                        pi.pickedMesh.isVisible = false;
+                        this._pickedMeshes.push(pi.pickedMesh);
+                    }
+                }
+                for (var _a = 0, _b = this._prevPickedMeshes; _a < _b.length; _a++) {
+                    var pm = _b[_a];
+                    if (!this._pickedMeshes.includes(pm)) {
+                        pm.isVisible = true;
+                    }
+                }
             }
             else {
-                var nr = pi.pickedPoint.subtract(this._camera.target).length();
-                this._camera.radius = nr - this._cameraSkin;
+                for (var _c = 0, _d = this._prevPickedMeshes; _c < _d.length; _c++) {
+                    var pm = _d[_c];
+                    pm.isVisible = true;
+                }
+                this._prevPickedMeshes.length = 0;
             }
         }
+        if (this._cameraElastic) {
+            if (pis.length > 0) {
+                if ((pis.length == 1 && !this._isSeeAble(pis[0].pickedMesh)) && (!pis[0].pickedMesh.checkCollisions || !this._camera.checkCollisions))
+                    return;
+                var pp = null;
+                for (var i = 0; i < pis.length; i++) {
+                    var pm = pis[i].pickedMesh;
+                    if (this._isSeeAble(pm)) {
+                        pp = pis[i].pickedPoint;
+                        break;
+                    }
+                    else if (pm.checkCollisions) {
+                        pp = pis[i].pickedPoint;
+                        break;
+                    }
+                }
+                if (pp == null)
+                    return;
+                var c2p = this._camera.position.subtract(pp);
+                var l = c2p.length();
+                if (this._camera.checkCollisions) {
+                    var step = void 0;
+                    if (l <= 1) {
+                        step = c2p.addInPlace(c2p.normalizeToNew().scaleInPlace(this._cameraSkin));
+                    }
+                    else {
+                        step = c2p.normalize().scaleInPlace(l / this._elasticSteps);
+                    }
+                    this._camera.position = this._camera.position.subtract(step);
+                }
+                else {
+                    var step = void 0;
+                    if (l <= 1)
+                        step = l + this._cameraSkin;
+                    else
+                        step = l / this._elasticSteps;
+                    this._camera.radius = this._camera.radius - (step);
+                }
+            }
+        }
+    };
+    CharacterController.prototype._isSeeAble = function (mesh) {
+        if (!mesh.isVisible)
+            return false;
+        if (mesh.visibility == 0)
+            return false;
+        if (mesh.material != null && mesh.material.alphaMode != 0 && mesh.material.alpha == 0)
+            return false;
+        return true;
     };
     CharacterController.prototype.anyMovement = function () {
         return (this._act._walk || this._act._walkback || this._act._turnLeft || this._act._turnRight || this._act._stepLeft || this._act._stepRight);
@@ -1277,12 +1355,16 @@ var CharacterController = (function () {
     };
     CharacterController.prototype.setAvatarSkeleton = function (skeleton) {
         this._skeleton = skeleton;
-        if (this._skeleton != null && this._skeleton.overrideMesh)
+        if (this._skeleton != null && this._skelDrivenByAG(skeleton))
             this._isAG = true;
         else
             this._isAG = false;
         if (!this._isAG && this._skeleton != null)
             this._checkAnimRanges(this._skeleton);
+    };
+    CharacterController.prototype._skelDrivenByAG = function (skeleton) {
+        var _this = this;
+        return skeleton.animations.some(function (sa) { return _this._scene.animationGroups.some(function (ag) { return ag.children.some(function (ta) { return ta.animation == sa; }); }); });
     };
     CharacterController.prototype.getSkeleton = function () {
         return this._skeleton;
@@ -1376,6 +1458,7 @@ var ActionMap = (function () {
 var CCSettings = (function () {
     function CCSettings() {
         this.cameraElastic = true;
+        this.makeInvisble = true;
         this.cameraTarget = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].Zero();
         this.noFirstPerson = false;
         this.topDown = true;

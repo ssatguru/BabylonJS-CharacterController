@@ -11,7 +11,10 @@ import {
     TransformNode,
     TargetedAnimation,
     Matrix,
-    DeepImmutable
+    DeepImmutable,
+    AbstractMesh,
+    PlaySoundAction,
+    InstancedMesh
 } from "babylonjs";
 
 export class CharacterController {
@@ -250,6 +253,8 @@ export class CharacterController {
         ccs.turningOff = this.isTurningOff();
         ccs.cameraTarget = this._cameraTarget.clone();
         ccs.cameraElastic = this._cameraElastic;
+        ccs.elasticSteps = this._elasticSteps;
+        ccs.makeInvisble = this._makeInvisible;
         ccs.gravity = this._gravity;
         ccs.keyboard = this._ekb;
         ccs.maxSlopeLimit = this._maxSlopeLimit;
@@ -266,6 +271,8 @@ export class CharacterController {
         this.setTurningOff(ccs.turningOff);
         this.setCameraTarget(ccs.cameraTarget);
         this.setCameraElasticity(ccs.cameraElastic);
+        this.setElasticiSteps(ccs.elasticSteps);
+        this.makeObstructionInvisible(ccs.makeInvisble);
         this.setGravity(ccs.gravity);
         this.enableKeyBoard(ccs.keyboard);
         this.setSlopeLimit(ccs.minSlopeLimit, ccs.maxSlopeLimit);
@@ -418,6 +425,14 @@ export class CharacterController {
 
     public setCameraElasticity(b: boolean) {
         this._cameraElastic = b;
+    }
+
+    public setElasticiSteps(n: number) {
+        this._elasticSteps = n;
+    }
+
+    public makeObstructionInvisible(b: boolean) {
+        this._makeInvisible = b;
     }
     public setCameraTarget(v: Vector3) {
         this._cameraTarget.copyFrom(v);
@@ -1124,7 +1139,7 @@ export class CharacterController {
         if (this._vMoveTot == 0)
             this._avatar.position.addToRef(this._cameraTarget, this._camera.target);
 
-        if (this._camera.radius > this._camera.lowerRadiusLimit) { if (this._cameraElastic) this._snapCamera(); }
+        if (this._camera.radius > this._camera.lowerRadiusLimit) { if (this._cameraElastic || this._makeInvisible) this._handleObstruction(); }
 
         if (this._camera.radius <= this._camera.lowerRadiusLimit) {
             if (!this._noFirstPerson && !this._inFP) {
@@ -1147,13 +1162,25 @@ export class CharacterController {
     //camera seems to get stuck into things
     //should move camera away from things by a value of cameraSkin
     private _cameraSkin: number = 0.5;
-    private _skip: number = 0;
-    private _snapCamera() {
-        //            if(this.skip<120) {
-        //                this.skip++;
-        //                return;
-        //            }
-        //            this.skip=0;
+    private _prevPickedMeshes: AbstractMesh[];
+    private _pickedMeshes: AbstractMesh[] = new Array();;
+    private _makeInvisible = false;
+    private _elasticSteps = 50;
+    private _alreadyInvisible: AbstractMesh[];
+
+    /**
+     * The following method handles the use case wherein some mesh
+     * comes between the avatar and the camera thus obstructing the view
+     * of the avatar.
+     * Two ways this can be handled
+     * a) make the obstructing  mesh invisible
+     *   instead of invisible a better option would have been to make semi transparent.
+     *   Unfortunately, unlike mesh, mesh instances do not "visibility" setting)
+     *   Every alternate frame make mesh visible and invisible to give the impression of semi-transparent.
+     * b) move the camera in front of the obstructing mesh
+     */
+    private _handleObstruction() {
+
         //get vector from av (camera.target) to camera
         this._camera.position.subtractToRef(this._camera.target, this._rayDir);
         //start ray from av to camera
@@ -1161,23 +1188,96 @@ export class CharacterController {
         this._ray.length = this._rayDir.length();
         this._ray.direction = this._rayDir.normalize();
 
-        const pi: PickingInfo = this._scene.pickWithRay(this._ray, (mesh) => {
-            //if(mesh==this.avatar||!mesh.isPickable||!mesh.checkCollisions) return false;
-            if (mesh == this._avatar || !mesh.checkCollisions) return false;
+        const pis: PickingInfo[] = this._scene.multiPickWithRay(this._ray, (mesh) => {
+            if (mesh == this._avatar) return false;
             else return true;
-        }, true);
+        });
 
-        if (pi.hit) {
-            //postion the camera in front of the mesh that is obstructing camera
-            if (this._camera.checkCollisions) {
-                const newPos: Vector3 = this._camera.target.subtract(pi.pickedPoint).normalize().scale(this._cameraSkin);
-                pi.pickedPoint.addToRef(newPos, this._camera.position);
+
+        if (this._makeInvisible) {
+            this._prevPickedMeshes = this._pickedMeshes;
+            if (pis.length > 0) {
+                this._pickedMeshes = new Array();
+                for (let pi of pis) {
+                    if (pi.pickedMesh.isVisible || this._prevPickedMeshes.includes(pi.pickedMesh)) {
+                        pi.pickedMesh.isVisible = false;
+                        this._pickedMeshes.push(pi.pickedMesh);
+                    }
+                }
+                for (let pm of this._prevPickedMeshes) {
+                    if (!this._pickedMeshes.includes(pm)) {
+                        pm.isVisible = true;
+                    }
+                }
             } else {
-                const nr: number = pi.pickedPoint.subtract(this._camera.target).length();
-                this._camera.radius = nr - this._cameraSkin;
+                for (let pm of this._prevPickedMeshes) {
+                    pm.isVisible = true;
+                }
+                this._prevPickedMeshes.length = 0;
+            }
+        }
+
+        if (this._cameraElastic) {
+            if (pis.length > 0) {
+                // postion the camera in front of the mesh that is obstructing camera
+
+                //if only one obstruction and it is invisible then if it is not collidable or our camera is not collidable then do nothing
+                if ((pis.length == 1 && !this._isSeeAble(pis[0].pickedMesh)) && (!pis[0].pickedMesh.checkCollisions || !this._camera.checkCollisions)) return;
+
+                //if our camera is collidable then we donot want it to get stuck behind another collidable obsrtucting mesh
+                let pp: Vector3 = null;
+
+                //we will asume the order of picked meshes is from closest to avatar to furthest
+                //we should get the first one which is visible or invisible and collidable
+                for (let i = 0; i < pis.length; i++) {
+                    let pm = pis[i].pickedMesh;
+                    if (this._isSeeAble(pm)) {
+                        pp = pis[i].pickedPoint;
+                        break;
+                    } else if (pm.checkCollisions) {
+                        pp = pis[i].pickedPoint;
+                        break;
+                    }
+                }
+                if (pp == null) return;
+
+                const c2p: Vector3 = this._camera.position.subtract(pp);
+                //note that when camera is collidable, changing the orbital camera radius may not work.
+                //changing the radius moves the camera forward (with collision?) and collision can interfere with movement
+                //
+                //in every cylce we are dividing the distance to tarvel by same number of steps.
+                //as we get closer to destination the speed will thus slow down.
+                //when just 1 unit distance left, lets snap to the final position.
+                //when calculating final position make sure the camera does not get stuck at the pickposition especially
+                //if collision is on
+
+                const l: number = c2p.length();
+                if (this._camera.checkCollisions) {
+                    let step: Vector3;
+                    if (l <= 1) {
+                        step = c2p.addInPlace(c2p.normalizeToNew().scaleInPlace(this._cameraSkin));
+                    } else {
+                        step = c2p.normalize().scaleInPlace(l / this._elasticSteps);
+                    }
+                    this._camera.position = this._camera.position.subtract(step);
+                } else {
+                    let step: number;
+                    if (l <= 1) step = l + this._cameraSkin; else step = l / this._elasticSteps;
+                    this._camera.radius = this._camera.radius - (step);
+                }
             }
         }
     }
+
+    //how many ways can a mesh be invisible?
+    private _isSeeAble(mesh: AbstractMesh): boolean {
+        if (!mesh.isVisible) return false;
+        if (mesh.visibility == 0) return false;
+        if (mesh.material != null && mesh.material.alphaMode != 0 && mesh.material.alpha == 0) return false;
+        return true;
+        //what about vertex color? groan!
+    }
+
 
     private _move: boolean = false;
     public anyMovement(): boolean {
@@ -1587,6 +1687,8 @@ export class CCSettings {
     public maxSlopeLimit: number;
     public stepOffset: number;
     public cameraElastic: boolean = true;
+    public elasticSteps: number;
+    public makeInvisble: boolean = true;
     public cameraTarget: Vector3 = Vector3.Zero();
     public noFirstPerson: boolean = false;
     public topDown: boolean = true;
