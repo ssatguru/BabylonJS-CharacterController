@@ -14,8 +14,13 @@ import {
     DeepImmutable,
     AbstractMesh,
     PlaySoundAction,
-    InstancedMesh
+    InstancedMesh,
+    Sound,
+    AnimationRange,
+    Animatable,
+    AnimationEvent
 } from "babylonjs";
+import { SubSurfaceConfiguration } from "babylonjs/Rendering/subSurfaceConfiguration";
 
 export class CharacterController {
 
@@ -129,7 +134,7 @@ export class CharacterController {
      * @param agMap a map of character controller animation name to animationGroup
      */
     public setAnimationGroups(agMap: {}) {
-        if (this._prevAnim != null && this._prevAnim.exist) this._prevAnim.ag.stop();
+        if (this._prevActData != null && this._prevActData.exist) this._prevActData.ag.stop();
         this._isAG = true;
         this.setActionMap(<ActionMap>agMap);
     }
@@ -218,7 +223,7 @@ export class CharacterController {
         }
         this._checkFastAnims();
         //force to play new anims
-        this._prevAnim = null;
+        this._prevActData = null;
         if (agMap) return "ag"; else return "ar";
     }
 
@@ -400,6 +405,23 @@ export class CharacterController {
         this._setAnim(this._actionMap.fall, rangeName, rate, loop);
     }
 
+    // setters for sound
+    public setSound(sound: Sound) {
+        let ccActionNames: string[] = Object.keys(this._actionMap);
+        sound.loop = false;
+        for (let ccActionName of ccActionNames) {
+            let ccActData = this._actionMap[ccActionName];
+            //some keys could map to functions (like reset())
+            if (!(ccActData instanceof ActionData)) continue;
+            ccActData.sound = sound;
+            ccActData.sound.attachToMesh(this._avatar);
+        }
+        this._actionMap.idle.sound = null;
+        this._actionMap.fall.sound = null;
+        this._actionMap.slideBack.sound = null;
+    }
+
+
     // setters for keys
     public setWalkKey(key: string) {
         this._actionMap.walk.key = key.toLowerCase();
@@ -536,44 +558,51 @@ export class CharacterController {
         * BABYLONJS GLB models are RHS and exhibit this behavior
         * 
         */
-    private _isRHS = false;
-    private _signRHS = -1;
+    private _isLHS_RHS = false;
+    private _signLHS_RHS = -1;
     private _setRHS(mesh: TransformNode) {
         const meshMatrix: Matrix = mesh.getWorldMatrix();
-        const _localX = Vector3.FromFloatArray(<DeepImmutable<Float32Array>>meshMatrix.m, 0);
-        const _localY = Vector3.FromFloatArray(<DeepImmutable<Float32Array>>meshMatrix.m, 4);
-        const _localZ = Vector3.FromFloatArray(<DeepImmutable<Float32Array>>meshMatrix.m, 8);
+        const _localX = Vector3.FromArray(<DeepImmutable<Float32Array>>meshMatrix.m, 0);
+        const _localY = Vector3.FromArray(<DeepImmutable<Float32Array>>meshMatrix.m, 4);
+        const _localZ = Vector3.FromArray(<DeepImmutable<Float32Array>>meshMatrix.m, 8);
         const actualZ = Vector3.Cross(_localX, _localY);
         //same direction or opposite direction of Z
         if (Vector3.Dot(actualZ, _localZ) < 0) {
-            this._isRHS = true;
-            this._signRHS = 1;
+            this._isLHS_RHS = true;
+            this._signLHS_RHS = 1;
         }
         else {
-            this._isRHS = false;
-            this._signRHS = -1;
+            this._isLHS_RHS = false;
+            this._signLHS_RHS = -1;
         }
+        console.log("have rhs lhs issue " + this._isLHS_RHS);
     }
 
     /**
-     * Use setFaceForward(true|false) to indicate that the avatar face  faces forward (true) or backward (false).
-     * The avatar face faces forward if its face points to positive local Z axis direction
+     * Use setFaceForward(true|false) to indicate that the avatar's face  points forward (true) or backward (false).
+     * The avatar's face  points forward if its face is looking in positive local Z axis direction
      */
     private _ffSign: number;
+    private _rhsSign: number;
     private _ff: boolean;
     //in mode 0, av2cam is used to align avatar with camera , with camera always facing avatar's back
     //note:camera alpha is measured anti-clockwise , avatar rotation is measured clockwise 
     private _av2cam;
     public setFaceForward(b: boolean) {
         this._ff = b;
-        if (this._isRHS) {
+
+        this._rhsSign = this._scene.useRightHandedSystem ? -1 : 1;
+
+        if (this._isLHS_RHS) {
             this._av2cam = b ? Math.PI / 2 : 3 * Math.PI / 2;
             this._ffSign = b ? 1 : -1;
         } else {
             this._av2cam = b ? 3 * Math.PI / 2 : Math.PI / 2;
             this._ffSign = b ? -1 : 1;
         }
+
     }
+
     public isFaceForward() {
         return this._ff;
     }
@@ -639,7 +668,7 @@ export class CharacterController {
         this._started = false;
         this._scene.unregisterBeforeRender(this._renderer);
         this.enableKeyBoard(false);
-        this._prevAnim = null;
+        this._prevActData = null;
     }
 
     /**
@@ -662,7 +691,7 @@ export class CharacterController {
         this._stopAnim = false;
     }
 
-    private _prevAnim: ActionData = null;
+    private _prevActData: ActionData = null;
     private _avStartPos: Vector3 = Vector3.Zero();
     private _grounded: boolean = false;
     //distance by which AV would move down if in freefall
@@ -689,41 +718,69 @@ export class CharacterController {
         else return -1;
     }
 
+    _currentActData: ActionData;
     private _moveAVandCamera() {
         this._avStartPos.copyFrom(this._avatar.position);
-        let anim: ActionData = null;
+        let actData: ActionData = null;
         const dt: number = this._scene.getEngine().getDeltaTime() / 1000;
 
         if (this._act._jump && !this._inFreeFall) {
             this._grounded = false;
             this._idleFallTime = 0;
-            anim = this._doJump(dt);
+            actData = this._doJump(dt);
         } else if (this.anyMovement() || this._inFreeFall) {
             this._grounded = false;
             this._idleFallTime = 0;
-            anim = this._doMove(dt);
+            actData = this._doMove(dt);
         } else if (!this._inFreeFall) {
-            anim = this._doIdle(dt);
+            actData = this._doIdle(dt);
         }
-        if (!this._stopAnim && this._hasAnims && anim != null) {
-            if (this._prevAnim !== anim) {
-                if (anim.exist) {
+        if (!this._stopAnim && this._hasAnims && actData != null) {
+            if (this._prevActData !== actData) {
+                if (actData.exist) {
+
+                    //animation frame counts
+                    let c: number;
+
                     if (this._isAG) {
-                        if (this._prevAnim != null && this._prevAnim.exist) this._prevAnim.ag.stop();
+                        if (this._prevActData != null && this._prevActData.exist) this._prevActData.ag.stop();
                         //TODO use start instead of play ?
                         //anim._ag.play(anim._loop);
                         //anim._ag.speedRatio = anim._rate;
-                        anim.ag.start(anim.loop, anim.rate);
+                        actData.ag.start(actData.loop, actData.rate);
+                        //ag returns normalized frame values between 0 and 1
+                        //we will assume 30 fps for animations 
+                        c = (actData.ag.to - actData.ag.from) * 30;
                     } else {
-                        this._skeleton.beginAnimation(anim.name, anim.loop, anim.rate);
+                        let a: Animatable = this._skeleton.beginAnimation(actData.name, actData.loop, actData.rate);
+                        //a.onAnimationLoop = () => { if (actData.sound != null) actData.sound.play(); };
+                        this._currentActData = actData;
+                        c = this._skeleton.getAnimationRange(actData.name).to - this._skeleton.getAnimationRange(actData.name).from;
                     }
+
+                    if (this._prevActData != null && this._prevActData.sound != null) {
+                        this._prevActData.sound.stop();
+                        if (this._sndId != null) {
+                            clearInterval(this._sndId);
+                        }
+                    }
+                    if (actData.sound != null) {
+                        actData.sound.play();
+                        //we will assume 30 fps for animations and play sound twice during the animation
+                        this._sndId = setInterval(() => { actData.sound.play(); }, c * 1000 / (30 * actData.rate * 2));
+                    }
+
                 }
-                this._prevAnim = anim;
+                this._prevActData = actData;
             }
         }
         this._updateTargetValue();
         return;
     }
+
+    private _soundLoopTime = 700;
+    private _sndId = null;
+    private _ae: AnimationEvent = new AnimationEvent(0, () => { console.log("anim event playing"); if (this._currentActData.sound != null) this._currentActData.sound.play(); });
 
     //verical position of AV when it is about to start a jump
     private _jumpStartPosY: number = 0;
@@ -731,8 +788,8 @@ export class CharacterController {
     private _jumpTime: number = 0;
     private _doJump(dt: number): ActionData {
 
-        let anim: ActionData = null;
-        anim = this._actionMap.runJump;
+        let actData: ActionData = null;
+        actData = this._actionMap.runJump;
         if (this._jumpTime === 0) {
             this._jumpStartPosY = this._avatar.position.y;
         }
@@ -759,7 +816,7 @@ export class CharacterController {
         } else {
             jumpDist = this._calcJumpDist(this._actionMap.idleJump.speed, dt);
             disp = new Vector3(0, jumpDist, 0);
-            anim = this._actionMap.idleJump;
+            actData = this._actionMap.idleJump;
             //this.avatar.ellipsoid.y=this._ellipsoid.y/2;
         }
         //moveWithCollision only seems to happen if length of displacment is atleast 0.001
@@ -784,11 +841,11 @@ export class CharacterController {
                         this._endJump();
                     }
                 } else {
-                    anim = this._actionMap.fall;
+                    actData = this._actionMap.fall;
                 }
             }
         }
-        return anim;
+        return actData;
     }
 
     private _calcJumpDist(speed: number, dt: number): number {
@@ -839,12 +896,24 @@ export class CharacterController {
         this._movFallTime = this._movFallTime + dt;
 
         let moving: boolean = false;
-        let anim: ActionData = null;
+        let actdata: ActionData = null;
 
         if (this._inFreeFall) {
             this._moveVector.y = -this._freeFallDist;
             moving = true;
-        } else {
+        }
+
+        //in case avatar was rotated by player, rotate camera around avatar to align with avatar
+        actdata = this._rotateC2AV(actdata, moving, dt);
+
+
+        //in case camera was rotated around avatar by player, rotate avatar to align with camera
+        this._rotateAV2C();
+
+        //now that avatar is rotated properly, construct the vector to move the avatar 
+        //donot move the avatar if avatar is in freefall
+
+        if (!this._inFreeFall) {
             this._wasWalking = false;
             this._wasRunning = false;
 
@@ -852,26 +921,25 @@ export class CharacterController {
             let horizDist: number = 0;
             switch (true) {
                 case (this._act._stepLeft):
-                    sign = this._signRHS * this._isAvFacingCamera();
+                    sign = this._signLHS_RHS * this._isAvFacingCamera();
                     horizDist = this._actionMap.strafeLeft.speed * dt;
                     if (this._act._speedMod) {
                         horizDist = this._actionMap.strafeLeftFast.speed * dt;
-                        anim = (-this._ffSign * sign > 0) ? this._actionMap.strafeLeftFast : this._actionMap.strafeRightFast;
+                        actdata = (-this._ffSign * sign > 0) ? this._actionMap.strafeLeftFast : this._actionMap.strafeRightFast;
                     } else {
-                        anim = (-this._ffSign * sign > 0) ? this._actionMap.strafeLeft : this._actionMap.strafeRight;
+                        actdata = (-this._ffSign * sign > 0) ? this._actionMap.strafeLeft : this._actionMap.strafeRight;
                     }
-
                     this._moveVector = this._avatar.calcMovePOV(sign * horizDist, -this._freeFallDist, 0);
                     moving = true;
                     break;
                 case (this._act._stepRight):
-                    sign = -this._signRHS * this._isAvFacingCamera();
+                    sign = -this._signLHS_RHS * this._isAvFacingCamera();
                     horizDist = this._actionMap.strafeRight.speed * dt;
                     if (this._act._speedMod) {
                         horizDist = this._actionMap.strafeRightFast.speed * dt;
-                        anim = (-this._ffSign * sign > 0) ? this._actionMap.strafeLeftFast : this._actionMap.strafeRightFast;
+                        actdata = (-this._ffSign * sign > 0) ? this._actionMap.strafeLeftFast : this._actionMap.strafeRightFast;
                     } else {
-                        anim = (-this._ffSign * sign > 0) ? this._actionMap.strafeLeft : this._actionMap.strafeRight;
+                        actdata = (-this._ffSign * sign > 0) ? this._actionMap.strafeLeft : this._actionMap.strafeRight;
                     }
                     this._moveVector = this._avatar.calcMovePOV(sign * horizDist, -this._freeFallDist, 0);
                     moving = true;
@@ -880,11 +948,11 @@ export class CharacterController {
                     if (this._act._speedMod) {
                         this._wasRunning = true;
                         horizDist = this._actionMap.run.speed * dt;
-                        anim = this._actionMap.run;
+                        actdata = this._actionMap.run;
                     } else {
                         this._wasWalking = true;
                         horizDist = this._actionMap.walk.speed * dt;
-                        anim = this._actionMap.walk;
+                        actdata = this._actionMap.walk;
                     }
                     this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, this._ffSign * horizDist);
                     moving = true;
@@ -893,96 +961,17 @@ export class CharacterController {
                     horizDist = this._actionMap.walkBack.speed * dt;
                     if (this._act._speedMod) {
                         horizDist = this._actionMap.walkBackFast.speed * dt;
-                        anim = this._actionMap.walkBackFast;
+                        actdata = this._actionMap.walkBackFast;
                     } else {
-                        anim = this._actionMap.walkBack;
+                        actdata = this._actionMap.walkBack;
                     }
                     this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, -this._ffSign * horizDist);
                     moving = true;
                     break;
-
-            }
-
-        }
-
-        if (!(this._noRot && this._mode == 0) && (!this._act._stepLeft && !this._act._stepRight) && (this._act._turnLeft || this._act._turnRight)) {
-            let turnAngle = this._actionMap.turnLeft.speed * dt;
-            if (this._act._speedMod) {
-                turnAngle = 2 * turnAngle;
-            }
-            if (this._mode == 1) {
-                // while turining, the avatar could start facing away from camera and end up facing camera.
-                // we should not switch turning direction during this transition
-                if (!this._isTurning) {
-                    // if (this._act.name != this._act.prevName) {
-                    // this._act.prevName = this._act.name;
-                    this._sign = -this._ffSign * this._isAvFacingCamera();
-                    if (this._isRHS) this._sign = - this._sign;
-                    this._isTurning = true;
-                }
-                let a = this._sign;
-                if (this._act._turnLeft) {
-                    if (this._act._walk) { }
-                    else if (this._act._walkback) a = -this._sign;
-                    else {
-                        anim = (this._sign > 0) ? this._actionMap.turnRight : this._actionMap.turnLeft;
-                    }
-                } else {
-                    if (this._act._walk) a = -this._sign;
-                    else if (this._act._walkback) { }
-                    else {
-                        a = -this._sign;
-                        anim = (this._sign > 0) ? this._actionMap.turnLeft : this._actionMap.turnRight;
-                    }
-                }
-                this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
-            } else {
-                let a = 1;
-                if (this._act._turnLeft) {
-                    if (this._act._walkback) a = -1;
-                    if (!moving) anim = this._actionMap.turnLeft;
-                } else {
-                    if (this._act._walk) a = -1;
-                    if (!moving) { a = -1; anim = this._actionMap.turnRight; }
-                }
-                this._camera.alpha = this._camera.alpha + turnAngle * a;
             }
         }
 
-        if (this._mode != 1) {
-            if (this._noRot) {
-                switch (true) {
-                    case (this._act._walk && this._act._turnRight):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + Math.PI / 4;
-                        break;
-                    case (this._act._walk && this._act._turnLeft):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha - Math.PI / 4;
-                        break;
-                    case (this._act._walkback && this._act._turnRight):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + 3 * Math.PI / 4;
-                        break;
-                    case (this._act._walkback && this._act._turnLeft):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha - 3 * Math.PI / 4;
-                        break;
-                    case (this._act._walk):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha;
-                        break;
-                    case (this._act._walkback):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + Math.PI;
-                        break;
-                    case (this._act._turnRight):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + Math.PI / 2;
-                        break;
-                    case (this._act._turnLeft):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha - Math.PI / 2;
-                        break;
-                }
-            } else {
-                this._avatar.rotation.y = this._av2cam - this._camera.alpha;
-            }
-        } else {
-
-        }
+        // move the avatar
 
         if (moving) {
             if (this._moveVector.length() > 0.001) {
@@ -1042,12 +1031,100 @@ export class CharacterController {
                         //to remove anim flicker, check if AV has been falling down continously for last few consecutive frames
                         //before changing to free fall animation
                         if (this._fallFrameCount > this._fallFrameCountMin) {
-                            anim = this._actionMap.fall;
+                            actdata = this._actionMap.fall;
                         }
                     }
                 } else {
                     this._endFreeFall();
                 }
+            }
+        }
+        return actdata;
+    }
+
+    /**
+     * rotate avatar to camera in case player is rotating camera around avatar
+     */
+
+
+    private _rotateAV2C() {
+        if (this._mode != 1) {
+            if (this._noRot) {
+                switch (true) {
+                    case (this._act._walk && this._act._turnRight):
+                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + this._rhsSign * Math.PI / 4;
+                        break;
+                    case (this._act._walk && this._act._turnLeft):
+                        this._avatar.rotation.y = this._av2cam - this._camera.alpha - this._rhsSign * Math.PI / 4;
+                        break;
+                    case (this._act._walkback && this._act._turnRight):
+                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + this._rhsSign * 3 * Math.PI / 4;
+                        break;
+                    case (this._act._walkback && this._act._turnLeft):
+                        this._avatar.rotation.y = this._av2cam - this._camera.alpha - this._rhsSign * 3 * Math.PI / 4;
+                        break;
+                    case (this._act._walk):
+                        this._avatar.rotation.y = this._av2cam - this._camera.alpha;
+                        break;
+                    case (this._act._walkback):
+                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + Math.PI;
+                        break;
+                    case (this._act._turnRight):
+                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + this._rhsSign * Math.PI / 2;
+                        break;
+                    case (this._act._turnLeft):
+                        this._avatar.rotation.y = this._av2cam - this._camera.alpha - this._rhsSign * Math.PI / 2;
+                        break;
+                }
+            } else {
+                this._avatar.rotation.y = this._av2cam - this._camera.alpha;
+            }
+        }
+    }
+
+    //rotate camera around Avatar in case player is rotating avatar.
+    private _rotateC2AV(anim: ActionData, moving: boolean, dt: number): ActionData {
+        if (!(this._noRot && this._mode == 0) && (!this._act._stepLeft && !this._act._stepRight) && (this._act._turnLeft || this._act._turnRight)) {
+            let turnAngle = this._actionMap.turnLeft.speed * dt;
+            if (this._act._speedMod) {
+                turnAngle = 2 * turnAngle;
+            }
+            if (this._mode == 1) {
+                // while turining, the avatar could start facing away from camera and end up facing camera.
+                // we should not switch turning direction during this transition
+                if (!this._isTurning) {
+                    // if (this._act.name != this._act.prevName) {
+                    // this._act.prevName = this._act.name;
+                    this._sign = -this._ffSign * this._isAvFacingCamera();
+                    if (this._isLHS_RHS) this._sign = - this._sign;
+                    this._isTurning = true;
+                }
+                let a = this._sign;
+                if (this._act._turnLeft) {
+                    if (this._act._walk) { }
+                    else if (this._act._walkback) a = -this._sign;
+                    else {
+                        anim = (this._sign > 0) ? this._actionMap.turnRight : this._actionMap.turnLeft;
+                    }
+                } else {
+                    if (this._act._walk) a = -this._sign;
+                    else if (this._act._walkback) { }
+                    else {
+                        a = -this._sign;
+                        anim = (this._sign > 0) ? this._actionMap.turnLeft : this._actionMap.turnRight;
+                    }
+                }
+                this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
+            } else {
+                let a = 1;
+                if (this._act._turnLeft) {
+                    if (this._act._walkback) a = -1;
+                    if (!moving) anim = this._actionMap.turnLeft;
+                } else {
+                    if (this._act._walk) a = -1;
+                    if (!moving) { a = -1; anim = this._actionMap.turnRight; }
+                }
+                this._camera.alpha = this._camera.alpha + this._rhsSign * turnAngle * a;
             }
         }
         return anim;
@@ -1188,6 +1265,8 @@ export class CharacterController {
         this._ray.length = this._rayDir.length();
         this._ray.direction = this._rayDir.normalize();
 
+        //TODO 
+        //handle case were pick is with a child of avatar, avatar atatchment. etc
         const pis: PickingInfo[] = this._scene.multiPickWithRay(this._ray, (mesh) => {
             if (mesh == this._avatar) return false;
             else return true;
@@ -1616,13 +1695,14 @@ export class ActionData {
     public speed: number;
     //_ds default speed.  speed is set to this on reset
     public ds: number;
-    public sound: string;
+    public sound: Sound;
     public key: string;
     //_dk defailt key
     public dk: string;
 
     //animation data
     //if _ag is null then assuming animation range and use _name to play animationrange
+    //instead of name maybe call it arName?
     public name: string = "";
     public ag: AnimationGroup;
     public loop: boolean = true;
@@ -1644,7 +1724,7 @@ export class ActionData {
         this.key = this.dk;
         this.loop = true;
         this.rate = 1;
-        this.sound = "";
+        this.sound = null;
         this.exist = false;
     }
 

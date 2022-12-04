@@ -132,11 +132,11 @@ var CharacterController = (function () {
         this._noFirstPerson = false;
         this._mode = 0;
         this._saveMode = 0;
-        this._isRHS = false;
-        this._signRHS = -1;
+        this._isLHS_RHS = false;
+        this._signLHS_RHS = -1;
         this._started = false;
         this._stopAnim = false;
-        this._prevAnim = null;
+        this._prevActData = null;
         this._avStartPos = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].Zero();
         this._grounded = false;
         this._freeFallDist = 0;
@@ -145,6 +145,10 @@ var CharacterController = (function () {
         this._inFreeFall = false;
         this._wasWalking = false;
         this._wasRunning = false;
+        this._soundLoopTime = 700;
+        this._sndId = null;
+        this._ae = new babylonjs__WEBPACK_IMPORTED_MODULE_0__["AnimationEvent"](0, function () { console.log("anim event playing"); if (_this._currentActData.sound != null)
+            _this._currentActData.sound.play(); });
         this._jumpStartPosY = 0;
         this._jumpTime = 0;
         this._movFallTime = 0;
@@ -238,8 +242,8 @@ var CharacterController = (function () {
         this._gravity = n;
     };
     CharacterController.prototype.setAnimationGroups = function (agMap) {
-        if (this._prevAnim != null && this._prevAnim.exist)
-            this._prevAnim.ag.stop();
+        if (this._prevActData != null && this._prevActData.exist)
+            this._prevActData.ag.stop();
         this._isAG = true;
         this.setActionMap(agMap);
     };
@@ -293,7 +297,7 @@ var CharacterController = (function () {
             }
         }
         this._checkFastAnims();
-        this._prevAnim = null;
+        this._prevActData = null;
         if (agMap)
             return "ag";
         else
@@ -475,6 +479,21 @@ var CharacterController = (function () {
     CharacterController.prototype.setFallAnim = function (rangeName, rate, loop) {
         this._setAnim(this._actionMap.fall, rangeName, rate, loop);
     };
+    CharacterController.prototype.setSound = function (sound) {
+        var ccActionNames = Object.keys(this._actionMap);
+        sound.loop = false;
+        for (var _i = 0, ccActionNames_2 = ccActionNames; _i < ccActionNames_2.length; _i++) {
+            var ccActionName = ccActionNames_2[_i];
+            var ccActData = this._actionMap[ccActionName];
+            if (!(ccActData instanceof ActionData))
+                continue;
+            ccActData.sound = sound;
+            ccActData.sound.attachToMesh(this._avatar);
+        }
+        this._actionMap.idle.sound = null;
+        this._actionMap.fall.sound = null;
+        this._actionMap.slideBack.sound = null;
+    };
     CharacterController.prototype.setWalkKey = function (key) {
         this._actionMap.walk.key = key.toLowerCase();
     };
@@ -566,22 +585,24 @@ var CharacterController = (function () {
     };
     CharacterController.prototype._setRHS = function (mesh) {
         var meshMatrix = mesh.getWorldMatrix();
-        var _localX = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].FromFloatArray(meshMatrix.m, 0);
-        var _localY = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].FromFloatArray(meshMatrix.m, 4);
-        var _localZ = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].FromFloatArray(meshMatrix.m, 8);
+        var _localX = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].FromArray(meshMatrix.m, 0);
+        var _localY = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].FromArray(meshMatrix.m, 4);
+        var _localZ = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].FromArray(meshMatrix.m, 8);
         var actualZ = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].Cross(_localX, _localY);
         if (babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].Dot(actualZ, _localZ) < 0) {
-            this._isRHS = true;
-            this._signRHS = 1;
+            this._isLHS_RHS = true;
+            this._signLHS_RHS = 1;
         }
         else {
-            this._isRHS = false;
-            this._signRHS = -1;
+            this._isLHS_RHS = false;
+            this._signLHS_RHS = -1;
         }
+        console.log("have rhs lhs issue " + this._isLHS_RHS);
     };
     CharacterController.prototype.setFaceForward = function (b) {
         this._ff = b;
-        if (this._isRHS) {
+        this._rhsSign = this._scene.useRightHandedSystem ? -1 : 1;
+        if (this._isLHS_RHS) {
             this._av2cam = b ? Math.PI / 2 : 3 * Math.PI / 2;
             this._ffSign = b ? 1 : -1;
         }
@@ -652,7 +673,7 @@ var CharacterController = (function () {
         this._started = false;
         this._scene.unregisterBeforeRender(this._renderer);
         this.enableKeyBoard(false);
-        this._prevAnim = null;
+        this._prevActData = null;
     };
     CharacterController.prototype.pauseAnim = function () {
         this._stopAnim = true;
@@ -668,42 +689,56 @@ var CharacterController = (function () {
     };
     CharacterController.prototype._moveAVandCamera = function () {
         this._avStartPos.copyFrom(this._avatar.position);
-        var anim = null;
+        var actData = null;
         var dt = this._scene.getEngine().getDeltaTime() / 1000;
         if (this._act._jump && !this._inFreeFall) {
             this._grounded = false;
             this._idleFallTime = 0;
-            anim = this._doJump(dt);
+            actData = this._doJump(dt);
         }
         else if (this.anyMovement() || this._inFreeFall) {
             this._grounded = false;
             this._idleFallTime = 0;
-            anim = this._doMove(dt);
+            actData = this._doMove(dt);
         }
         else if (!this._inFreeFall) {
-            anim = this._doIdle(dt);
+            actData = this._doIdle(dt);
         }
-        if (!this._stopAnim && this._hasAnims && anim != null) {
-            if (this._prevAnim !== anim) {
-                if (anim.exist) {
+        if (!this._stopAnim && this._hasAnims && actData != null) {
+            if (this._prevActData !== actData) {
+                if (actData.exist) {
+                    var c = void 0;
                     if (this._isAG) {
-                        if (this._prevAnim != null && this._prevAnim.exist)
-                            this._prevAnim.ag.stop();
-                        anim.ag.start(anim.loop, anim.rate);
+                        if (this._prevActData != null && this._prevActData.exist)
+                            this._prevActData.ag.stop();
+                        actData.ag.start(actData.loop, actData.rate);
+                        c = (actData.ag.to - actData.ag.from) * 30;
                     }
                     else {
-                        this._skeleton.beginAnimation(anim.name, anim.loop, anim.rate);
+                        var a = this._skeleton.beginAnimation(actData.name, actData.loop, actData.rate);
+                        this._currentActData = actData;
+                        c = this._skeleton.getAnimationRange(actData.name).to - this._skeleton.getAnimationRange(actData.name).from;
+                    }
+                    if (this._prevActData != null && this._prevActData.sound != null) {
+                        this._prevActData.sound.stop();
+                        if (this._sndId != null) {
+                            clearInterval(this._sndId);
+                        }
+                    }
+                    if (actData.sound != null) {
+                        actData.sound.play();
+                        this._sndId = setInterval(function () { actData.sound.play(); }, c * 1000 / (30 * actData.rate * 2));
                     }
                 }
-                this._prevAnim = anim;
+                this._prevActData = actData;
             }
         }
         this._updateTargetValue();
         return;
     };
     CharacterController.prototype._doJump = function (dt) {
-        var anim = null;
-        anim = this._actionMap.runJump;
+        var actData = null;
+        actData = this._actionMap.runJump;
         if (this._jumpTime === 0) {
             this._jumpStartPosY = this._avatar.position.y;
         }
@@ -730,7 +765,7 @@ var CharacterController = (function () {
         else {
             jumpDist = this._calcJumpDist(this._actionMap.idleJump.speed, dt);
             disp = new babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"](0, jumpDist, 0);
-            anim = this._actionMap.idleJump;
+            actData = this._actionMap.idleJump;
         }
         this._avatar.moveWithCollisions(disp);
         if (jumpDist < 0) {
@@ -745,11 +780,11 @@ var CharacterController = (function () {
                     }
                 }
                 else {
-                    anim = this._actionMap.fall;
+                    actData = this._actionMap.fall;
                 }
             }
         }
-        return anim;
+        return actData;
     };
     CharacterController.prototype._calcJumpDist = function (speed, dt) {
         var js = speed - this._gravity * this._jumpTime;
@@ -773,39 +808,41 @@ var CharacterController = (function () {
         this._freeFallDist = u * dt + this._gravity * dt * dt / 2;
         this._movFallTime = this._movFallTime + dt;
         var moving = false;
-        var anim = null;
+        var actdata = null;
         if (this._inFreeFall) {
             this._moveVector.y = -this._freeFallDist;
             moving = true;
         }
-        else {
+        actdata = this._rotateC2AV(actdata, moving, dt);
+        this._rotateAV2C();
+        if (!this._inFreeFall) {
             this._wasWalking = false;
             this._wasRunning = false;
             var sign = void 0;
             var horizDist = 0;
             switch (true) {
                 case (this._act._stepLeft):
-                    sign = this._signRHS * this._isAvFacingCamera();
+                    sign = this._signLHS_RHS * this._isAvFacingCamera();
                     horizDist = this._actionMap.strafeLeft.speed * dt;
                     if (this._act._speedMod) {
                         horizDist = this._actionMap.strafeLeftFast.speed * dt;
-                        anim = (-this._ffSign * sign > 0) ? this._actionMap.strafeLeftFast : this._actionMap.strafeRightFast;
+                        actdata = (-this._ffSign * sign > 0) ? this._actionMap.strafeLeftFast : this._actionMap.strafeRightFast;
                     }
                     else {
-                        anim = (-this._ffSign * sign > 0) ? this._actionMap.strafeLeft : this._actionMap.strafeRight;
+                        actdata = (-this._ffSign * sign > 0) ? this._actionMap.strafeLeft : this._actionMap.strafeRight;
                     }
                     this._moveVector = this._avatar.calcMovePOV(sign * horizDist, -this._freeFallDist, 0);
                     moving = true;
                     break;
                 case (this._act._stepRight):
-                    sign = -this._signRHS * this._isAvFacingCamera();
+                    sign = -this._signLHS_RHS * this._isAvFacingCamera();
                     horizDist = this._actionMap.strafeRight.speed * dt;
                     if (this._act._speedMod) {
                         horizDist = this._actionMap.strafeRightFast.speed * dt;
-                        anim = (-this._ffSign * sign > 0) ? this._actionMap.strafeLeftFast : this._actionMap.strafeRightFast;
+                        actdata = (-this._ffSign * sign > 0) ? this._actionMap.strafeLeftFast : this._actionMap.strafeRightFast;
                     }
                     else {
-                        anim = (-this._ffSign * sign > 0) ? this._actionMap.strafeLeft : this._actionMap.strafeRight;
+                        actdata = (-this._ffSign * sign > 0) ? this._actionMap.strafeLeft : this._actionMap.strafeRight;
                     }
                     this._moveVector = this._avatar.calcMovePOV(sign * horizDist, -this._freeFallDist, 0);
                     moving = true;
@@ -814,12 +851,12 @@ var CharacterController = (function () {
                     if (this._act._speedMod) {
                         this._wasRunning = true;
                         horizDist = this._actionMap.run.speed * dt;
-                        anim = this._actionMap.run;
+                        actdata = this._actionMap.run;
                     }
                     else {
                         this._wasWalking = true;
                         horizDist = this._actionMap.walk.speed * dt;
-                        anim = this._actionMap.walk;
+                        actdata = this._actionMap.walk;
                     }
                     this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, this._ffSign * horizDist);
                     moving = true;
@@ -828,101 +865,15 @@ var CharacterController = (function () {
                     horizDist = this._actionMap.walkBack.speed * dt;
                     if (this._act._speedMod) {
                         horizDist = this._actionMap.walkBackFast.speed * dt;
-                        anim = this._actionMap.walkBackFast;
+                        actdata = this._actionMap.walkBackFast;
                     }
                     else {
-                        anim = this._actionMap.walkBack;
+                        actdata = this._actionMap.walkBack;
                     }
                     this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, -this._ffSign * horizDist);
                     moving = true;
                     break;
             }
-        }
-        if (!(this._noRot && this._mode == 0) && (!this._act._stepLeft && !this._act._stepRight) && (this._act._turnLeft || this._act._turnRight)) {
-            var turnAngle = this._actionMap.turnLeft.speed * dt;
-            if (this._act._speedMod) {
-                turnAngle = 2 * turnAngle;
-            }
-            if (this._mode == 1) {
-                if (!this._isTurning) {
-                    this._sign = -this._ffSign * this._isAvFacingCamera();
-                    if (this._isRHS)
-                        this._sign = -this._sign;
-                    this._isTurning = true;
-                }
-                var a = this._sign;
-                if (this._act._turnLeft) {
-                    if (this._act._walk) { }
-                    else if (this._act._walkback)
-                        a = -this._sign;
-                    else {
-                        anim = (this._sign > 0) ? this._actionMap.turnRight : this._actionMap.turnLeft;
-                    }
-                }
-                else {
-                    if (this._act._walk)
-                        a = -this._sign;
-                    else if (this._act._walkback) { }
-                    else {
-                        a = -this._sign;
-                        anim = (this._sign > 0) ? this._actionMap.turnLeft : this._actionMap.turnRight;
-                    }
-                }
-                this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
-            }
-            else {
-                var a = 1;
-                if (this._act._turnLeft) {
-                    if (this._act._walkback)
-                        a = -1;
-                    if (!moving)
-                        anim = this._actionMap.turnLeft;
-                }
-                else {
-                    if (this._act._walk)
-                        a = -1;
-                    if (!moving) {
-                        a = -1;
-                        anim = this._actionMap.turnRight;
-                    }
-                }
-                this._camera.alpha = this._camera.alpha + turnAngle * a;
-            }
-        }
-        if (this._mode != 1) {
-            if (this._noRot) {
-                switch (true) {
-                    case (this._act._walk && this._act._turnRight):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + Math.PI / 4;
-                        break;
-                    case (this._act._walk && this._act._turnLeft):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha - Math.PI / 4;
-                        break;
-                    case (this._act._walkback && this._act._turnRight):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + 3 * Math.PI / 4;
-                        break;
-                    case (this._act._walkback && this._act._turnLeft):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha - 3 * Math.PI / 4;
-                        break;
-                    case (this._act._walk):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha;
-                        break;
-                    case (this._act._walkback):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + Math.PI;
-                        break;
-                    case (this._act._turnRight):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + Math.PI / 2;
-                        break;
-                    case (this._act._turnLeft):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha - Math.PI / 2;
-                        break;
-                }
-            }
-            else {
-                this._avatar.rotation.y = this._av2cam - this._camera.alpha;
-            }
-        }
-        else {
         }
         if (moving) {
             if (this._moveVector.length() > 0.001) {
@@ -973,13 +924,102 @@ var CharacterController = (function () {
                         this._inFreeFall = true;
                         this._fallFrameCount++;
                         if (this._fallFrameCount > this._fallFrameCountMin) {
-                            anim = this._actionMap.fall;
+                            actdata = this._actionMap.fall;
                         }
                     }
                 }
                 else {
                     this._endFreeFall();
                 }
+            }
+        }
+        return actdata;
+    };
+    CharacterController.prototype._rotateAV2C = function () {
+        if (this._mode != 1) {
+            if (this._noRot) {
+                switch (true) {
+                    case (this._act._walk && this._act._turnRight):
+                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + this._rhsSign * Math.PI / 4;
+                        break;
+                    case (this._act._walk && this._act._turnLeft):
+                        this._avatar.rotation.y = this._av2cam - this._camera.alpha - this._rhsSign * Math.PI / 4;
+                        break;
+                    case (this._act._walkback && this._act._turnRight):
+                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + this._rhsSign * 3 * Math.PI / 4;
+                        break;
+                    case (this._act._walkback && this._act._turnLeft):
+                        this._avatar.rotation.y = this._av2cam - this._camera.alpha - this._rhsSign * 3 * Math.PI / 4;
+                        break;
+                    case (this._act._walk):
+                        this._avatar.rotation.y = this._av2cam - this._camera.alpha;
+                        break;
+                    case (this._act._walkback):
+                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + Math.PI;
+                        break;
+                    case (this._act._turnRight):
+                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + this._rhsSign * Math.PI / 2;
+                        break;
+                    case (this._act._turnLeft):
+                        this._avatar.rotation.y = this._av2cam - this._camera.alpha - this._rhsSign * Math.PI / 2;
+                        break;
+                }
+            }
+            else {
+                this._avatar.rotation.y = this._av2cam - this._camera.alpha;
+            }
+        }
+    };
+    CharacterController.prototype._rotateC2AV = function (anim, moving, dt) {
+        if (!(this._noRot && this._mode == 0) && (!this._act._stepLeft && !this._act._stepRight) && (this._act._turnLeft || this._act._turnRight)) {
+            var turnAngle = this._actionMap.turnLeft.speed * dt;
+            if (this._act._speedMod) {
+                turnAngle = 2 * turnAngle;
+            }
+            if (this._mode == 1) {
+                if (!this._isTurning) {
+                    this._sign = -this._ffSign * this._isAvFacingCamera();
+                    if (this._isLHS_RHS)
+                        this._sign = -this._sign;
+                    this._isTurning = true;
+                }
+                var a = this._sign;
+                if (this._act._turnLeft) {
+                    if (this._act._walk) { }
+                    else if (this._act._walkback)
+                        a = -this._sign;
+                    else {
+                        anim = (this._sign > 0) ? this._actionMap.turnRight : this._actionMap.turnLeft;
+                    }
+                }
+                else {
+                    if (this._act._walk)
+                        a = -this._sign;
+                    else if (this._act._walkback) { }
+                    else {
+                        a = -this._sign;
+                        anim = (this._sign > 0) ? this._actionMap.turnLeft : this._actionMap.turnRight;
+                    }
+                }
+                this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
+            }
+            else {
+                var a = 1;
+                if (this._act._turnLeft) {
+                    if (this._act._walkback)
+                        a = -1;
+                    if (!moving)
+                        anim = this._actionMap.turnLeft;
+                }
+                else {
+                    if (this._act._walk)
+                        a = -1;
+                    if (!moving) {
+                        a = -1;
+                        anim = this._actionMap.turnRight;
+                    }
+                }
+                this._camera.alpha = this._camera.alpha + this._rhsSign * turnAngle * a;
             }
         }
         return anim;
@@ -1415,7 +1455,7 @@ var ActionData = (function () {
         this.key = this.dk;
         this.loop = true;
         this.rate = 1;
-        this.sound = "";
+        this.sound = null;
         this.exist = false;
     };
     return ActionData;

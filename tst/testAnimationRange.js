@@ -121,6 +121,16 @@ function loadPlayer(scene, engine, canvas) {
     cc.setFallAnim("fall", 2, false);
     cc.setSlideBackAnim("slideBack", 1, false);
 
+    let walkSound = new BABYLON.Sound(
+      "walk",
+      "./sounds/footstep_carpet_000.ogg",
+      scene,
+      () => {
+        cc.setSound(walkSound);
+      },
+      { loop: false }
+    );
+
     cc.start();
 
     cc.idle();

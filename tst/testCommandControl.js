@@ -11,6 +11,8 @@ function main() {
   canvas = document.querySelector("#renderCanvas");
   var engine = new BABYLON.Engine(canvas, true);
   var scene = new BABYLON.Scene(engine);
+  scene.useRightHandedSystem = true;
+
   scene.clearColor = new BABYLON.Color3(0.75, 0.75, 0.75);
   scene.ambientColor = new BABYLON.Color3(1, 1, 1);
 
@@ -64,6 +66,7 @@ function loadPlayer(scene, engine, canvas) {
     var skeleton = skeletons[0];
     player.skeleton = skeleton;
 
+    console.log(skeleton.animations);
     skeleton.enableBlending(0.1);
     //if the skeleton does not have any animation ranges then set them as below
     // setAnimationRanges(skeleton);
@@ -100,8 +103,9 @@ function loadPlayer(scene, engine, canvas) {
     //how close can the camera come to player
     camera.lowerRadiusLimit = 2;
     //how far can the camera go from the player
-    camera.upperRadiusLimit = 20;
-    camera.attachControl(canvas, false);
+    camera.upperRadiusLimit = 200;
+
+    camera.attachControl();
 
     cc = new CharacterController(player, camera, scene);
     cc.setFaceForward(true);
@@ -132,6 +136,16 @@ function loadPlayer(scene, engine, canvas) {
     cc.setRunJumpAnim("runJump", 0.6, false);
     cc.setFallAnim("fall", 2, false);
     cc.setSlideBackAnim("slideBack", 1, false);
+
+    let walkSound = new BABYLON.Sound(
+      "walk",
+      "./sounds/footstep_carpet_000.ogg",
+      scene,
+      () => {
+        cc.setSound(walkSound);
+      },
+      { loop: false }
+    );
 
     var ua = window.navigator.userAgent;
     var isIE = /MSIE|Trident/.test(ua);

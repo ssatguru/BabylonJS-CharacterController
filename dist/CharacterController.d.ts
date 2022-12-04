@@ -1,4 +1,4 @@
-import { Skeleton, ArcRotateCamera, Vector3, Mesh, Scene, AnimationGroup } from "babylonjs";
+import { Skeleton, ArcRotateCamera, Vector3, Mesh, Scene, AnimationGroup, Sound } from "babylonjs";
 export declare class CharacterController {
     private _avatar;
     private _skeleton;
@@ -57,6 +57,7 @@ export declare class CharacterController {
     setIdleJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
     setRunJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
     setFallAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
+    setSound(sound: Sound): void;
     setWalkKey(key: string): void;
     setWalkBackKey(key: string): void;
     setTurnLeftKey(key: string): void;
@@ -79,10 +80,11 @@ export declare class CharacterController {
     getMode(): number;
     setTurningOff(b: boolean): void;
     isTurningOff(): boolean;
-    private _isRHS;
-    private _signRHS;
+    private _isLHS_RHS;
+    private _signLHS_RHS;
     private _setRHS;
     private _ffSign;
+    private _rhsSign;
     private _ff;
     private _av2cam;
     setFaceForward(b: boolean): void;
@@ -96,7 +98,7 @@ export declare class CharacterController {
     private _stopAnim;
     pauseAnim(): void;
     resumeAnim(): void;
-    private _prevAnim;
+    private _prevActData;
     private _avStartPos;
     private _grounded;
     private _freeFallDist;
@@ -107,7 +109,11 @@ export declare class CharacterController {
     private _wasRunning;
     private _moveVector;
     private _isAvFacingCamera;
+    _currentActData: ActionData;
     private _moveAVandCamera;
+    private _soundLoopTime;
+    private _sndId;
+    private _ae;
     private _jumpStartPosY;
     private _jumpTime;
     private _doJump;
@@ -120,6 +126,8 @@ export declare class CharacterController {
     private _isTurning;
     private _noRot;
     private _doMove;
+    private _rotateAV2C;
+    private _rotateC2AV;
     private _endFreeFall;
     private _idleFallTime;
     private _doIdle;
@@ -180,7 +188,7 @@ export declare class ActionData {
     id: string;
     speed: number;
     ds: number;
-    sound: string;
+    sound: Sound;
     key: string;
     dk: string;
     name: string;

@@ -100,7 +100,7 @@ function loadPlayer(scene, engine, canvas) {
     cc.setMode(0);
     //below makes the controller point the camera at the player head which is approx
     //1.5m above the player origin
-    cc.setCameraTarget(new BABYLON.Vector3(0, 1.5, 0));
+    cc.setCameraTarget(new BABYLON.Vector3(0, 2, 0));
 
     //if the camera comes close to the player then we want cc to enter first person mode.
     cc.setNoFirstPerson(false);
@@ -126,8 +126,22 @@ function loadPlayer(scene, engine, canvas) {
     cc.setFallAnim(null, 2, false);
     cc.setSlideBackAnim(null, 1, false);
 
+    let walkSound = new BABYLON.Sound(
+      "walk",
+      "./sounds/footstep_carpet_000.ogg",
+      scene,
+      () => {
+        cc.setSound(walkSound);
+      },
+      { loop: false }
+    );
+
     //set how smmothly should we transition from one animation to another
     cc.enableBlending(0.05);
+
+    cc.setCameraElasticity(true);
+    cc.makeObstructionInvisible(false);
+    cc.start();
 
     cc.start();
 
