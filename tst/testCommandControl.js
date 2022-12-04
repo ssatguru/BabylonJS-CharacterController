@@ -11,7 +11,7 @@ function main() {
   canvas = document.querySelector("#renderCanvas");
   var engine = new BABYLON.Engine(canvas, true);
   var scene = new BABYLON.Scene(engine);
-  scene.useRightHandedSystem = true;
+  //scene.useRightHandedSystem = true;
 
   scene.clearColor = new BABYLON.Color3(0.75, 0.75, 0.75);
   scene.ambientColor = new BABYLON.Color3(1, 1, 1);
@@ -61,12 +61,12 @@ function main() {
 var cc;
 
 function loadPlayer(scene, engine, canvas) {
-  BABYLON.SceneLoader.ImportMesh("", "player/", "Vincent-frontFacing.babylon", scene, function (meshes, particleSystems, skeletons) {
+  //BABYLON.SceneLoader.ImportMesh("", "player/", "Vincent-frontFacing.babylon", scene, function (meshes, particleSystems, skeletons) {
+  BABYLON.SceneLoader.ImportMesh("", "player/", "starterAvatars.babylon", scene, function (meshes, particleSystems, skeletons) {
     var player = meshes[0];
     var skeleton = skeletons[0];
     player.skeleton = skeleton;
 
-    console.log(skeleton.animations);
     skeleton.enableBlending(0.1);
     //if the skeleton does not have any animation ranges then set them as below
     // setAnimationRanges(skeleton);
@@ -108,7 +108,7 @@ function loadPlayer(scene, engine, canvas) {
     camera.attachControl();
 
     cc = new CharacterController(player, camera, scene);
-    cc.setFaceForward(true);
+    cc.setFaceForward(false);
     cc.setMode(0);
     cc.setTurnSpeed(45);
     //below makes the controller point the camera at the player head which is approx

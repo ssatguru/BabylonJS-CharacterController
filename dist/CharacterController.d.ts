@@ -57,6 +57,7 @@ export declare class CharacterController {
     setIdleJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
     setRunJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
     setFallAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
+    _stepSound: Sound;
     setSound(sound: Sound): void;
     setWalkKey(key: string): void;
     setWalkBackKey(key: string): void;
@@ -233,4 +234,5 @@ export declare class CCSettings {
     topDown: boolean;
     turningOff: boolean;
     keyboard: boolean;
+    sound: Sound;
 }

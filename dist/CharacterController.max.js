@@ -340,6 +340,7 @@ var CharacterController = (function () {
         ccs.minSlopeLimit = this._minSlopeLimit;
         ccs.noFirstPerson = this._noFirstPerson;
         ccs.stepOffset = this._stepOffset;
+        ccs.sound = this._stepSound;
         return ccs;
     };
     CharacterController.prototype.setSettings = function (ccs) {
@@ -355,6 +356,7 @@ var CharacterController = (function () {
         this.setSlopeLimit(ccs.minSlopeLimit, ccs.maxSlopeLimit);
         this.setNoFirstPerson(ccs.noFirstPerson);
         this.setStepOffset(ccs.stepOffset);
+        this.setSound(ccs.sound);
     };
     CharacterController.prototype._setAnim = function (anim, animName, rate, loop) {
         if (!this._isAG && this._skeleton == null)
@@ -480,6 +482,9 @@ var CharacterController = (function () {
         this._setAnim(this._actionMap.fall, rangeName, rate, loop);
     };
     CharacterController.prototype.setSound = function (sound) {
+        if (sound == null)
+            return;
+        this._stepSound = sound;
         var ccActionNames = Object.keys(this._actionMap);
         sound.loop = false;
         for (var _i = 0, ccActionNames_2 = ccActionNames; _i < ccActionNames_2.length; _i++) {
@@ -708,26 +713,27 @@ var CharacterController = (function () {
             if (this._prevActData !== actData) {
                 if (actData.exist) {
                     var c = void 0;
+                    var fps = 30;
                     if (this._isAG) {
                         if (this._prevActData != null && this._prevActData.exist)
                             this._prevActData.ag.stop();
                         actData.ag.start(actData.loop, actData.rate);
-                        c = (actData.ag.to - actData.ag.from) * 30;
+                        fps = actData.ag.targetedAnimations[0].animation.framePerSecond;
+                        c = (actData.ag.to - actData.ag.from) * fps;
                     }
                     else {
                         var a = this._skeleton.beginAnimation(actData.name, actData.loop, actData.rate);
                         this._currentActData = actData;
                         c = this._skeleton.getAnimationRange(actData.name).to - this._skeleton.getAnimationRange(actData.name).from;
+                        fps = a.getAnimations()[0].animation.framePerSecond;
                     }
                     if (this._prevActData != null && this._prevActData.sound != null) {
                         this._prevActData.sound.stop();
-                        if (this._sndId != null) {
-                            clearInterval(this._sndId);
-                        }
                     }
+                    clearInterval(this._sndId);
                     if (actData.sound != null) {
                         actData.sound.play();
-                        this._sndId = setInterval(function () { actData.sound.play(); }, c * 1000 / (30 * actData.rate * 2));
+                        this._sndId = setInterval(function () { actData.sound.play(); }, c * 1000 / (fps * actData.rate * 2));
                     }
                 }
                 this._prevActData = actData;

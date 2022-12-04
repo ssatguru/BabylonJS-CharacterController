@@ -266,6 +266,7 @@ export class CharacterController {
         ccs.minSlopeLimit = this._minSlopeLimit;
         ccs.noFirstPerson = this._noFirstPerson;
         ccs.stepOffset = this._stepOffset;
+        ccs.sound = this._stepSound;
 
         return ccs;
     }
@@ -283,6 +284,7 @@ export class CharacterController {
         this.setSlopeLimit(ccs.minSlopeLimit, ccs.maxSlopeLimit);
         this.setNoFirstPerson(ccs.noFirstPerson);
         this.setStepOffset(ccs.stepOffset);
+        this.setSound(ccs.sound);
 
     }
 
@@ -405,8 +407,12 @@ export class CharacterController {
         this._setAnim(this._actionMap.fall, rangeName, rate, loop);
     }
 
+
+    _stepSound: Sound;
     // setters for sound
     public setSound(sound: Sound) {
+        if (sound == null) return;
+        this._stepSound = sound;
         let ccActionNames: string[] = Object.keys(this._actionMap);
         sound.loop = false;
         for (let ccActionName of ccActionNames) {
@@ -741,6 +747,7 @@ export class CharacterController {
 
                     //animation frame counts
                     let c: number;
+                    let fps: number = 30;
 
                     if (this._isAG) {
                         if (this._prevActData != null && this._prevActData.exist) this._prevActData.ag.stop();
@@ -749,27 +756,27 @@ export class CharacterController {
                         //anim._ag.speedRatio = anim._rate;
                         actData.ag.start(actData.loop, actData.rate);
                         //ag returns normalized frame values between 0 and 1
-                        //we will assume 30 fps for animations 
-                        c = (actData.ag.to - actData.ag.from) * 30;
+                        fps = actData.ag.targetedAnimations[0].animation.framePerSecond
+                        c = (actData.ag.to - actData.ag.from) * fps;
                     } else {
                         let a: Animatable = this._skeleton.beginAnimation(actData.name, actData.loop, actData.rate);
                         //a.onAnimationLoop = () => { if (actData.sound != null) actData.sound.play(); };
                         this._currentActData = actData;
                         c = this._skeleton.getAnimationRange(actData.name).to - this._skeleton.getAnimationRange(actData.name).from;
+                        fps = a.getAnimations()[0].animation.framePerSecond
                     }
 
+                    //SOUND
+                    //TODO do sound as animationevent.
                     if (this._prevActData != null && this._prevActData.sound != null) {
                         this._prevActData.sound.stop();
-                        if (this._sndId != null) {
-                            clearInterval(this._sndId);
-                        }
                     }
+                    clearInterval(this._sndId);
                     if (actData.sound != null) {
                         actData.sound.play();
-                        //we will assume 30 fps for animations and play sound twice during the animation
-                        this._sndId = setInterval(() => { actData.sound.play(); }, c * 1000 / (30 * actData.rate * 2));
+                        //play sound twice during the animation
+                        this._sndId = setInterval(() => { actData.sound.play(); }, c * 1000 / (fps * actData.rate * 2));
                     }
-
                 }
                 this._prevActData = actData;
             }
@@ -1775,4 +1782,5 @@ export class CCSettings {
     //turningOff takes effect only when topDown is false
     public turningOff: boolean = true;
     public keyboard: boolean = true;
+    public sound: Sound;
 }
