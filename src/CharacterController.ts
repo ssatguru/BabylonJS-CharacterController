@@ -581,7 +581,6 @@ export class CharacterController {
             this._isLHS_RHS = false;
             this._signLHS_RHS = -1;
         }
-        console.log("have rhs lhs issue " + this._isLHS_RHS);
     }
 
     /**
@@ -787,7 +786,7 @@ export class CharacterController {
 
     private _soundLoopTime = 700;
     private _sndId = null;
-    private _ae: AnimationEvent = new AnimationEvent(0, () => { console.log("anim event playing"); if (this._currentActData.sound != null) this._currentActData.sound.play(); });
+    private _ae: AnimationEvent = new AnimationEvent(0, () => { if (this._currentActData.sound != null) this._currentActData.sound.play(); });
 
     //verical position of AV when it is about to start a jump
     private _jumpStartPosY: number = 0;

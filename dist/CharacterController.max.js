@@ -147,7 +147,7 @@ var CharacterController = (function () {
         this._wasRunning = false;
         this._soundLoopTime = 700;
         this._sndId = null;
-        this._ae = new babylonjs__WEBPACK_IMPORTED_MODULE_0__["AnimationEvent"](0, function () { console.log("anim event playing"); if (_this._currentActData.sound != null)
+        this._ae = new babylonjs__WEBPACK_IMPORTED_MODULE_0__["AnimationEvent"](0, function () { if (_this._currentActData.sound != null)
             _this._currentActData.sound.play(); });
         this._jumpStartPosY = 0;
         this._jumpTime = 0;
@@ -602,7 +602,6 @@ var CharacterController = (function () {
             this._isLHS_RHS = false;
             this._signLHS_RHS = -1;
         }
-        console.log("have rhs lhs issue " + this._isLHS_RHS);
     };
     CharacterController.prototype.setFaceForward = function (b) {
         this._ff = b;
