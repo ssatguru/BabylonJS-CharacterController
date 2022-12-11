@@ -2,13 +2,39 @@ window.onload = function () {
   main();
 };
 
+let animPaused = false;
+let cc;
+let scene;
+let skeleton;
+let allAGs;
+
 function main() {
-  var helpButton = document.getElementById("help");
-  var el = document.getElementById("overlay");
-  var closeButton = document.getElementById("closehelp");
+  let helpButton = document.getElementById("help");
+  let closeButton = document.getElementById("closehelp");
+  let pauseButton = document.getElementById("pause");
+  let el = document.getElementById("overlay");
+
+  let canvasElement = document.getElementById("renderCanvas");
 
   helpButton.onclick = closeButton.onclick = () => {
     el.style.visibility = el.style.visibility == "visible" ? "hidden" : "visible";
+  };
+
+  pauseButton.onclick = () => {
+    if (animPaused) {
+      pauseButton.innerHTML = "Pause";
+      allAGs[7].stop();
+      cc.enableKeyBoard(true);
+      cc.resumeAnim();
+      canvasElement.focus();
+    } else {
+      cc.pauseAnim();
+      cc.enableKeyBoard(false);
+      pauseButton.innerHTML = "Resume";
+      allAGs[7].start(false, 1);
+      canvasElement.focus();
+    }
+    animPaused = !animPaused;
   };
 
   /*
@@ -16,7 +42,7 @@ function main() {
    */
   var canvas = document.querySelector("#renderCanvas");
   var engine = new BABYLON.Engine(canvas, true);
-  var scene = new BABYLON.Scene(engine);
+  scene = new BABYLON.Scene(engine);
 
   scene.clearColor = new BABYLON.Color3(0.75, 0.75, 0.75);
   scene.ambientColor = new BABYLON.Color3(1, 1, 1);
@@ -34,6 +60,11 @@ function main() {
   var ground = createGround(scene, groundMaterial);
 
   loadPlayer(scene, engine, canvas);
+
+  //box to test view obstruction
+  var box = BABYLON.Mesh.CreateBox("box", 2, scene);
+  box.checkCollisions = true;
+  box.position = new BABYLON.Vector3(0, 8, 5);
 
   window.addEventListener("resize", function () {
     engine.resize();
@@ -86,16 +117,19 @@ function loadPlayer(scene, engine, canvas) {
     // key = the name of the character controller  animation
     // and
     // value = the AnimationGroup corresponding to that animation.
-    // In our example the name of the AnimationGroup is the same as the name of name of the character controller  animation
-    // so the following will work.
-    var agMap = {};
-    var allAGs = scene.animationGroups;
-    for (i = 0; i < allAGs.length; i++) {
-      agMap[allAGs[i].name] = allAGs[i];
-    }
-    allAGs[0].stop();
 
-    var cc = new CharacterController(player, camera, scene, agMap, true);
+    allAGs = scene.animationGroups;
+
+    //stop all animations
+    //also lets print to console the list of animation groups we have in this file to help map them properly
+    for (i = 0; i < allAGs.length; i++) {
+      allAGs[i].stop();
+      console.log(i + "," + allAGs[i].name);
+    }
+
+    var agMap = createAGmap(allAGs);
+
+    cc = new CharacterController(player, camera, scene, agMap, true);
 
     cc.setMode(0);
     //below makes the controller point the camera at the player head which is approx
@@ -116,6 +150,7 @@ function loadPlayer(scene, engine, canvas) {
     // - wether the animation range should be looped
     //use this if name, rate or looping is different from default
     //set a parm to null if you donot want to change that
+
     cc.setIdleAnim(null, 1, true);
     cc.setTurnLeftAnim(null, 0.5, true);
     cc.setTurnRightAnim(null, 0.5, true);
@@ -126,12 +161,16 @@ function loadPlayer(scene, engine, canvas) {
     cc.setFallAnim(null, 2, false);
     cc.setSlideBackAnim(null, 1, false);
 
-    let walkSound = new BABYLON.Sound(
-      "walk",
+    //let's set footstep sound
+    //this sound will be played for all actions except idle.
+    //the sound will be played twice per cycle of the animation
+    //the rate will be set automatically based on frames and fps of animation
+    let sound = new BABYLON.Sound(
+      "footstep",
       "./sounds/footstep_carpet_000.ogg",
       scene,
       () => {
-        cc.setSound(walkSound);
+        cc.setSound(sound);
       },
       { loop: false }
     );
@@ -139,9 +178,10 @@ function loadPlayer(scene, engine, canvas) {
     //set how smmothly should we transition from one animation to another
     cc.enableBlending(0.05);
 
+    //if somehting comes between camera and avatar move camera in front of the obstruction?
     cc.setCameraElasticity(true);
+    //if something comes between camera and avatar make the obstruction invisible?
     cc.makeObstructionInvisible(false);
-    cc.start();
 
     cc.start();
 
@@ -149,6 +189,26 @@ function loadPlayer(scene, engine, canvas) {
       scene.render();
     });
   });
+}
+
+function createAGmap(allAGs) {
+  //lets map ag groups to the character controller actions.
+  let agMap = {
+    idle: allAGs[0],
+    strafeLeft: allAGs[3],
+    strafeRight: allAGs[4],
+    turnRight: allAGs[5],
+    walk: allAGs[6],
+    fall: allAGs[8],
+    slideBack: allAGs[9],
+    runJump: allAGs[10],
+    turnLeft: allAGs[11],
+    walkBack: allAGs[12],
+    run: allAGs[13],
+    idleJump: allAGs[14],
+  };
+
+  return agMap;
 }
 
 function createGround(scene, groundMaterial) {

@@ -2,13 +2,38 @@ window.onload = function () {
   main();
 };
 
+let animPaused = false;
+let cc;
+let scene;
+let skeleton;
+
 function main() {
-  var helpButton = document.getElementById("help");
-  var closeButton = document.getElementById("closehelp");
-  var el = document.getElementById("overlay");
+  let helpButton = document.getElementById("help");
+  let closeButton = document.getElementById("closehelp");
+  let pauseButton = document.getElementById("pause");
+  let el = document.getElementById("overlay");
+
+  let canvasElement = document.getElementById("renderCanvas");
 
   helpButton.onclick = closeButton.onclick = () => {
     el.style.visibility = el.style.visibility == "visible" ? "hidden" : "visible";
+  };
+
+  pauseButton.onclick = () => {
+    if (animPaused) {
+      pauseButton.innerHTML = "Pause";
+      scene.stopAnimation(skeleton);
+      cc.enableKeyBoard(true);
+      cc.resumeAnim();
+      canvasElement.focus();
+    } else {
+      cc.pauseAnim();
+      cc.enableKeyBoard(false);
+      pauseButton.innerHTML = "Resume";
+      skeleton.beginAnimation("sit", false, 1);
+      canvasElement.focus();
+    }
+    animPaused = !animPaused;
   };
 
   /*
@@ -16,7 +41,7 @@ function main() {
    */
   var canvas = document.querySelector("#renderCanvas");
   var engine = new BABYLON.Engine(canvas, true);
-  var scene = new BABYLON.Scene(engine);
+  scene = new BABYLON.Scene(engine);
 
   scene.clearColor = new BABYLON.Color3(0.75, 0.75, 0.75);
   scene.ambientColor = new BABYLON.Color3(1, 1, 1);
@@ -35,6 +60,7 @@ function main() {
 
   loadPlayer(scene, engine, canvas);
 
+  //box to test view obstruction
   var box = BABYLON.Mesh.CreateBox("box", 2, scene);
   box.checkCollisions = true;
   box.position = new BABYLON.Vector3(0, 8, 5);
@@ -47,10 +73,11 @@ function main() {
 function loadPlayer(scene, engine, canvas) {
   BABYLON.SceneLoader.ImportMesh("", "player/", "Vincent-frontFacing.babylon", scene, (meshes, particleSystems, skeletons) => {
     var player = meshes[0];
-    var skeleton = skeletons[0];
+    skeleton = skeletons[0];
     player.skeleton = skeleton;
 
     skeleton.enableBlending(0.1);
+
     //if the skeleton does not have any animation ranges then set them as below
     // setAnimationRanges(skeleton);
 
@@ -81,16 +108,17 @@ function loadPlayer(scene, engine, canvas) {
     camera.keysDown = [];
 
     // below are all standard camera settings.
-    // nothing specific to charcter controller
+    // nothing specific to character controller
     camera.wheelPrecision = 15;
     camera.checkCollisions = false;
     //how close can the camera come to player
     camera.lowerRadiusLimit = 2;
     //how far can the camera go from the player
     camera.upperRadiusLimit = 20;
+
     camera.attachControl(canvas, false);
 
-    var cc = new CharacterController(player, camera, scene);
+    cc = new CharacterController(player, camera, scene);
 
     cc.setFaceForward(true);
     cc.setMode(0);
@@ -121,19 +149,29 @@ function loadPlayer(scene, engine, canvas) {
     cc.setFallAnim("fall", 2, false);
     cc.setSlideBackAnim("slideBack", 1, false);
 
-    let walkSound = new BABYLON.Sound(
-      "walk",
+    //let's set footstep sound
+    //this sound will be played for all actions except idle.
+    //the sound will be played twice per cycle of the animation
+    //the rate will be set automatically based on frames and fps of animation
+    let sound = new BABYLON.Sound(
+      "footstep",
       "./sounds/footstep_carpet_000.ogg",
       scene,
       () => {
-        cc.setSound(walkSound);
+        cc.setSound(sound);
       },
       { loop: false }
     );
 
-    cc.start();
+    //set how smmothly should we transition from one animation to another
+    cc.enableBlending(0.05);
 
-    cc.idle();
+    //if somehting comes between camera and avatar move camera in front of the obstruction?
+    cc.setCameraElasticity(true);
+    //if somehting comes between camera and avatar make the obstruction invisible?
+    cc.makeObstructionInvisible(false);
+
+    cc.start();
 
     engine.runRenderLoop(function () {
       scene.render();

@@ -110,11 +110,9 @@ export declare class CharacterController {
     private _wasRunning;
     private _moveVector;
     private _isAvFacingCamera;
-    _currentActData: ActionData;
     private _moveAVandCamera;
     private _soundLoopTime;
     private _sndId;
-    private _ae;
     private _jumpStartPosY;
     private _jumpTime;
     private _doJump;

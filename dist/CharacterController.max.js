@@ -7,115 +7,109 @@
 		var a = typeof exports === 'object' ? factory(require("babylonjs")) : factory(root["BABYLON"]);
 		for(var i in a) (typeof exports === 'object' ? exports : root)[i] = a[i];
 	}
-})(window, function(__WEBPACK_EXTERNAL_MODULE_babylonjs__) {
-return /******/ (function(modules) { // webpackBootstrap
+})(self, (__WEBPACK_EXTERNAL_MODULE_babylonjs__) => {
+return /******/ (() => { // webpackBootstrap
+/******/ 	"use strict";
+/******/ 	var __webpack_modules__ = ({
+
+/***/ "babylonjs":
+/*!****************************************************************************************************!*\
+  !*** external {"commonjs":"babylonjs","commonjs2":"babylonjs","amd":"babylonjs","root":"BABYLON"} ***!
+  \****************************************************************************************************/
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_MODULE_babylonjs__;
+
+/***/ })
+
+/******/ 	});
+/************************************************************************/
 /******/ 	// The module cache
-/******/ 	var installedModules = {};
-/******/
+/******/ 	var __webpack_module_cache__ = {};
+/******/ 	
 /******/ 	// The require function
 /******/ 	function __webpack_require__(moduleId) {
-/******/
 /******/ 		// Check if module is in cache
-/******/ 		if(installedModules[moduleId]) {
-/******/ 			return installedModules[moduleId].exports;
+/******/ 		var cachedModule = __webpack_module_cache__[moduleId];
+/******/ 		if (cachedModule !== undefined) {
+/******/ 			return cachedModule.exports;
 /******/ 		}
 /******/ 		// Create a new module (and put it into the cache)
-/******/ 		var module = installedModules[moduleId] = {
-/******/ 			i: moduleId,
-/******/ 			l: false,
+/******/ 		var module = __webpack_module_cache__[moduleId] = {
+/******/ 			// no module.id needed
+/******/ 			// no module.loaded needed
 /******/ 			exports: {}
 /******/ 		};
-/******/
+/******/ 	
 /******/ 		// Execute the module function
-/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
-/******/
-/******/ 		// Flag the module as loaded
-/******/ 		module.l = true;
-/******/
+/******/ 		__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+/******/ 	
 /******/ 		// Return the exports of the module
 /******/ 		return module.exports;
 /******/ 	}
-/******/
-/******/
-/******/ 	// expose the modules object (__webpack_modules__)
-/******/ 	__webpack_require__.m = modules;
-/******/
-/******/ 	// expose the module cache
-/******/ 	__webpack_require__.c = installedModules;
-/******/
-/******/ 	// define getter function for harmony exports
-/******/ 	__webpack_require__.d = function(exports, name, getter) {
-/******/ 		if(!__webpack_require__.o(exports, name)) {
-/******/ 			Object.defineProperty(exports, name, { enumerable: true, get: getter });
-/******/ 		}
-/******/ 	};
-/******/
-/******/ 	// define __esModule on exports
-/******/ 	__webpack_require__.r = function(exports) {
-/******/ 		if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-/******/ 			Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-/******/ 		}
-/******/ 		Object.defineProperty(exports, '__esModule', { value: true });
-/******/ 	};
-/******/
-/******/ 	// create a fake namespace object
-/******/ 	// mode & 1: value is a module id, require it
-/******/ 	// mode & 2: merge all properties of value into the ns
-/******/ 	// mode & 4: return value when already ns object
-/******/ 	// mode & 8|1: behave like require
-/******/ 	__webpack_require__.t = function(value, mode) {
-/******/ 		if(mode & 1) value = __webpack_require__(value);
-/******/ 		if(mode & 8) return value;
-/******/ 		if((mode & 4) && typeof value === 'object' && value && value.__esModule) return value;
-/******/ 		var ns = Object.create(null);
-/******/ 		__webpack_require__.r(ns);
-/******/ 		Object.defineProperty(ns, 'default', { enumerable: true, value: value });
-/******/ 		if(mode & 2 && typeof value != 'string') for(var key in value) __webpack_require__.d(ns, key, function(key) { return value[key]; }.bind(null, key));
-/******/ 		return ns;
-/******/ 	};
-/******/
-/******/ 	// getDefaultExport function for compatibility with non-harmony modules
-/******/ 	__webpack_require__.n = function(module) {
-/******/ 		var getter = module && module.__esModule ?
-/******/ 			function getDefault() { return module['default']; } :
-/******/ 			function getModuleExports() { return module; };
-/******/ 		__webpack_require__.d(getter, 'a', getter);
-/******/ 		return getter;
-/******/ 	};
-/******/
-/******/ 	// Object.prototype.hasOwnProperty.call
-/******/ 	__webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
-/******/
-/******/ 	// __webpack_public_path__
-/******/ 	__webpack_require__.p = "";
-/******/
-/******/
-/******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = "./src/CharacterController.ts");
-/******/ })
+/******/ 	
 /************************************************************************/
-/******/ ({
-
-/***/ "./src/CharacterController.ts":
+/******/ 	/* webpack/runtime/compat get default export */
+/******/ 	(() => {
+/******/ 		// getDefaultExport function for compatibility with non-harmony modules
+/******/ 		__webpack_require__.n = (module) => {
+/******/ 			var getter = module && module.__esModule ?
+/******/ 				() => (module['default']) :
+/******/ 				() => (module);
+/******/ 			__webpack_require__.d(getter, { a: getter });
+/******/ 			return getter;
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/define property getters */
+/******/ 	(() => {
+/******/ 		// define getter functions for harmony exports
+/******/ 		__webpack_require__.d = (exports, definition) => {
+/******/ 			for(var key in definition) {
+/******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
+/******/ 	(() => {
+/******/ 		__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/make namespace object */
+/******/ 	(() => {
+/******/ 		// define __esModule on exports
+/******/ 		__webpack_require__.r = (exports) => {
+/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 			}
+/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/************************************************************************/
+var __webpack_exports__ = {};
+// This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
+(() => {
 /*!************************************!*\
   !*** ./src/CharacterController.ts ***!
   \************************************/
-/*! exports provided: CharacterController, ActionData, ActionMap, CCSettings */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CharacterController", function() { return CharacterController; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ActionData", function() { return ActionData; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ActionMap", function() { return ActionMap; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CCSettings", function() { return CCSettings; });
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "ActionData": () => (/* binding */ ActionData),
+/* harmony export */   "ActionMap": () => (/* binding */ ActionMap),
+/* harmony export */   "CCSettings": () => (/* binding */ CCSettings),
+/* harmony export */   "CharacterController": () => (/* binding */ CharacterController)
+/* harmony export */ });
 /* harmony import */ var babylonjs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! babylonjs */ "babylonjs");
 /* harmony import */ var babylonjs__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(babylonjs__WEBPACK_IMPORTED_MODULE_0__);
 
 var CharacterController = (function () {
     function CharacterController(avatar, camera, scene, actionMap, faceForward) {
-        var _this = this;
         if (faceForward === void 0) { faceForward = false; }
+        var _this = this;
         this._avatar = null;
         this._skeleton = null;
         this._gravity = 9.8;
@@ -125,10 +119,10 @@ var CharacterController = (function () {
         this._sl2 = Math.PI * this._maxSlopeLimit / 180;
         this._stepOffset = 0.25;
         this._vMoveTot = 0;
-        this._vMovStartPos = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].Zero();
+        this._vMovStartPos = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Zero();
         this._actionMap = new ActionMap();
         this._cameraElastic = true;
-        this._cameraTarget = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].Zero();
+        this._cameraTarget = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Zero();
         this._noFirstPerson = false;
         this._mode = 0;
         this._saveMode = 0;
@@ -137,7 +131,7 @@ var CharacterController = (function () {
         this._started = false;
         this._stopAnim = false;
         this._prevActData = null;
-        this._avStartPos = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].Zero();
+        this._avStartPos = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Zero();
         this._grounded = false;
         this._freeFallDist = 0;
         this._fallFrameCountMin = 50;
@@ -147,8 +141,6 @@ var CharacterController = (function () {
         this._wasRunning = false;
         this._soundLoopTime = 700;
         this._sndId = null;
-        this._ae = new babylonjs__WEBPACK_IMPORTED_MODULE_0__["AnimationEvent"](0, function () { if (_this._currentActData.sound != null)
-            _this._currentActData.sound.play(); });
         this._jumpStartPosY = 0;
         this._jumpTime = 0;
         this._movFallTime = 0;
@@ -160,8 +152,8 @@ var CharacterController = (function () {
         this._groundFrameMax = 10;
         this._savedCameraCollision = true;
         this._inFP = false;
-        this._ray = new babylonjs__WEBPACK_IMPORTED_MODULE_0__["Ray"](babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].Zero(), babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].One(), 1);
-        this._rayDir = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].Zero();
+        this._ray = new babylonjs__WEBPACK_IMPORTED_MODULE_0__.Ray(babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Zero(), babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.One(), 1);
+        this._rayDir = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Zero();
         this._cameraSkin = 0.5;
         this._pickedMeshes = new Array();
         this._makeInvisible = false;
@@ -263,7 +255,7 @@ var CharacterController = (function () {
             ccActData.exist = false;
             inActData = inActMap[ccActData.id];
             if (inActData != null) {
-                if (inActData instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__["AnimationGroup"]) {
+                if (inActData instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__.AnimationGroup) {
                     ccActData.ag = inActData;
                     ccActData.name = ccActData.ag.name;
                     ccActData.exist = true;
@@ -363,7 +355,7 @@ var CharacterController = (function () {
             return;
         if (animName != null) {
             if (this._isAG) {
-                if (!(animName instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__["AnimationGroup"]))
+                if (!(animName instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__.AnimationGroup))
                     return;
                 anim.ag = animName;
                 anim.exist = true;
@@ -590,11 +582,11 @@ var CharacterController = (function () {
     };
     CharacterController.prototype._setRHS = function (mesh) {
         var meshMatrix = mesh.getWorldMatrix();
-        var _localX = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].FromArray(meshMatrix.m, 0);
-        var _localY = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].FromArray(meshMatrix.m, 4);
-        var _localZ = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].FromArray(meshMatrix.m, 8);
-        var actualZ = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].Cross(_localX, _localY);
-        if (babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].Dot(actualZ, _localZ) < 0) {
+        var _localX = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.FromArray(meshMatrix.m, 0);
+        var _localY = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.FromArray(meshMatrix.m, 4);
+        var _localZ = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.FromArray(meshMatrix.m, 8);
+        var actualZ = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Cross(_localX, _localY);
+        if (babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Dot(actualZ, _localZ) < 0) {
             this._isLHS_RHS = true;
             this._signLHS_RHS = 1;
         }
@@ -636,7 +628,7 @@ var CharacterController = (function () {
         var ns;
         if (fromRoot) {
             r = this._getRoot(node);
-            ns = r.getChildren(function (n) { return (n instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__["TransformNode"]); }, false);
+            ns = r.getChildren(function (n) { return (n instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__.TransformNode); }, false);
         }
         else {
             r = node;
@@ -681,12 +673,28 @@ var CharacterController = (function () {
     };
     CharacterController.prototype.pauseAnim = function () {
         this._stopAnim = true;
+        if (this._prevActData != null && this._prevActData.exist) {
+            if (this._isAG) {
+                this._prevActData.ag.stop();
+            }
+            else {
+                console.log("stopping ar " + this._prevActData.name);
+                this._scene.stopAnimation(this._skeleton);
+            }
+            if (this._prevActData.sound != null) {
+                this._prevActData.sound.stop();
+            }
+            clearInterval(this._sndId);
+            this._scene.unregisterBeforeRender(this._renderer);
+        }
     };
     CharacterController.prototype.resumeAnim = function () {
         this._stopAnim = false;
+        this._prevActData = null;
+        this._scene.registerBeforeRender(this._renderer);
     };
     CharacterController.prototype._isAvFacingCamera = function () {
-        if (babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].Dot(this._avatar.forward, this._avatar.position.subtract(this._camera.position)) < 0)
+        if (babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Dot(this._avatar.forward, this._avatar.position.subtract(this._camera.position)) < 0)
             return 1;
         else
             return -1;
@@ -718,13 +726,12 @@ var CharacterController = (function () {
                             this._prevActData.ag.stop();
                         actData.ag.start(actData.loop, actData.rate);
                         fps = actData.ag.targetedAnimations[0].animation.framePerSecond;
-                        c = (actData.ag.to - actData.ag.from) * fps;
+                        c = (actData.ag.to - actData.ag.from);
                     }
                     else {
                         var a = this._skeleton.beginAnimation(actData.name, actData.loop, actData.rate);
-                        this._currentActData = actData;
-                        c = this._skeleton.getAnimationRange(actData.name).to - this._skeleton.getAnimationRange(actData.name).from;
                         fps = a.getAnimations()[0].animation.framePerSecond;
+                        c = this._skeleton.getAnimationRange(actData.name).to - this._skeleton.getAnimationRange(actData.name).from;
                     }
                     if (this._prevActData != null && this._prevActData.sound != null) {
                         this._prevActData.sound.stop();
@@ -732,7 +739,7 @@ var CharacterController = (function () {
                     clearInterval(this._sndId);
                     if (actData.sound != null) {
                         actData.sound.play();
-                        this._sndId = setInterval(function () { actData.sound.play(); }, c * 1000 / (fps * actData.rate * 2));
+                        this._sndId = setInterval(function () { actData.sound.play(); }, c * 1000 / (fps * Math.abs(actData.rate) * 2));
                     }
                 }
                 this._prevActData = actData;
@@ -769,7 +776,7 @@ var CharacterController = (function () {
         }
         else {
             jumpDist = this._calcJumpDist(this._actionMap.idleJump.speed, dt);
-            disp = new babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"](0, jumpDist, 0);
+            disp = new babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3(0, jumpDist, 0);
             actData = this._actionMap.idleJump;
         }
         this._avatar.moveWithCollisions(disp);
@@ -1053,7 +1060,7 @@ var CharacterController = (function () {
         }
         if (this._freeFallDist < 0.01)
             return anim;
-        var disp = new babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"](0, -this._freeFallDist, 0);
+        var disp = new babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3(0, -this._freeFallDist, 0);
         if (this._mode != 1 && !this._noRot)
             this._avatar.rotation.y = this._av2cam - this._camera.alpha;
         this._avatar.moveWithCollisions(disp);
@@ -1356,10 +1363,10 @@ var CharacterController = (function () {
     };
     CharacterController.prototype._findSkel = function (n) {
         var root = this._root(n);
-        if (root instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__["Mesh"] && root.skeleton)
+        if (root instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__.Mesh && root.skeleton)
             return root.skeleton;
         var ms = root.getChildMeshes(false, function (cm) {
-            if (cm instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__["Mesh"]) {
+            if (cm instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__.Mesh) {
                 if (cm.skeleton) {
                     return true;
                 }
@@ -1379,7 +1386,7 @@ var CharacterController = (function () {
     CharacterController.prototype.setAvatar = function (avatar, faceForward) {
         if (faceForward === void 0) { faceForward = false; }
         var rootNode = this._root(avatar);
-        if (rootNode instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__["Mesh"]) {
+        if (rootNode instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__.Mesh) {
             this._avatar = rootNode;
         }
         else {
@@ -1504,7 +1511,7 @@ var CCSettings = (function () {
     function CCSettings() {
         this.cameraElastic = true;
         this.makeInvisble = true;
-        this.cameraTarget = babylonjs__WEBPACK_IMPORTED_MODULE_0__["Vector3"].Zero();
+        this.cameraTarget = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Zero();
         this.noFirstPerson = false;
         this.topDown = true;
         this.turningOff = true;
@@ -1514,20 +1521,10 @@ var CCSettings = (function () {
 }());
 
 
+})();
 
-/***/ }),
-
-/***/ "babylonjs":
-/*!****************************************************************************************************!*\
-  !*** external {"commonjs":"babylonjs","commonjs2":"babylonjs","amd":"babylonjs","root":"BABYLON"} ***!
-  \****************************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-module.exports = __WEBPACK_EXTERNAL_MODULE_babylonjs__;
-
-/***/ })
-
-/******/ });
+/******/ 	return __webpack_exports__;
+/******/ })()
+;
 });
 //# sourceMappingURL=CharacterController.max.js.map

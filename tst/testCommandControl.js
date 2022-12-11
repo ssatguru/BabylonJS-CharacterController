@@ -349,6 +349,16 @@ function setControls() {
     cc.enableKeyBoard(e.target.checked);
     canvas.focus();
   };
-  document.getElementById("help").onclick = showHelp;
+  // document.getElementById("help").onclick = showHelp;
   document.getElementById("closehelp").onclick = showHelp;
+
+  let animPaused = false;
+  document.getElementById("help").onclick = (e) => {
+    if (animPaused) {
+      cc.resumeAnim();
+    } else {
+      cc.pauseAnim();
+    }
+    animPaused = !animPaused;
+  };
 }

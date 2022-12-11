@@ -1,77 +1,81 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <title>CharacterController Demo</title>
-    <style>
-      html,
-      body {
-        overflow: hidden;
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        padding: 0;
-      }
 
-      #controls {
-        position: absolute;
-        left: 10px;
-        top: 10px;
-      }
+<head>
+  <meta charset="utf-8" />
+  <title>CharacterController Demo</title>
+  <style>
+    html,
+    body {
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
 
-      #renderCanvas {
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 100%;
-        height: 100%;
-        touch-action: none;
-      }
+    #controls {
+      position: absolute;
+      left: 10px;
+      top: 10px;
+    }
 
-      #overlay {
-        visibility: hidden;
-        position: absolute;
-        left: 0px;
-        top: 0px;
-        width: 100%;
-        height: 100%;
-        text-align: center;
-        z-index: 1000;
-      }
+    #renderCanvas {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
 
-      #overlay div {
-        width: 400px;
-        margin: 100px auto;
-        background-color: #fff;
-        border: 1px solid #000;
-        padding: 15px;
-        text-align: center;
-      }
-    </style>
-    <script src="/node_modules/babylonjs/babylon.max.js"></script>
-    <script src="/node_modules/babylonjs-loaders/babylonjs.loaders.min.js"></script>
-    <script src="/node_modules/babylonjs-inspector/babylon.inspector.bundle.js"></script>
+    #overlay {
+      visibility: hidden;
+      position: absolute;
+      left: 0px;
+      top: 0px;
+      width: 100%;
+      height: 100%;
+      text-align: center;
+      z-index: 1000;
+    }
 
-    <script src="/dist/CharacterController.max.js"></script>
-    <script src="testAnimationRange.js"></script>
-  </head>
+    #overlay div {
+      width: 400px;
+      margin: 100px auto;
+      background-color: #fff;
+      border: 1px solid #000;
+      padding: 15px;
+      text-align: center;
+    }
+  </style>
+  <script src="/node_modules/babylonjs/babylon.max.js"></script>
+  <script src="/node_modules/babylonjs-loaders/babylonjs.loaders.min.js"></script>
+  <script src="/node_modules/babylonjs-inspector/babylon.inspector.bundle.js"></script>
 
-  <body>
-    <canvas id="renderCanvas"></canvas>
+  <script src="/dist/CharacterController.max.js"></script>
+  <script src="testAnimationRange.js"></script>
+</head>
 
-    <div id="controls">
-      <button id="help">Help</button>
+<body>
+  <canvas id="renderCanvas"></canvas>
+
+  <div id="controls">
+    <button id="help">Help</button><br>
+    <br>
+    <button id="pause">Pause</button>
+  </div>
+
+  <div id="overlay">
+    <div>
+      <h2>Demo of CharacterController for Babylonjs</h2>
+      <p>
+        For more information and source code head on over to <br />
+        <a href="https://ssatguru.github.io/BabylonJS-CharacterController/" target="link"> https://ssatguru.github.io/BabylonJS-CharacterController/</a>
+      </p>
+      <button id="closehelp">close</button>
     </div>
+  </div>
+</body>
 
-    <div id="overlay">
-      <div>
-        <h2>Demo of CharacterController for Babylonjs</h2>
-        <p>
-          For more information and source code head on over to <br />
-          <a href="https://ssatguru.github.io/BabylonJS-CharacterController/" target="link"> https://ssatguru.github.io/BabylonJS-CharacterController/</a>
-        </p>
-        <button id="closehelp">close</button>
-      </div>
-    </div>
-  </body>
 </html>

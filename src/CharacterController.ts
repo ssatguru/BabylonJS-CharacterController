@@ -20,7 +20,7 @@ import {
     Animatable,
     AnimationEvent
 } from "babylonjs";
-import { SubSurfaceConfiguration } from "babylonjs/Rendering/subSurfaceConfiguration";
+
 
 export class CharacterController {
 
@@ -685,6 +685,25 @@ export class CharacterController {
     private _stopAnim: boolean = false;
     public pauseAnim() {
         this._stopAnim = true;
+
+        if (this._prevActData != null && this._prevActData.exist) {
+            //stop current animation
+            if (this._isAG) {
+                this._prevActData.ag.stop();
+            } else {
+                console.log("stopping ar " + this._prevActData.name);
+                //this._scene.stopAnimation(this._skeleton, this._prevActData.name);
+                this._scene.stopAnimation(this._skeleton);
+                //this._scene.stopAllAnimations();
+            }
+            //stop current sound
+            if (this._prevActData.sound != null) {
+                this._prevActData.sound.stop();
+            }
+            clearInterval(this._sndId);
+
+            this._scene.unregisterBeforeRender(this._renderer);
+        }
     }
 
     /**
@@ -694,6 +713,8 @@ export class CharacterController {
      */
     public resumeAnim() {
         this._stopAnim = false;
+        this._prevActData = null;
+        this._scene.registerBeforeRender(this._renderer);
     }
 
     private _prevActData: ActionData = null;
@@ -723,7 +744,6 @@ export class CharacterController {
         else return -1;
     }
 
-    _currentActData: ActionData;
     private _moveAVandCamera() {
         this._avStartPos.copyFrom(this._avatar.position);
         let actData: ActionData = null;
@@ -750,19 +770,13 @@ export class CharacterController {
 
                     if (this._isAG) {
                         if (this._prevActData != null && this._prevActData.exist) this._prevActData.ag.stop();
-                        //TODO use start instead of play ?
-                        //anim._ag.play(anim._loop);
-                        //anim._ag.speedRatio = anim._rate;
                         actData.ag.start(actData.loop, actData.rate);
-                        //ag returns normalized frame values between 0 and 1
-                        fps = actData.ag.targetedAnimations[0].animation.framePerSecond
-                        c = (actData.ag.to - actData.ag.from) * fps;
+                        fps = actData.ag.targetedAnimations[0].animation.framePerSecond;
+                        c = (actData.ag.to - actData.ag.from);
                     } else {
                         let a: Animatable = this._skeleton.beginAnimation(actData.name, actData.loop, actData.rate);
-                        //a.onAnimationLoop = () => { if (actData.sound != null) actData.sound.play(); };
-                        this._currentActData = actData;
+                        fps = a.getAnimations()[0].animation.framePerSecond;
                         c = this._skeleton.getAnimationRange(actData.name).to - this._skeleton.getAnimationRange(actData.name).from;
-                        fps = a.getAnimations()[0].animation.framePerSecond
                     }
 
                     //SOUND
@@ -774,7 +788,7 @@ export class CharacterController {
                     if (actData.sound != null) {
                         actData.sound.play();
                         //play sound twice during the animation
-                        this._sndId = setInterval(() => { actData.sound.play(); }, c * 1000 / (fps * actData.rate * 2));
+                        this._sndId = setInterval(() => { actData.sound.play(); }, c * 1000 / (fps * Math.abs(actData.rate) * 2));
                     }
                 }
                 this._prevActData = actData;
@@ -786,7 +800,6 @@ export class CharacterController {
 
     private _soundLoopTime = 700;
     private _sndId = null;
-    private _ae: AnimationEvent = new AnimationEvent(0, () => { if (this._currentActData.sound != null) this._currentActData.sound.play(); });
 
     //verical position of AV when it is about to start a jump
     private _jumpStartPosY: number = 0;
