@@ -844,8 +844,8 @@ var CharacterController = (function () {
             this._moveVector.y = -this._freeFallDist;
             moving = true;
         }
-        this._rotateAV2C();
         actdata = this._rotateC2AV(actdata, moving, dt);
+        this._rotateAV2C();
         if (!this._inFreeFall) {
             this._wasWalking = false;
             this._wasRunning = false;
@@ -1000,7 +1000,7 @@ var CharacterController = (function () {
                 }
                 else {
                     if (this._hasCam)
-                        this._avatar.rotation.y = this._av2cam - ca;
+                        this._avatar.rotation.y = ca;
                 }
             }
     };
@@ -1036,6 +1036,7 @@ var CharacterController = (function () {
                         anim = (this._sign > 0) ? this._actionMap.turnLeft : this._actionMap.turnRight;
                     }
                 }
+                this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
             }
             else {
                 a = 1;
@@ -1056,7 +1057,6 @@ var CharacterController = (function () {
                 if (this._hasCam)
                     this._camera.alpha = this._camera.alpha + this._rhsSign * turnAngle * a;
             }
-            this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
         }
         return anim;
     };

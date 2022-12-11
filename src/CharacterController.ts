@@ -939,13 +939,11 @@ export class CharacterController {
         }
 
 
-
+        //in case avatar was rotated by player, rotate camera around avatar to align with avatar
+        actdata = this._rotateC2AV(actdata, moving, dt);
 
         //in case camera was rotated by player around the avatar, rotate the avatar to align with camera
         this._rotateAV2C();
-
-        //in case avatar was rotated by player, rotate camera around avatar to align with avatar
-        actdata = this._rotateC2AV(actdata, moving, dt);
 
         //now that avatar is rotated properly, construct the vector to move the avatar 
         //donot move the avatar if avatar is in freefall
@@ -1117,7 +1115,7 @@ export class CharacterController {
                     }
                 } else {
                     if (this._hasCam)
-                        this._avatar.rotation.y = this._av2cam - ca;
+                        this._avatar.rotation.y = ca;
                 }
             }
     }
@@ -1155,7 +1153,7 @@ export class CharacterController {
                         anim = (this._sign > 0) ? this._actionMap.turnLeft : this._actionMap.turnRight;
                     }
                 }
-                // this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
+                this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
             } else {
                 a = 1;
                 if (this._act._turnLeft) {
@@ -1169,7 +1167,7 @@ export class CharacterController {
                     this._camera.alpha = this._camera.alpha + this._rhsSign * turnAngle * a;
             }
 
-            this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
+            // this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
         }
         return anim;
     }
