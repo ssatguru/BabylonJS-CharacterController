@@ -181,6 +181,7 @@ export declare class CharacterController {
     private _skelDrivenByAG;
     getSkeleton(): Skeleton;
     private _hasAnims;
+    private _hasCam;
     constructor(avatar: Mesh, camera: ArcRotateCamera, scene: Scene, actionMap?: {}, faceForward?: boolean);
 }
 export declare class ActionData {

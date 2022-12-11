@@ -161,7 +161,12 @@ var CharacterController = (function () {
         this._move = false;
         this._isAG = false;
         this._hasAnims = false;
+        this._hasCam = true;
         this._camera = camera;
+        if (this._camera == null) {
+            this._hasCam = false;
+            this.setMode(1);
+        }
         this._scene = scene;
         var success = this.setAvatar(avatar, faceForward);
         if (!success) {
@@ -175,7 +180,8 @@ var CharacterController = (function () {
             this._checkAnimRanges(this._skeleton);
         if (this._isAG) {
         }
-        this._savedCameraCollision = this._camera.checkCollisions;
+        if (this._hasCam)
+            this._savedCameraCollision = this._camera.checkCollisions;
         this._act = new _Action();
         this._renderer = function () { _this._moveAVandCamera(); };
         this._handleKeyUp = function (e) { _this._onKeyUp(e); };
@@ -568,8 +574,14 @@ var CharacterController = (function () {
         f.rate = s.rate * 2;
     };
     CharacterController.prototype.setMode = function (n) {
-        this._mode = n;
-        this._saveMode = n;
+        if (this._hasCam) {
+            this._mode = n;
+            this._saveMode = n;
+        }
+        else {
+            this._mode = 1;
+            this._saveMode = 1;
+        }
     };
     CharacterController.prototype.getMode = function () {
         return this._mode;
@@ -598,6 +610,11 @@ var CharacterController = (function () {
     CharacterController.prototype.setFaceForward = function (b) {
         this._ff = b;
         this._rhsSign = this._scene.useRightHandedSystem ? -1 : 1;
+        if (!this._hasCam) {
+            this._av2cam = 0;
+            this._ffSign = 1;
+            return;
+        }
         if (this._isLHS_RHS) {
             this._av2cam = b ? Math.PI / 2 : 3 * Math.PI / 2;
             this._ffSign = b ? 1 : -1;
@@ -694,6 +711,8 @@ var CharacterController = (function () {
         this._scene.registerBeforeRender(this._renderer);
     };
     CharacterController.prototype._isAvFacingCamera = function () {
+        if (!this._hasCam)
+            return 1;
         if (babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Dot(this._avatar.forward, this._avatar.position.subtract(this._camera.position)) < 0)
             return 1;
         else
@@ -758,7 +777,7 @@ var CharacterController = (function () {
         var forwardDist = 0;
         var jumpDist = 0;
         var disp;
-        if (this._mode != 1 && !this._noRot)
+        if (this._hasCam && this._mode != 1 && !this._noRot)
             this._avatar.rotation.y = this._av2cam - this._camera.alpha;
         if (this._wasRunning || this._wasWalking) {
             if (this._wasRunning) {
@@ -825,8 +844,8 @@ var CharacterController = (function () {
             this._moveVector.y = -this._freeFallDist;
             moving = true;
         }
-        actdata = this._rotateC2AV(actdata, moving, dt);
         this._rotateAV2C();
+        actdata = this._rotateC2AV(actdata, moving, dt);
         if (!this._inFreeFall) {
             this._wasWalking = false;
             this._wasRunning = false;
@@ -948,39 +967,42 @@ var CharacterController = (function () {
         return actdata;
     };
     CharacterController.prototype._rotateAV2C = function () {
-        if (this._mode != 1) {
-            if (this._noRot) {
-                switch (true) {
-                    case (this._act._walk && this._act._turnRight):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + this._rhsSign * Math.PI / 4;
-                        break;
-                    case (this._act._walk && this._act._turnLeft):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha - this._rhsSign * Math.PI / 4;
-                        break;
-                    case (this._act._walkback && this._act._turnRight):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + this._rhsSign * 3 * Math.PI / 4;
-                        break;
-                    case (this._act._walkback && this._act._turnLeft):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha - this._rhsSign * 3 * Math.PI / 4;
-                        break;
-                    case (this._act._walk):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha;
-                        break;
-                    case (this._act._walkback):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + Math.PI;
-                        break;
-                    case (this._act._turnRight):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + this._rhsSign * Math.PI / 2;
-                        break;
-                    case (this._act._turnLeft):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha - this._rhsSign * Math.PI / 2;
-                        break;
+        if (this._hasCam)
+            if (this._mode != 1) {
+                var ca = (this._hasCam) ? (this._av2cam - this._camera.alpha) : 0;
+                if (this._noRot) {
+                    switch (true) {
+                        case (this._act._walk && this._act._turnRight):
+                            this._avatar.rotation.y = ca + this._rhsSign * Math.PI / 4;
+                            break;
+                        case (this._act._walk && this._act._turnLeft):
+                            this._avatar.rotation.y = ca - this._rhsSign * Math.PI / 4;
+                            break;
+                        case (this._act._walkback && this._act._turnRight):
+                            this._avatar.rotation.y = ca + this._rhsSign * 3 * Math.PI / 4;
+                            break;
+                        case (this._act._walkback && this._act._turnLeft):
+                            this._avatar.rotation.y = ca - this._rhsSign * 3 * Math.PI / 4;
+                            break;
+                        case (this._act._walk):
+                            this._avatar.rotation.y = ca;
+                            break;
+                        case (this._act._walkback):
+                            this._avatar.rotation.y = ca + Math.PI;
+                            break;
+                        case (this._act._turnRight):
+                            this._avatar.rotation.y = ca + this._rhsSign * Math.PI / 2;
+                            break;
+                        case (this._act._turnLeft):
+                            this._avatar.rotation.y = ca - this._rhsSign * Math.PI / 2;
+                            break;
+                    }
+                }
+                else {
+                    if (this._hasCam)
+                        this._avatar.rotation.y = this._av2cam - ca;
                 }
             }
-            else {
-                this._avatar.rotation.y = this._av2cam - this._camera.alpha;
-            }
-        }
     };
     CharacterController.prototype._rotateC2AV = function (anim, moving, dt) {
         if (!(this._noRot && this._mode == 0) && (!this._act._stepLeft && !this._act._stepRight) && (this._act._turnLeft || this._act._turnRight)) {
@@ -988,6 +1010,7 @@ var CharacterController = (function () {
             if (this._act._speedMod) {
                 turnAngle = 2 * turnAngle;
             }
+            var a = void 0;
             if (this._mode == 1) {
                 if (!this._isTurning) {
                     this._sign = -this._ffSign * this._isAvFacingCamera();
@@ -995,7 +1018,7 @@ var CharacterController = (function () {
                         this._sign = -this._sign;
                     this._isTurning = true;
                 }
-                var a = this._sign;
+                a = this._sign;
                 if (this._act._turnLeft) {
                     if (this._act._walk) { }
                     else if (this._act._walkback)
@@ -1013,10 +1036,9 @@ var CharacterController = (function () {
                         anim = (this._sign > 0) ? this._actionMap.turnLeft : this._actionMap.turnRight;
                     }
                 }
-                this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
             }
             else {
-                var a = 1;
+                a = 1;
                 if (this._act._turnLeft) {
                     if (this._act._walkback)
                         a = -1;
@@ -1031,8 +1053,10 @@ var CharacterController = (function () {
                         anim = this._actionMap.turnRight;
                     }
                 }
-                this._camera.alpha = this._camera.alpha + this._rhsSign * turnAngle * a;
+                if (this._hasCam)
+                    this._camera.alpha = this._camera.alpha + this._rhsSign * turnAngle * a;
             }
+            this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
         }
         return anim;
     };
@@ -1061,7 +1085,7 @@ var CharacterController = (function () {
         if (this._freeFallDist < 0.01)
             return anim;
         var disp = new babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3(0, -this._freeFallDist, 0);
-        if (this._mode != 1 && !this._noRot)
+        if (this._hasCam && this._mode != 1 && !this._noRot)
             this._avatar.rotation.y = this._av2cam - this._camera.alpha;
         this._avatar.moveWithCollisions(disp);
         if ((this._avatar.position.y > this._avStartPos.y) || (this._avatar.position.y === this._avStartPos.y)) {
@@ -1094,6 +1118,8 @@ var CharacterController = (function () {
         this._groundFrameCount = 0;
     };
     CharacterController.prototype._updateTargetValue = function () {
+        if (!this._hasCam)
+            return;
         if (this._vMoveTot == 0)
             this._avatar.position.addToRef(this._cameraTarget, this._camera.target);
         if (this._camera.radius > this._camera.lowerRadiusLimit) {

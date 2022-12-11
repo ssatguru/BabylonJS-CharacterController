@@ -527,13 +527,21 @@ export class CharacterController {
     /**
      * Use this to make the  character controller suitable for a isometeric/top down games or  fps/third person game.
      * 1 In isometric/top down games the camera direction has no bearing on avatar movement.
-     * 0 In fps/third person game rotating the camera around the avatar , rotates the avatr too.
+     * 0 In fps/third person game rotating the camera around the avatar , rotates the avatar too.
+     * 
+     * cannot switch mode to 0 if no camera avaiable.
      */
     private _mode = 0;
     private _saveMode = 0;
     public setMode(n: number) {
-        this._mode = n;
-        this._saveMode = n;
+        //cannot switch mode to 0 if no camera avaiable.
+        if (this._hasCam) {
+            this._mode = n;
+            this._saveMode = n;
+        } else {
+            this._mode = 1;
+            this._saveMode = 1;
+        }
     }
     public getMode() {
         return this._mode;
@@ -597,6 +605,12 @@ export class CharacterController {
         this._ff = b;
 
         this._rhsSign = this._scene.useRightHandedSystem ? -1 : 1;
+
+        if (!this._hasCam) {
+            this._av2cam = 0;
+            this._ffSign = 1;
+            return;
+        }
 
         if (this._isLHS_RHS) {
             this._av2cam = b ? Math.PI / 2 : 3 * Math.PI / 2;
@@ -740,6 +754,7 @@ export class CharacterController {
     //private _notFacingCamera = 1;
 
     private _isAvFacingCamera(): number {
+        if (!this._hasCam) return 1;
         if (Vector3.Dot(this._avatar.forward, this._avatar.position.subtract(this._camera.position)) < 0) return 1
         else return -1;
     }
@@ -818,7 +833,8 @@ export class CharacterController {
         let forwardDist: number = 0;
         let jumpDist: number = 0;
         let disp: Vector3;
-        if (this._mode != 1 && !this._noRot) this._avatar.rotation.y = this._av2cam - this._camera.alpha;
+
+        if (this._hasCam && this._mode != 1 && !this._noRot) this._avatar.rotation.y = this._av2cam - this._camera.alpha;
         if (this._wasRunning || this._wasWalking) {
             if (this._wasRunning) {
                 forwardDist = this._actionMap.run.speed * dt;
@@ -922,12 +938,14 @@ export class CharacterController {
             moving = true;
         }
 
+
+
+
+        //in case camera was rotated by player around the avatar, rotate the avatar to align with camera
+        this._rotateAV2C();
+
         //in case avatar was rotated by player, rotate camera around avatar to align with avatar
         actdata = this._rotateC2AV(actdata, moving, dt);
-
-
-        //in case camera was rotated around avatar by player, rotate avatar to align with camera
-        this._rotateAV2C();
 
         //now that avatar is rotated properly, construct the vector to move the avatar 
         //donot move the avatar if avatar is in freefall
@@ -1062,52 +1080,56 @@ export class CharacterController {
     }
 
     /**
-     * rotate avatar to camera in case player is rotating camera around avatar
+     * rotate avatar in camera direction, in case player had rotated  the camera around avatar
      */
 
 
     private _rotateAV2C() {
-        if (this._mode != 1) {
-            if (this._noRot) {
-                switch (true) {
-                    case (this._act._walk && this._act._turnRight):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + this._rhsSign * Math.PI / 4;
-                        break;
-                    case (this._act._walk && this._act._turnLeft):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha - this._rhsSign * Math.PI / 4;
-                        break;
-                    case (this._act._walkback && this._act._turnRight):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + this._rhsSign * 3 * Math.PI / 4;
-                        break;
-                    case (this._act._walkback && this._act._turnLeft):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha - this._rhsSign * 3 * Math.PI / 4;
-                        break;
-                    case (this._act._walk):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha;
-                        break;
-                    case (this._act._walkback):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + Math.PI;
-                        break;
-                    case (this._act._turnRight):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha + this._rhsSign * Math.PI / 2;
-                        break;
-                    case (this._act._turnLeft):
-                        this._avatar.rotation.y = this._av2cam - this._camera.alpha - this._rhsSign * Math.PI / 2;
-                        break;
+        if (this._hasCam)
+            if (this._mode != 1) {
+                let ca = (this._hasCam) ? (this._av2cam - this._camera.alpha) : 0;
+                if (this._noRot) {
+                    switch (true) {
+                        case (this._act._walk && this._act._turnRight):
+                            this._avatar.rotation.y = ca + this._rhsSign * Math.PI / 4;
+                            break;
+                        case (this._act._walk && this._act._turnLeft):
+                            this._avatar.rotation.y = ca - this._rhsSign * Math.PI / 4;
+                            break;
+                        case (this._act._walkback && this._act._turnRight):
+                            this._avatar.rotation.y = ca + this._rhsSign * 3 * Math.PI / 4;
+                            break;
+                        case (this._act._walkback && this._act._turnLeft):
+                            this._avatar.rotation.y = ca - this._rhsSign * 3 * Math.PI / 4;
+                            break;
+                        case (this._act._walk):
+                            this._avatar.rotation.y = ca;
+                            break;
+                        case (this._act._walkback):
+                            this._avatar.rotation.y = ca + Math.PI;
+                            break;
+                        case (this._act._turnRight):
+                            this._avatar.rotation.y = ca + this._rhsSign * Math.PI / 2;
+                            break;
+                        case (this._act._turnLeft):
+                            this._avatar.rotation.y = ca - this._rhsSign * Math.PI / 2;
+                            break;
+                    }
+                } else {
+                    if (this._hasCam)
+                        this._avatar.rotation.y = this._av2cam - ca;
                 }
-            } else {
-                this._avatar.rotation.y = this._av2cam - this._camera.alpha;
             }
-        }
     }
 
-    //rotate camera around Avatar in case player is rotating avatar.
+    //rotate the avatar in case player is trying to rotate the avatar. rotate the camera too if camera turning is on
     private _rotateC2AV(anim: ActionData, moving: boolean, dt: number): ActionData {
         if (!(this._noRot && this._mode == 0) && (!this._act._stepLeft && !this._act._stepRight) && (this._act._turnLeft || this._act._turnRight)) {
             let turnAngle = this._actionMap.turnLeft.speed * dt;
             if (this._act._speedMod) {
                 turnAngle = 2 * turnAngle;
             }
+            let a;
             if (this._mode == 1) {
                 // while turining, the avatar could start facing away from camera and end up facing camera.
                 // we should not switch turning direction during this transition
@@ -1118,7 +1140,7 @@ export class CharacterController {
                     if (this._isLHS_RHS) this._sign = - this._sign;
                     this._isTurning = true;
                 }
-                let a = this._sign;
+                a = this._sign;
                 if (this._act._turnLeft) {
                     if (this._act._walk) { }
                     else if (this._act._walkback) a = -this._sign;
@@ -1133,9 +1155,9 @@ export class CharacterController {
                         anim = (this._sign > 0) ? this._actionMap.turnLeft : this._actionMap.turnRight;
                     }
                 }
-                this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
+                // this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
             } else {
-                let a = 1;
+                a = 1;
                 if (this._act._turnLeft) {
                     if (this._act._walkback) a = -1;
                     if (!moving) anim = this._actionMap.turnLeft;
@@ -1143,8 +1165,11 @@ export class CharacterController {
                     if (this._act._walk) a = -1;
                     if (!moving) { a = -1; anim = this._actionMap.turnRight; }
                 }
-                this._camera.alpha = this._camera.alpha + this._rhsSign * turnAngle * a;
+                if (this._hasCam)
+                    this._camera.alpha = this._camera.alpha + this._rhsSign * turnAngle * a;
             }
+
+            this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
         }
         return anim;
     }
@@ -1179,7 +1204,7 @@ export class CharacterController {
         //moveWithDisplacement down against a surface seems to push the AV up by a small amount!!
         if (this._freeFallDist < 0.01) return anim;
         const disp: Vector3 = new Vector3(0, -this._freeFallDist, 0);
-        if (this._mode != 1 && !this._noRot) this._avatar.rotation.y = this._av2cam - this._camera.alpha;
+        if (this._hasCam && this._mode != 1 && !this._noRot) this._avatar.rotation.y = this._av2cam - this._camera.alpha;
         this._avatar.moveWithCollisions(disp);
         if ((this._avatar.position.y > this._avStartPos.y) || (this._avatar.position.y === this._avStartPos.y)) {
             //                this.grounded = true;
@@ -1231,6 +1256,7 @@ export class CharacterController {
     private _savedCameraCollision: boolean = true;
     private _inFP = false;
     private _updateTargetValue() {
+        if (!this._hasCam) return;
         //donot move camera if av is trying to clinb steps
         if (this._vMoveTot == 0)
             this._avatar.position.addToRef(this._cameraTarget, this._camera.target);
@@ -1621,6 +1647,7 @@ export class CharacterController {
     // does this character have any animations ?
     // remember we can use meshes without anims as characters too
     private _hasAnims: boolean = false;
+    private _hasCam: boolean = true;
 
     /**
      * The avatar/character can be made up of multiple meshes arranged in a hierarchy.
@@ -1644,6 +1671,13 @@ export class CharacterController {
     constructor(avatar: Mesh, camera: ArcRotateCamera, scene: Scene, actionMap?: {}, faceForward = false) {
 
         this._camera = camera;
+
+        //if camera is null assume this would be used to control an NPC
+        //we cannot use mode 0 as that is dependent on camera being present. so force mode 1
+        if (this._camera == null) {
+            this._hasCam = false;
+            this.setMode(1);
+        }
         this._scene = scene;
 
         let success = this.setAvatar(avatar, faceForward);
@@ -1666,8 +1700,7 @@ export class CharacterController {
             //TODO
         }
 
-
-        this._savedCameraCollision = this._camera.checkCollisions;
+        if (this._hasCam) this._savedCameraCollision = this._camera.checkCollisions;
 
         this._act = new _Action();
 
