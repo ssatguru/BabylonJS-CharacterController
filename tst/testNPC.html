@@ -54,8 +54,8 @@
   <script src="/node_modules/babylonjs-inspector/babylon.inspector.bundle.js"></script>
 
   <script src="/dist/CharacterController.max.js"></script>
-  <script src="testCommandControl.js"></script>
-
+  <!-- <script src="testCommandControl.js"></script> -->
+  <script src="testNPC.js"></script>
 </head>
 
 <body>
@@ -63,6 +63,10 @@
 
   <div id="controls" style="opacity: 0.9;" class="w3-round w3-card-4 w3-grey">
     <ui class="w3-ul w3-left">
+      <li>
+        <input type="radio" name="cc" class="w3-radio" id="pc" checked /> player
+        <input type="radio" name="cc" class="w3-radio" id="npc" /> npc
+      </li>
       <li><button id="pl">pointer lock</button></li>
       <li><button id="w">walk</button><button id="r">run</button></li>
       <li><button id="wb">walkBack</button><button id="wbf">walkBackFast</button></li>
@@ -76,7 +80,6 @@
         <br />
         <input type="radio" checked name="mode" class="w3-radio w3-orange" id="tp" /> third person
         <input type="checkbox" id="toff" class="w3-check" />turning off
-      </li>
       </li>
       <li><input type="checkbox" id="kb" checked class="w3-check" />enable keyboard</li>
       <li><button id="help">help</button></li>

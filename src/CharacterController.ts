@@ -678,7 +678,7 @@ export class CharacterController {
         this._idleFallTime = 0.001;
         this._grounded = false;
         this._updateTargetValue();
-        this.enableKeyBoard(true);
+        if (this._ekb) this.enableKeyBoard(true);
         this._scene.registerBeforeRender(this._renderer);
     }
 
@@ -939,11 +939,11 @@ export class CharacterController {
         }
 
 
-        //in case avatar was rotated by player, rotate camera around avatar to align with avatar
-        actdata = this._rotateC2AV(actdata, moving, dt);
-
-        //in case camera was rotated by player around the avatar, rotate the avatar to align with camera
+        //rotate avatar with respect to camera direction. 
         this._rotateAV2C();
+
+        //rotate the avatar in case player is trying to rotate the avatar. rotate the camera too if camera turning is on
+        actdata = this._rotateAVnC(actdata, moving, dt);
 
         //now that avatar is rotated properly, construct the vector to move the avatar 
         //donot move the avatar if avatar is in freefall
@@ -1078,10 +1078,8 @@ export class CharacterController {
     }
 
     /**
-     * rotate avatar in camera direction, in case player had rotated  the camera around avatar
+     * rotate avatar with respect to camera direction. 
      */
-
-
     private _rotateAV2C() {
         if (this._hasCam)
             if (this._mode != 1) {
@@ -1121,7 +1119,7 @@ export class CharacterController {
     }
 
     //rotate the avatar in case player is trying to rotate the avatar. rotate the camera too if camera turning is on
-    private _rotateC2AV(anim: ActionData, moving: boolean, dt: number): ActionData {
+    private _rotateAVnC(anim: ActionData, moving: boolean, dt: number): ActionData {
         if (!(this._noRot && this._mode == 0) && (!this._act._stepLeft && !this._act._stepRight) && (this._act._turnLeft || this._act._turnRight)) {
             let turnAngle = this._actionMap.turnLeft.speed * dt;
             if (this._act._speedMod) {
@@ -1153,7 +1151,6 @@ export class CharacterController {
                         anim = (this._sign > 0) ? this._actionMap.turnLeft : this._actionMap.turnRight;
                     }
                 }
-                this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
             } else {
                 a = 1;
                 if (this._act._turnLeft) {
@@ -1167,7 +1164,7 @@ export class CharacterController {
                     this._camera.alpha = this._camera.alpha + this._rhsSign * turnAngle * a;
             }
 
-            // this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
+            this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
         }
         return anim;
     }
@@ -1487,7 +1484,10 @@ export class CharacterController {
         this._move = this.anyMovement();
     }
 
-    private _ekb: boolean;
+    private _ekb: boolean = true;
+    public isKeyBoardEnabled(): boolean {
+        return this._ekb;
+    }
     public enableKeyBoard(b: boolean) {
         this._ekb = b;
         let canvas: HTMLCanvasElement = this._scene.getEngine().getRenderingCanvas();

@@ -159,6 +159,7 @@ var CharacterController = (function () {
         this._makeInvisible = false;
         this._elasticSteps = 50;
         this._move = false;
+        this._ekb = true;
         this._isAG = false;
         this._hasAnims = false;
         this._hasCam = true;
@@ -677,7 +678,8 @@ var CharacterController = (function () {
         this._idleFallTime = 0.001;
         this._grounded = false;
         this._updateTargetValue();
-        this.enableKeyBoard(true);
+        if (this._ekb)
+            this.enableKeyBoard(true);
         this._scene.registerBeforeRender(this._renderer);
     };
     CharacterController.prototype.stop = function () {
@@ -844,8 +846,8 @@ var CharacterController = (function () {
             this._moveVector.y = -this._freeFallDist;
             moving = true;
         }
-        actdata = this._rotateC2AV(actdata, moving, dt);
         this._rotateAV2C();
+        actdata = this._rotateAVnC(actdata, moving, dt);
         if (!this._inFreeFall) {
             this._wasWalking = false;
             this._wasRunning = false;
@@ -1004,7 +1006,7 @@ var CharacterController = (function () {
                 }
             }
     };
-    CharacterController.prototype._rotateC2AV = function (anim, moving, dt) {
+    CharacterController.prototype._rotateAVnC = function (anim, moving, dt) {
         if (!(this._noRot && this._mode == 0) && (!this._act._stepLeft && !this._act._stepRight) && (this._act._turnLeft || this._act._turnRight)) {
             var turnAngle = this._actionMap.turnLeft.speed * dt;
             if (this._act._speedMod) {
@@ -1036,7 +1038,6 @@ var CharacterController = (function () {
                         anim = (this._sign > 0) ? this._actionMap.turnLeft : this._actionMap.turnRight;
                     }
                 }
-                this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
             }
             else {
                 a = 1;
@@ -1057,6 +1058,7 @@ var CharacterController = (function () {
                 if (this._hasCam)
                     this._camera.alpha = this._camera.alpha + this._rhsSign * turnAngle * a;
             }
+            this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
         }
         return anim;
     };
@@ -1315,6 +1317,9 @@ var CharacterController = (function () {
                 break;
         }
         this._move = this.anyMovement();
+    };
+    CharacterController.prototype.isKeyBoardEnabled = function () {
+        return this._ekb;
     };
     CharacterController.prototype.enableKeyBoard = function (b) {
         this._ekb = b;

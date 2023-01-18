@@ -126,7 +126,7 @@ export declare class CharacterController {
     private _noRot;
     private _doMove;
     private _rotateAV2C;
-    private _rotateC2AV;
+    private _rotateAVnC;
     private _endFreeFall;
     private _idleFallTime;
     private _doIdle;
@@ -152,6 +152,7 @@ export declare class CharacterController {
     private _onKeyDown;
     private _onKeyUp;
     private _ekb;
+    isKeyBoardEnabled(): boolean;
     enableKeyBoard(b: boolean): void;
     walk(b: boolean): void;
     walkBack(b: boolean): void;
