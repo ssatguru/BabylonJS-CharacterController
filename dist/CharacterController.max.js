@@ -679,7 +679,7 @@ var CharacterController = (function () {
         this._grounded = false;
         this._updateTargetValue();
         if (this._ekb)
-            this.enableKeyBoard(true);
+            this._addkeylistener();
         this._scene.registerBeforeRender(this._renderer);
     };
     CharacterController.prototype.stop = function () {
@@ -687,7 +687,7 @@ var CharacterController = (function () {
             return;
         this._started = false;
         this._scene.unregisterBeforeRender(this._renderer);
-        this.enableKeyBoard(false);
+        this._removekeylistener();
         this._prevActData = null;
     };
     CharacterController.prototype.pauseAnim = function () {
@@ -697,7 +697,6 @@ var CharacterController = (function () {
                 this._prevActData.ag.stop();
             }
             else {
-                console.log("stopping ar " + this._prevActData.name);
                 this._scene.stopAnimation(this._skeleton);
             }
             if (this._prevActData.sound != null) {
@@ -1323,15 +1322,22 @@ var CharacterController = (function () {
     };
     CharacterController.prototype.enableKeyBoard = function (b) {
         this._ekb = b;
-        var canvas = this._scene.getEngine().getRenderingCanvas();
         if (b) {
-            canvas.addEventListener("keyup", this._handleKeyUp, false);
-            canvas.addEventListener("keydown", this._handleKeyDown, false);
+            this._addkeylistener();
         }
         else {
-            canvas.removeEventListener("keyup", this._handleKeyUp, false);
-            canvas.removeEventListener("keydown", this._handleKeyDown, false);
+            this._removekeylistener();
         }
+    };
+    CharacterController.prototype._addkeylistener = function () {
+        var canvas = this._scene.getEngine().getRenderingCanvas();
+        canvas.addEventListener("keyup", this._handleKeyUp, false);
+        canvas.addEventListener("keydown", this._handleKeyDown, false);
+    };
+    CharacterController.prototype._removekeylistener = function () {
+        var canvas = this._scene.getEngine().getRenderingCanvas();
+        canvas.removeEventListener("keyup", this._handleKeyUp, false);
+        canvas.removeEventListener("keydown", this._handleKeyDown, false);
     };
     CharacterController.prototype.walk = function (b) {
         this._act._walk = b;

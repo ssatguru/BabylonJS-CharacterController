@@ -216,12 +216,8 @@ function loadNPC(scene, engine, canvas) {
                         cc2.setJumpKey("spacebar");
                 }
 
-
-                cc2.start();
-
-                console.log("cc2 removing key h")
                 cc2.enableKeyBoard(false);
-
+                cc2.start();
         });
 }
 

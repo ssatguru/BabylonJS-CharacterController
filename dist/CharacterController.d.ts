@@ -154,6 +154,8 @@ export declare class CharacterController {
     private _ekb;
     isKeyBoardEnabled(): boolean;
     enableKeyBoard(b: boolean): void;
+    private _addkeylistener;
+    private _removekeylistener;
     walk(b: boolean): void;
     walkBack(b: boolean): void;
     walkBackFast(b: boolean): void;

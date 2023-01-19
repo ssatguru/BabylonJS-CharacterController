@@ -678,7 +678,7 @@ export class CharacterController {
         this._idleFallTime = 0.001;
         this._grounded = false;
         this._updateTargetValue();
-        if (this._ekb) this.enableKeyBoard(true);
+        if (this._ekb) this._addkeylistener();
         this._scene.registerBeforeRender(this._renderer);
     }
 
@@ -686,7 +686,7 @@ export class CharacterController {
         if (!this._started) return;
         this._started = false;
         this._scene.unregisterBeforeRender(this._renderer);
-        this.enableKeyBoard(false);
+        this._removekeylistener();
         this._prevActData = null;
     }
 
@@ -705,7 +705,6 @@ export class CharacterController {
             if (this._isAG) {
                 this._prevActData.ag.stop();
             } else {
-                console.log("stopping ar " + this._prevActData.name);
                 //this._scene.stopAnimation(this._skeleton, this._prevActData.name);
                 this._scene.stopAnimation(this._skeleton);
                 //this._scene.stopAllAnimations();
@@ -1490,14 +1489,23 @@ export class CharacterController {
     }
     public enableKeyBoard(b: boolean) {
         this._ekb = b;
-        let canvas: HTMLCanvasElement = this._scene.getEngine().getRenderingCanvas();
         if (b) {
-            canvas.addEventListener("keyup", this._handleKeyUp, false);
-            canvas.addEventListener("keydown", this._handleKeyDown, false);
+            this._addkeylistener();
         } else {
-            canvas.removeEventListener("keyup", this._handleKeyUp, false);
-            canvas.removeEventListener("keydown", this._handleKeyDown, false);
+            this._removekeylistener();
         }
+    }
+
+    private _addkeylistener() {
+        let canvas: HTMLCanvasElement = this._scene.getEngine().getRenderingCanvas();
+        canvas.addEventListener("keyup", this._handleKeyUp, false);
+        canvas.addEventListener("keydown", this._handleKeyDown, false);
+    }
+
+    private _removekeylistener() {
+        let canvas: HTMLCanvasElement = this._scene.getEngine().getRenderingCanvas();
+        canvas.removeEventListener("keyup", this._handleKeyUp, false);
+        canvas.removeEventListener("keydown", this._handleKeyDown, false);
     }
 
     // control movement by commands rather than keyboard.
