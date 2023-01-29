@@ -18,7 +18,8 @@ import {
     Sound,
     AnimationRange,
     Animatable,
-    AnimationEvent
+    AnimationEvent,
+    int
 } from "babylonjs";
 
 
@@ -1257,20 +1258,50 @@ export class CharacterController {
 
         if (this._camera.radius > this._camera.lowerRadiusLimit) { if (this._cameraElastic || this._makeInvisible) this._handleObstruction(); }
 
+        //if user so desire, make the AV invisible if camera comes close to it
         if (this._camera.radius <= this._camera.lowerRadiusLimit) {
             if (!this._noFirstPerson && !this._inFP) {
-                this._avatar.visibility = 0;
+                this._makeMeshInvisible(this._avatar);
                 this._camera.checkCollisions = false;
                 this._saveMode = this._mode;
                 this._mode = 0;
                 this._inFP = true;
             }
         } else {
-            this._inFP = false;
-            this._mode = this._saveMode;
-            this._avatar.visibility = 1;
-            this._camera.checkCollisions = this._savedCameraCollision;
+            if (this._inFP) {
+                this._inFP = false;
+                this._mode = this._saveMode;
+                this._restoreVisiblity(this._avatar);
+                this._camera.checkCollisions = this._savedCameraCollision;
+            }
         }
+    }
+
+    // make mesh and all its children invisible
+    // store their current visibility state so that we can restore them later on
+    private _makeMeshInvisible(mesh: Mesh) {
+
+        this._visiblityMap.set(mesh, mesh.visibility);
+        mesh.visibility = 0;
+
+        mesh.getChildMeshes(false, (n) => {
+            if (n instanceof Mesh) {
+                this._visiblityMap.set(n, n.visibility);
+                n.visibility = 0;
+            }
+            return false;
+        });
+    }
+
+    private _visiblityMap: Map<Mesh, int> = new Map();
+
+    //restore mesh visibility to previous state
+    private _restoreVisiblity(mesh: Mesh) {
+        mesh.visibility = this._visiblityMap.get(mesh);
+        mesh.getChildMeshes(false, (n) => {
+            if (n instanceof Mesh) n.visibility = this._visiblityMap.get(n);
+            return false;
+        });
     }
 
     private _ray: Ray = new Ray(Vector3.Zero(), Vector3.One(), 1);

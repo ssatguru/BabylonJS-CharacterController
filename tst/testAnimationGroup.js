@@ -75,6 +75,15 @@ function loadPlayer(scene, engine, canvas) {
   BABYLON.SceneLoader.ImportMesh("", "player/", "Vincent-frontFacing.glb", scene, (meshes, particleSystems, skeletons) => {
     var player = meshes[0];
 
+    //clean up this player mesh
+    //it has camera and lights, lets remove them
+    let m = meshes[0].getChildren();
+    let l = m.length - 1;
+    for (let i = l; i >= 0; i--) {
+      if (m[i].name == "Camera" || m[i].name == "Hemi" || m[i].name == "Lamp") m[i].dispose();
+    }
+
+
     player.position = new BABYLON.Vector3(0, 12, 0);
     player.checkCollisions = true;
 
@@ -121,7 +130,7 @@ function loadPlayer(scene, engine, canvas) {
     allAGs = scene.animationGroups;
 
     //stop all animations
-    //also lets print to console the list of animation groups we have in this file to help map them properly
+    //also lets print to console the list of animation groups we have in this file, to help map them properly
     for (i = 0; i < allAGs.length; i++) {
       allAGs[i].stop();
       console.log(i + "," + allAGs[i].name);
