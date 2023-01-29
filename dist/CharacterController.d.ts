@@ -137,6 +137,9 @@ export declare class CharacterController {
     private _savedCameraCollision;
     private _inFP;
     private _updateTargetValue;
+    private _makeMeshInvisible;
+    private _visiblityMap;
+    private _restoreVisiblity;
     private _ray;
     private _rayDir;
     private _cameraSkin;

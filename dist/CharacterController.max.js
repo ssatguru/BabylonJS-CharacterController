@@ -152,6 +152,7 @@ var CharacterController = (function () {
         this._groundFrameMax = 10;
         this._savedCameraCollision = true;
         this._inFP = false;
+        this._visiblityMap = new Map();
         this._ray = new babylonjs__WEBPACK_IMPORTED_MODULE_0__.Ray(babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Zero(), babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.One(), 1);
         this._rayDir = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Zero();
         this._cameraSkin = 0.5;
@@ -1129,7 +1130,7 @@ var CharacterController = (function () {
         }
         if (this._camera.radius <= this._camera.lowerRadiusLimit) {
             if (!this._noFirstPerson && !this._inFP) {
-                this._avatar.visibility = 0;
+                this._makeMeshInvisible(this._avatar);
                 this._camera.checkCollisions = false;
                 this._saveMode = this._mode;
                 this._mode = 0;
@@ -1137,11 +1138,34 @@ var CharacterController = (function () {
             }
         }
         else {
-            this._inFP = false;
-            this._mode = this._saveMode;
-            this._avatar.visibility = 1;
-            this._camera.checkCollisions = this._savedCameraCollision;
+            if (this._inFP) {
+                this._inFP = false;
+                this._mode = this._saveMode;
+                this._restoreVisiblity(this._avatar);
+                this._camera.checkCollisions = this._savedCameraCollision;
+            }
         }
+    };
+    CharacterController.prototype._makeMeshInvisible = function (mesh) {
+        var _this = this;
+        this._visiblityMap.set(mesh, mesh.visibility);
+        mesh.visibility = 0;
+        mesh.getChildMeshes(false, function (n) {
+            if (n instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__.Mesh) {
+                _this._visiblityMap.set(n, n.visibility);
+                n.visibility = 0;
+            }
+            return false;
+        });
+    };
+    CharacterController.prototype._restoreVisiblity = function (mesh) {
+        var _this = this;
+        mesh.visibility = this._visiblityMap.get(mesh);
+        mesh.getChildMeshes(false, function (n) {
+            if (n instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__.Mesh)
+                n.visibility = _this._visiblityMap.get(n);
+            return false;
+        });
     };
     ;
     CharacterController.prototype._handleObstruction = function () {
