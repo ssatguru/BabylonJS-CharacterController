@@ -197,7 +197,7 @@ let characterController = new CharacterController(player, camera, scene);
 </script>
 ```
 
-## API ( version 0.4.0 )
+## API ( version 0.4.4 )
 
 #### To Instantiate
 
@@ -252,6 +252,8 @@ let agMap:{} = {
 
 - forwardFacing - Optional. If the avatar's face is forward facing (positive Z direction) set this to true. By default it is false.
 
+Note: If camera is set to null then the camera will not follow the character and keybaord will not controll the character. You can use this for an NPC which you can move around programmatically. See the section on "Controlling Avatar programmatically".  
+
 If using animation ranges the player skeleton is expected to have the animation ranges named as follows
 
 - idle
@@ -272,7 +274,8 @@ If using animation ranges the player skeleton is expected to have the animation 
 - strafeRightFast
 - slideDown
 
-If an animation is not provided then the controller will not play that animation and will continue playing the animation it was playing just before.
+If a particular animation is not provided then the controller will not play that animation and will continue playing the animation it was playing just before.
+Note that if no animations are provided then no animations will be played. This, thus, can be used to move an non skeleton based mesh around.  
 
 Note that there are some animations with name ending with string "Fast".
 If these are not present then the controller will play the non-fast version but at twice the speed.  
@@ -461,6 +464,7 @@ cc.turnRight(b: boolean);
 cc.strafeLeft(b: boolean);
 cc.strafeRight(b: boolean);
 cc.jump(b: boolean);
+cc.fall();
 ```
 
 Example:
@@ -469,6 +473,10 @@ Example:
 cc.walk(true);  // will start walking the Avatar.
 cc.walk(false); // will stop walking the Avatar.
 ```
+
+A word about cc.fall(). The CharacterController doesn't constantly check if the user is "grounded". This is to prevent needless computation. Once the Avatar is on a ground/floor it assumes the Avatar will continue to stand on that ground/floor until the user uses keys to move the Avatar.
+In some use cases the ground/floor might move away and thus leave the Avatar hanging in mid air. In such cases use cc.fall() to force the Avatar to fall to the next gound/floor below.
+
 
 #### Enabling/Disabling the KeyBoard controll
 
@@ -530,6 +538,31 @@ setStepOffset(0.5);
 
 The avatar can only move up a step if the height of the step is less than or equal to the "stepOffset".  
 By default the value is 0.25.
+
+#### To set/change the setup step sound.
+
+```
+setSound(Babylon.Sound);
+```
+
+Example
+
+```
+ let sound = new BABYLON.Sound(
+      "footstep",
+      "./sounds/footstep_carpet_000.ogg",
+      scene,
+      () => {
+        cc.setSound(sound);
+      },
+      { loop: false }
+    );
+```
+
+The above will load sound from  file "footstep_carpet_000.ogg" and when loaded will set the Avatar step sound to that.   
+This sound will be played for all actions except idle.  
+The sound will be played twice per cycle of the animation.  
+The rate will be set automatically based on frames and fps of animation
 
 #### To change avatar or skeleton at
 

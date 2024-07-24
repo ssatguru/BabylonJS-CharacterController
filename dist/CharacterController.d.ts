@@ -172,6 +172,7 @@ export declare class CharacterController {
     strafeRight(b: boolean): void;
     strafeRightFast(b: boolean): void;
     jump(): void;
+    fall(): void;
     idle(): void;
     private _act;
     private _renderer;

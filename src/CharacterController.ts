@@ -577,9 +577,9 @@ export class CharacterController {
     private _signLHS_RHS = -1;
     private _setRHS(mesh: TransformNode) {
         const meshMatrix: Matrix = mesh.getWorldMatrix();
-        const _localX = Vector3.FromArray(<DeepImmutable<Float32Array>>meshMatrix.m, 0);
-        const _localY = Vector3.FromArray(<DeepImmutable<Float32Array>>meshMatrix.m, 4);
-        const _localZ = Vector3.FromArray(<DeepImmutable<Float32Array>>meshMatrix.m, 8);
+        const _localX = Vector3.FromArray(meshMatrix.m, 0);
+        const _localY = Vector3.FromArray(meshMatrix.m, 4);
+        const _localZ = Vector3.FromArray(meshMatrix.m, 8);
         const actualZ = Vector3.Cross(_localX, _localY);
         //same direction or opposite direction of Z
         if (Vector3.Dot(actualZ, _localZ) < 0) {
@@ -834,7 +834,7 @@ export class CharacterController {
         let jumpDist: number = 0;
         let disp: Vector3;
 
-        if (this._hasCam && this._mode != 1 && !this._noRot) this._avatar.rotation.y = this._av2cam - this._camera.alpha;
+        // if (this._hasCam && this._mode != 1 && !this._noRot) this._avatar.rotation.y = this._av2cam - this._camera.alpha;
         if (this._wasRunning || this._wasWalking) {
             if (this._wasRunning) {
                 forwardDist = this._actionMap.run.speed * dt;
@@ -1199,7 +1199,7 @@ export class CharacterController {
         //moveWithDisplacement down against a surface seems to push the AV up by a small amount!!
         if (this._freeFallDist < 0.01) return anim;
         const disp: Vector3 = new Vector3(0, -this._freeFallDist, 0);
-        if (this._hasCam && this._mode != 1 && !this._noRot) this._avatar.rotation.y = this._av2cam - this._camera.alpha;
+        // if (this._hasCam && this._mode != 1 && !this._noRot) this._avatar.rotation.y = this._av2cam - this._camera.alpha;
         this._avatar.moveWithCollisions(disp);
         if ((this._avatar.position.y > this._avStartPos.y) || (this._avatar.position.y === this._avStartPos.y)) {
             //                this.grounded = true;
@@ -1225,6 +1225,8 @@ export class CharacterController {
                     this._unGroundIt();
                     anim = this._actionMap.slideBack;
                 }
+            } else {
+                anim = this._actionMap.fall;
             }
         }
         return anim;
@@ -1589,6 +1591,11 @@ export class CharacterController {
     public jump() {
         this._act._jump = true;
     }
+
+    public fall() {
+        this._grounded = false;
+    }
+
     public idle() {
         this._act.reset();
     }
