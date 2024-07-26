@@ -1,6 +1,6 @@
 {
   "name": "babylonjs-charactercontroller",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "description": "A CharacterController for BabylonJS",
   "repository": {
     "type": "git",
@@ -16,9 +16,9 @@
   "main": "dist/CharacterController.js",
   "types": "dist/CharacterController.d.ts",
   "devDependencies": {
-    "babylonjs": "7.0.0",
-    "babylonjs-inspector": "^7.0.0",
-    "babylonjs-loaders": "^7.0.0",
+    "babylonjs": "7.17.2",
+    "babylonjs-inspector": "^7.17.2",
+    "babylonjs-loaders": "^7.17.2",
     "terser-webpack-plugin": "^5.3.6",
     "ts-loader": "^9.4.2",
     "typescript": "^4.9.4",

@@ -57,6 +57,7 @@ export class CharacterController {
     //should we go into first person view when camera is near avatar (radius is lowerradius limit)
     private _noFirstPerson: boolean = false;
 
+    private _down: Vector3 = Vector3.DownReadOnly;
 
 
     public setSlopeLimit(minSlopeLimit: number, maxSlopeLimit: number) {
@@ -1065,7 +1066,11 @@ export class CharacterController {
                         //AV could be running down a slope which mean freefall,run,frefall run ...
                         //to remove anim flicker, check if AV has been falling down continously for last few consecutive frames
                         //before changing to free fall animation
-                        if (this._fallFrameCount > this._fallFrameCountMin) {
+                        // if (this._fallFrameCount > this._fallFrameCountMin) {
+                        //     actdata = this._actionMap.fall;
+                        // }
+
+                        if (!this._isNearGround()) {
                             actdata = this._actionMap.fall;
                         }
                     }
@@ -1075,6 +1080,32 @@ export class CharacterController {
             }
         }
         return actdata;
+    }
+
+    //check if any collidable mesh is just below the avatar's ellipsoid
+    private _isNearGround(): boolean {
+        //start the ray from the bottom of avatar's ellipsod
+        //ellipsoid center = avatar position + ellipsoid offset
+        //ellipsoid bottom = ellipsoid center - ellipsoid height 
+        this._avatar.position.addToRef(this._avatar.ellipsoidOffset, this._ray.origin);
+        this._ray.origin.y = this._ray.origin.y - this._avatar.ellipsoid.y;
+        //from the bottom of ellipsoid go down 1/4 the ellipsoid height to check for any mesh
+        this._ray.length = this._avatar.ellipsoid.y / 2;
+        //direction is towards the bottom
+        this._ray.direction = this._down;
+
+        //TODO 
+        //handle case were pick is with a child of avatar, avatar atatchment. etc
+        //check if any collidable mesh is there just below the avatar's ellipsoid
+        const pis: PickingInfo[] = this._scene.multiPickWithRay(this._ray, (mesh) => {
+            if (mesh == this._avatar) return false;
+            if (mesh.checkCollisions) return true
+            else return false;
+        });
+
+        if (pis.length > 0) return true;
+        else return false;
+
     }
 
     /**
