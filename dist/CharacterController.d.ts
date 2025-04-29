@@ -1,4 +1,4 @@
-import { Skeleton, ArcRotateCamera, Vector3, Mesh, Scene, AnimationGroup, Sound } from "babylonjs";
+import { Skeleton, ArcRotateCamera, Vector3, Mesh, Scene, AnimationGroup, Sound, LinesMesh } from "babylonjs";
 export declare class CharacterController {
     private _avatar;
     private _skeleton;
@@ -17,6 +17,7 @@ export declare class CharacterController {
     private _cameraElastic;
     private _cameraTarget;
     private _noFirstPerson;
+    private _down;
     setSlopeLimit(minSlopeLimit: number, maxSlopeLimit: number): void;
     setStepOffset(stepOffset: number): void;
     setWalkSpeed(n: number): void;
@@ -101,6 +102,7 @@ export declare class CharacterController {
     resumeAnim(): void;
     private _prevActData;
     private _avStartPos;
+    private _pickStartY;
     private _grounded;
     private _freeFallDist;
     private _fallFrameCountMin;
@@ -124,7 +126,12 @@ export declare class CharacterController {
     private _sign;
     private _isTurning;
     private _noRot;
+    private _steps;
     private _doMove;
+    private _isNearGround;
+    private _isNearGround_old;
+    _aLine: LinesMesh;
+    private drawLines;
     private _rotateAV2C;
     private _rotateAVnC;
     private _endFreeFall;
@@ -182,6 +189,7 @@ export declare class CharacterController {
     isAg(): boolean;
     private _findSkel;
     private _root;
+    private _getAbstractMeshChildren;
     setAvatar(avatar: Mesh, faceForward?: boolean): boolean;
     getAvatar(): Mesh;
     setAvatarSkeleton(skeleton: Skeleton): void;
@@ -189,6 +197,7 @@ export declare class CharacterController {
     getSkeleton(): Skeleton;
     private _hasAnims;
     private _hasCam;
+    private _avChildren;
     constructor(avatar: Mesh, camera: ArcRotateCamera, scene: Scene, actionMap?: {}, faceForward?: boolean);
 }
 export declare class ActionData {

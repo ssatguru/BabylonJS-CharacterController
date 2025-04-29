@@ -61,9 +61,37 @@ function main() {
   loadPlayer(scene, engine, canvas);
 
   //box to test view obstruction
-  var box = BABYLON.Mesh.CreateBox("box", 2, scene);
+  var box = BABYLON.Mesh.CreateBox("sight-obstructing-box", 2, scene);
   box.checkCollisions = true;
   box.position = new BABYLON.Vector3(0, 8, 5);
+
+  var box2 = BABYLON.Mesh.CreateBox("unwalkable-steep-slope", 2, scene);
+  box2.checkCollisions = true;
+  box2.position = new BABYLON.Vector3(-6, 7, 14);
+  box2.scaling = new BABYLON.Vector3(1, .1, 5);
+  box2.rotation = new BABYLON.Vector3(-65 * Math.PI / 180, 0, 0);
+
+
+  var box3 = BABYLON.Mesh.CreateBox("walkable-steep-slope", 2, scene);
+  box3.checkCollisions = true;
+  box3.position = new BABYLON.Vector3(6, 7, 14);
+  box3.scaling = new BABYLON.Vector3(1, .1, 5);
+  box3.rotation = new BABYLON.Vector3(-35 * Math.PI / 180, 0, 0);
+
+  var box4 = BABYLON.Mesh.CreateBox("walkable-slope", 2, scene);
+  box4.checkCollisions = true;
+  box4.position = new BABYLON.Vector3(12, 7, 14);
+  box4.scaling = new BABYLON.Vector3(1, .1, 5);
+  box4.rotation = new BABYLON.Vector3(-25 * Math.PI / 180, 0, 0);
+
+  var box5 = BABYLON.Mesh.CreateBox("high-step", 2, scene);
+  box5.checkCollisions = true;
+  box5.position = new BABYLON.Vector3(0, 6.35, 10.25);
+  box5.scaling = new BABYLON.Vector3(1, .4, 1);
+
+
+
+
 
   window.addEventListener("resize", function () {
     engine.resize();
@@ -87,9 +115,16 @@ function loadPlayer(scene, engine, canvas) {
       sm.ambientColor = new BABYLON.Color3(1, 1, 1);
     }
 
-    player.position = new BABYLON.Vector3(0, 12, 0);
+    //player position point is the feet
+    // player.position = new BABYLON.Vector3(0, 12, 0);
+    player.position = new BABYLON.Vector3(-6, 12, 11);
     player.checkCollisions = true;
-    player.ellipsoid = new BABYLON.Vector3(0.5, 1, 0.5);
+
+    //player.ellipsoid should be the size of the player
+    player.ellipsoid = new BABYLON.Vector3(0.25, 1, 0.25);
+    //the ellipsoidoffset positions the top of ellipsoid relative to the player position point
+    //we want the top of ellipsoid to be at the head of the player
+    //and the bottom of ellipsoid to be at the feet of the player
     player.ellipsoidOffset = new BABYLON.Vector3(0, 1, 0);
 
     //rotate the camera behind the player
@@ -130,7 +165,8 @@ function loadPlayer(scene, engine, canvas) {
     //if the camera comes close to the player we want to enter first person mode.
     cc.setNoFirstPerson(false);
     //the height of steps which the player can climb
-    cc.setStepOffset(0.4);
+    cc.setStepOffset(.4);
+    //cc.setStepOffset(0);
     //the minimum and maximum slope the player can go up
     //between the two the player will start sliding down if it stops
     cc.setSlopeLimit(30, 60);
@@ -148,7 +184,7 @@ function loadPlayer(scene, engine, canvas) {
     cc.setRunJumpAnim("runJump", 0.6, false);
     cc.setFallAnim("fall", 2, false);
     cc.setSlideBackAnim("slideBack", 1, false);
-
+    cc.setTurningOff(false);
     //let's set footstep sound
     //this sound will be played for all actions except idle.
     //the sound will be played twice per cycle of the animation
