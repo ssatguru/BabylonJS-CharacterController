@@ -21,7 +21,8 @@ import {
     AnimationEvent,
     int,
     LinesMesh,
-    MeshBuilder
+    MeshBuilder,
+    Color3
 } from "babylonjs";
 
 
@@ -48,6 +49,7 @@ export class CharacterController {
     private _stepOffset: number = 0.25;
     //toal amount by which the av has moved up
     private _vMoveTot: number = 0;
+    private _pauseCam:boolean = false;
     //position of av when it started moving up
     private _vMovStartPos: Vector3 = Vector3.Zero();
 
@@ -745,7 +747,7 @@ export class CharacterController {
     //before we assume AV is in big freefall.
     //we will use this to remove animation flicker during move down a slope (fall, move, fall move etc)
     //TODO: base this on slope - large slope large count
-    private _fallFrameCountMin: number = 50;
+    private _fallFrameCountMin: number = 20;
     private _fallFrameCount: number = 0;
 
     private _inFreeFall: boolean = false;
@@ -769,6 +771,8 @@ export class CharacterController {
         const dt: number = this._scene.getEngine().getDeltaTime() / 1000;
 
         if (this._act._jump && !this._inFreeFall) {
+            this._vMoveTot = 0;
+            this._pauseCam = false;
             this._grounded = false;
             this._idleFallTime = 0;
             actData = this._doJump(dt);
@@ -779,7 +783,9 @@ export class CharacterController {
         } else if (!this._inFreeFall) {
             actData = this._doIdle(dt);
         }
+
         if (!this._stopAnim && this._hasAnims && actData != null) {
+            // console.log("anim: " + actData.name);
             if (this._prevActData !== actData) {
                 if (actData.exist) {
 
@@ -927,11 +933,13 @@ export class CharacterController {
     private _noRot = false;
     private _steps = true;
     private _doMove(dt: number): ActionData {
+        // console.log("doMove");
 
-        //initial down velocity
-        const u: number = this._movFallTime * this._gravity
-        //calculate the distance by which av should fall down since last frame
-        //assuming it is in freefall
+        //initial down velocity (v=u+at)
+        const u: number =  this._gravity * this._movFallTime ;
+
+        //calculate the distance by which av should move down since last frame
+        //s=ut+att/2
         this._freeFallDist = u * dt + this._gravity * dt * dt / 2;
 
         this._movFallTime = this._movFallTime + dt;
@@ -962,6 +970,7 @@ export class CharacterController {
             let horizDist: number = 0;
             switch (true) {
                 case (this._act._stepLeft):
+                    // console.log("step left");
                     sign = this._signLHS_RHS * this._isAvFacingCamera();
                     horizDist = this._actionMap.strafeLeft.speed * dt;
                     if (this._act._speedMod) {
@@ -974,6 +983,7 @@ export class CharacterController {
                     moving = true;
                     break;
                 case (this._act._stepRight):
+                    // console.log("step right");
                     sign = -this._signLHS_RHS * this._isAvFacingCamera();
                     horizDist = this._actionMap.strafeRight.speed * dt;
                     if (this._act._speedMod) {
@@ -986,6 +996,7 @@ export class CharacterController {
                     moving = true;
                     break;
                 case (this._act._walk || (this._noRot && this._mode == 0)):
+                    // console.log("walk");
                     if (this._act._speedMod) {
                         this._wasRunning = true;
                         horizDist = this._actionMap.run.speed * dt;
@@ -999,6 +1010,7 @@ export class CharacterController {
                     moving = true;
                     break;
                 case (this._act._walkback):
+                    // console.log("walk back");
                     horizDist = this._actionMap.walkBack.speed * dt;
                     if (this._act._speedMod) {
                         horizDist = this._actionMap.walkBackFast.speed * dt;
@@ -1013,18 +1025,20 @@ export class CharacterController {
         }
 
         // move the avatar
-
         if (moving) {
             if (this._moveVector.length() > 0.001) {
+                //console.log("moving", this._moveVector);
                 this._avatar.moveWithCollisions(this._moveVector);
+
                 let actDisp: Vector3 = this._avatar.position.subtract(this._avStartPos);
+
                 const _ng = this._isNearGround(actDisp);
 
                 //walking up a step or a  slope
-                if (this._avatar.position.y - this._avStartPos.y > 0.01) {
-
-                    //if AV is going up even though not on ground then that means AV is trying to climb steps
-                    //the elliptical shape of ellipsoiid allows this.
+                //if (this._avatar.position.y - this._avStartPos.y > 0.01) {
+                if (this._avatar.position.y > this._avStartPos.y) {
+                    //if AV is going up even though slope is 0 then that means AV is trying to climb steps
+                    //The elliptical shape of ellipsoid allows this.
                     if (_ng.slope == 0) {
                         //if user has specified step offset then prevent AV from going beyond that
                         //otherwise allow whatever the ellisoid allows
@@ -1032,28 +1046,51 @@ export class CharacterController {
                             if (this._vMoveTot == 0) {
                                 //if AV just started climbing step, note down the position
                                 this._vMovStartPos.copyFrom(this._avStartPos);
+
+                                //The pick ray being in front, will pick a step and 
+                                //thus can be used to calc the step height
+                                let stepHeight = _ng.y - this._vMovStartPos.y;
+
+                                //if the step height is more than that allowed
+                                if (stepHeight > this._stepOffset) {
+                                    //move av back to its position at begining of steps
+                                    this._avatar.position.copyFrom(this._vMovStartPos);
+                                    // this._pauseCam = true;
+                                }
                             }
-                            //calc by how much the VA has moved up
-                            this._vMoveTot = this._vMoveTot + (this._avatar.position.y - this._avStartPos.y);
-                            //if the AV is still going up and the the step size is more than what is allowd.
+
+                            //if the av is trying to climb step at an angle then the pick might miss the step
+                            //in such case let the av move up but keep track of how much it has moved up
+                            this._vMoveTot = this._avatar.position.y - this._vMovStartPos.y;
+
+                            //if the total amount by which the AV has moved up exceeds the allowable limit then
                             //move av back to its position at begining of steps
+                            //(this doesnot seem to work very reliably)
                             if (this._vMoveTot > this._stepOffset) {
-                                //this._vMoveTot = 0;
                                 this._avatar.position.copyFrom(this._vMovStartPos);
-                            }
+                                this._pauseCam=true;
+                                this._vMoveTot = 0
+                            }   
                         }
                     } else {
+                        //looks like the avatar is going up a slope
                         this._vMoveTot = 0;
+                        this._pauseCam=false;
                         const _slp = _ng.slope;
-                        //if slope is steeper than acceptable then move back else walk
+
+                        //if slope is less than the higher slope limit the continue moving up
+                        //if slope is greater than the higher slope limit then stop moving up
                         //
-                        //normally if we are going up the slope then the current pickpoint
-                        //should always be above the previous pickpoint given that
-                        //the ray is in front of the avatar and the avatar is facing the slope.
-                        //if the pick shows a high slope but the current pickpoint is below 
-                        //the previous pickpoint then the pick has picked up a high downward slope ahead
-                        //and thus we should not stop but coninute forward. 
-                        //So continue moving even if the slope is now shown high.
+                        //But sometimes even if the the slope is greater than the higher slope limit 
+                        //we want avatar to continue moving up the slope.
+                        //Remember that the the ray is in front of the avatar (when the avatar is facing the slope).
+                        //Thus the slope read, is not the slope of the ground under the avatar but of ground in front of the avatar.
+                        //Now the ground in front can suddenly start sloping down steeply.
+                        //In that case the avatar should not stop but continue moving forward.
+                        //To identify this case we need to check if the current pickpoint is below the previous pickpoint.
+                        //Normally if we are going up the slope then the current pickpoint
+                        //should always be above the previous pickpoint given that.
+                        //If this is not the case then we have identifed this case of a downward slope ahead.
                         //Note: the slope does not tell us if it is a upward slope or a downward slope
 
                         if (_slp >= this._sl2 && _ng.y > this._pickStartY) {
@@ -1075,36 +1112,50 @@ export class CharacterController {
                         }
                     }
                    
-                } else if (this._avatar.position.y < this._avStartPos.y) {
-                    const actDisp: Vector3 = this._avatar.position.subtract(this._avStartPos);
-                    if (!(this._areVectorsEqual(actDisp, this._moveVector, 0.001))) {
-                        //AV is on slope
+                } else //if (this._avStartPos.y - this._avatar.position.y > 0.01 ) {
+                    if (this._avStartPos.y > this._avatar.position.y ) {
+                        this._pauseCam = false;
+                    //av is going down a slope or is in free fall
+                    this._vMoveTot = 0;
+                    //const actDisp: Vector3 = this._avatar.position.subtract(this._avStartPos);
+                    //if (!(this._areVectorsEqual(actDisp, this._moveVector, 0.001))) {
+                    if (_ng.y >= this._avatar.position.y) {
+                        //AV is on ground and thus on slope
+                        //
                         //Should AV continue to slide or walk?
                         //if slope is less steeper than acceptable then walk else slide
-                        if (this._verticalSlope(actDisp) <= this._sl1) {
+                        //if (this._verticalSlope(actDisp) <= this._sl1) {
+                        if (_ng.slope <= this._sl1) {
                             this._endFreeFall();
                         } else {
-                            //av is on a steep slope , continue increasing the moveFallTIme to deaccelerate it
+                            //av is on a steep slope , keep the moveFallTIme incremented somwhere abovce to deaccelerate it
                             this._fallFrameCount = 0;
                             this._inFreeFall = false;
                         }
-                    } else {
+                    }else if (this._avatar.position.y - _ng.y > 1 || !_ng.hit) {
+                        //if the AV is atleast 1 unit(?) above the pickpoint or there is no pickpoint then
+                        //AV is in freefall
+                        this._pauseCam = false;
                         this._inFreeFall = true;
-                        this._fallFrameCount++;
-                        //AV could be running down a slope which mean freefall,run,frefall run ...
+                        
+                        //AV could be running down a slope which mean freefall,run,freefall run ...
                         //to remove anim flicker, check if AV has been falling down continously for last few consecutive frames
                         //before changing to free fall animation
+                        //this._fallFrameCount++;
                         // if (this._fallFrameCount > this._fallFrameCountMin) {
                         //     actdata = this._actionMap.fall;
                         // }
 
-                        if (!_ng.ground) {
-                            actdata = this._actionMap.fall;
-                        }
+                        actdata = this._actionMap.fall;
+
                     }
                 } else {
+                    //AV is walking on a flat surface
+                    this._pauseCam = false;
                     this._vMoveTot = 0;
-                    this._endFreeFall();
+                    //this._endFreeFall();
+                    this._fallFrameCount = 0;
+                    this._inFreeFall = false;
                 }
 
             }
@@ -1112,11 +1163,19 @@ export class CharacterController {
         return actdata;
     }
 
+
+
     //check if any collidable mesh is just below the avatar's ellipsoid
-    private _isNearGround(actDisp: Vector3): { "name": string, "ground": boolean, "slope": number,"y":number } {
+    private _isNearGround(actDisp: Vector3): { "name": string, "ground": boolean, "slope": number,"y":number,"hit":boolean } {
 
         let upDist = this._avatar.position.y - this._avStartPos.y;
-        let up: boolean = (upDist > 0.001 || upDist == 0) ? true : false;
+        // console.log("upDist", upDist);
+        let up:boolean = true;
+        if (Math.abs(upDist) < 0.006) { 
+            up = true;
+        }else{
+            up = (upDist > 0.01 ) ? true : false;
+        }
         let fwd: boolean;
         actDisp.y = 0;
         if (actDisp.x == 0 && actDisp.z == 0) {
@@ -1125,6 +1184,7 @@ export class CharacterController {
             let cosTheta = Vector3.Dot(this._avatar.forward, actDisp.normalize());
             fwd = (cosTheta >= 0) ? true : false;
         }
+        let fact = (up && fwd) || (!up && !fwd) ? 1 : -1;
 
         // send the pick ray vertically down starting from a pont which is
         // a) in the middle of the ellipsoid  and
@@ -1137,18 +1197,19 @@ export class CharacterController {
         // ensuring that the ray will always hit the ground.
         // The length of the ray is such that it atleast reaches the bottom of the avator.
 
-        let fact = (up && fwd) || (!up && !fwd) ? 1 : -1;
         this._avatar.forward.scaleToRef(this._avatar.ellipsoid.x * fact, this._ray.origin);
         this._ray.origin.addToRef(this._avatar.position, this._ray.origin);
         this._ray.origin.addToRef(this._avatar.ellipsoidOffset, this._ray.origin);
+        //this._avatar.position.addToRef(this._avatar.ellipsoidOffset, this._ray.origin);
         //this._ray.origin.y = this._ray.origin.y - this._avatar.ellipsoid.y;
         //from the bottom of ellipsoid go down 1/4 the ellipsoid height to check for any mesh
-        this._ray.length = this._avatar.ellipsoid.y + this._stepOffset;
+        //this._ray.length = this._avatar.ellipsoid.y + this._stepOffset;
+            this._ray.length = this._avatar.ellipsoid.y *2;
         //direction is towards the bottom
         this._ray.direction = this._down;
 
-        //draw lines to see the ray
-        //this.drawLines(this._ray.origin, this._ray.origin.add(new Vector3(0, -this._ray.length, 0)));
+        //draw pick ray
+        this._drawLines(this._ray.origin, this._ray.origin.add(new Vector3(0, -this._ray.length, 0)));
 
         
         //handle case were pick is with a child of avatar, avatar atatchment. etc
@@ -1162,9 +1223,9 @@ export class CharacterController {
         if (pi != null && pi.hit) {
             let n: Vector3 = pi.getNormal(true, true);
             let slope: number = Math.PI / 2 - Math.asin(Math.abs(n.y));
-            return { "name": pi.pickedMesh.name, "ground": true, "slope": slope, "y":pi.pickedPoint.y };
+            return { "name": pi.pickedMesh.name, "ground": true, "slope": slope, "y":pi.pickedPoint.y, "hit":true };
         }
-        else return { "name": "", "ground": false, "slope": 0, "y":0 };
+        else return { "name": "", "ground": false, "slope": 0, "y":0, "hit":false };
 
     }
 
@@ -1205,7 +1266,7 @@ export class CharacterController {
     }
 
     _aLine: LinesMesh = null;
-    private drawLines(pt1: Vector3, pt2: Vector3) {
+    private _drawLines(pt1: Vector3, pt2: Vector3) {
 
         if (this._aLine != null) this._aLine.dispose();
         const myPoints = [pt1, pt2];
@@ -1406,9 +1467,12 @@ export class CharacterController {
     private _updateTargetValue() {
         if (!this._hasCam) return;
         //donot move camera if av is trying to clinb steps
-        if (this._vMoveTot == 0)
+        //if (this._vMoveTot == 0)
+        if (!this._pauseCam) {
             this._avatar.position.addToRef(this._cameraTarget, this._camera.target);
-        else this._vMovStartPos.addToRef(this._cameraTarget, this._camera.target);
+        }else{ 
+            this._vMovStartPos.addToRef(this._cameraTarget, this._camera.target);
+        }
 
         if (this._camera.radius > this._camera.lowerRadiusLimit) { if (this._cameraElastic || this._makeInvisible) this._handleObstruction(); }
 
@@ -1493,7 +1557,11 @@ export class CharacterController {
         //do not pick a mesh if it is the avatar or any of its children (like attachments etc)
         const pis: PickingInfo[] = this._scene.multiPickWithRay(this._ray, (mesh) => {
             if (this._avChildren.includes(mesh)) return false;
-            else return true;
+            if (mesh.isPickable) {
+                return true;
+            }else{ 
+                return false;
+            }
         });
 
 
@@ -1603,27 +1671,33 @@ export class CharacterController {
             case "up":
             case "arrowup":
             case this._actionMap.walk.key:
+                // console.log("walk");
                 this._act._walk = true;
                 break;
             case "left":
             case "arrowleft":
             case this._actionMap.turnLeft.key:
+                // console.log("turn left");
                 this._act._turnLeft = true;
                 break;
             case "right":
             case "arrowright":
             case this._actionMap.turnRight.key:
+                // console.log("turn right");
                 this._act._turnRight = true;
                 break;
             case "down":
             case "arrowdown":
             case this._actionMap.walkBack.key:
+                // console.log("walk back");
                 this._act._walkback = true;
                 break;
             case this._actionMap.strafeLeft.key:
+                // console.log("strafe left");
                 this._act._stepLeft = true;
                 break;
             case this._actionMap.strafeRight.key:
+                // console.log("strafe right");
                 this._act._stepRight = true;
                 break;
         }
@@ -1826,6 +1900,42 @@ export class CharacterController {
         return true;
     }
 
+
+    private _ellipsoid:TransformNode = null;
+    public showEllipsoid(show:boolean) {
+        if (!show){
+            if (this._ellipsoid != null) this._ellipsoid.dispose();
+            this._ellipsoid = null;
+            return;
+        }
+        let ellipsoid:TransformNode = new TransformNode("ellipsoid", this._scene);
+        
+        let a = this._avatar.ellipsoid.x;
+        let b = this._avatar.ellipsoid.y;
+
+        const points = [];
+        for(let theta = -Math.PI/2; theta < Math.PI/2; theta += Math.PI/36) {
+            points.push(new BABYLON.Vector3(0, b * Math.sin(theta), a * Math.cos(theta)));
+        }
+    
+        const ellipse : LinesMesh[] = [];
+        ellipse[0] = MeshBuilder.CreateLines("e", {points:points}, this._scene);
+        ellipse[0].color = Color3.Red();
+        ellipse[0].parent = ellipsoid;
+        ellipse[0].isPickable = false;
+        const steps = 12;
+        const dTheta = 2 * Math.PI / steps; 
+        for(let i = 1; i < steps; i++) {
+                ellipse[i] = ellipse[0].clone("el" + i);
+                ellipse[i].parent = ellipsoid;
+                ellipse[i].rotation.y = i * dTheta;
+                ellipse[i].isPickable = false;
+        }
+        ellipsoid.parent = this._avatar;
+        ellipsoid.position = this._avatar.ellipsoidOffset;
+        this._ellipsoid= ellipsoid;
+    }
+
     public getAvatar() {
         return this._avatar;
     }
@@ -1895,9 +2005,6 @@ export class CharacterController {
             console.error("unable to set avatar");
         }
 
-        
-
-
         let dataType: string = null;
         if (actionMap != null) {
             dataType = this.setActionMap(<ActionMap>actionMap);
@@ -1913,6 +2020,15 @@ export class CharacterController {
         }
 
         if (this._hasCam) this._savedCameraCollision = this._camera.checkCollisions;
+
+        // this._avatar.onCollideObservable.add(
+        //     function(m,evt){
+        //         let msg = "Collision with: "+m.name;
+        //         console.log(m);
+        //         console.log(evt);
+        //     }
+        // );    
+
 
         this._act = new _Action();
 

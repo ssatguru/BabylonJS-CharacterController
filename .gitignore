@@ -2,5 +2,5 @@ nbproject
 node_modules
 lib
 *.bat
-
+ig_*
 **/ig_*.*

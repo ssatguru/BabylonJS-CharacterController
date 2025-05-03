@@ -12,6 +12,7 @@ export declare class CharacterController {
     private _sl2;
     private _stepOffset;
     private _vMoveTot;
+    private _pauseCam;
     private _vMovStartPos;
     private _actionMap;
     private _cameraElastic;
@@ -131,7 +132,7 @@ export declare class CharacterController {
     private _isNearGround;
     private _isNearGround_old;
     _aLine: LinesMesh;
-    private drawLines;
+    private _drawLines;
     private _rotateAV2C;
     private _rotateAVnC;
     private _endFreeFall;
@@ -191,6 +192,8 @@ export declare class CharacterController {
     private _root;
     private _getAbstractMeshChildren;
     setAvatar(avatar: Mesh, faceForward?: boolean): boolean;
+    private _ellipsoid;
+    showEllipsoid(show: boolean): void;
     getAvatar(): Mesh;
     setAvatarSkeleton(skeleton: Skeleton): void;
     private _skelDrivenByAG;
