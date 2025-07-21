@@ -921,10 +921,6 @@ var CharacterController = (function () {
                 this._avatar.moveWithCollisions(this._moveVector);
                 var actDisp = this._avatar.position.subtract(this._avStartPos);
                 var _ng = this._isNearGround(actDisp);
-                var dy = this._avatar.position.y - this._avStartPos.y;
-                if (Math.abs(dy) > 0.01) {
-                    console.log(dy);
-                }
                 if (this._avatar.position.y - this._avStartPos.y > 0.01) {
                     if (_ng.slope == 0) {
                         if (this._stepOffset > 0) {
@@ -941,6 +937,11 @@ var CharacterController = (function () {
                             this._vMoveTot = this._avatar.position.y - this._vMovStartPos.y;
                             if (this._stepHigh) {
                                 this._avatar.position.copyFrom(this._vMovStartPos);
+                            }
+                            else if (this._vMoveTot > this._stepOffset) {
+                                this._avatar.position.copyFrom(this._vMovStartPos);
+                                this._pauseCam = true;
+                                this._vMoveTot = 0;
                             }
                         }
                     }

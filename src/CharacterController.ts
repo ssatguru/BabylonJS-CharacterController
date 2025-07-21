@@ -1035,11 +1035,6 @@ export class CharacterController {
 
                 const _ng = this._isNearGround(actDisp);
 
-                let dy = this._avatar.position.y - this._avStartPos.y;
-                if (Math.abs(dy) > 0.01) {
-                    console.log(dy);
-                }
-
                 //walking up a step or a  slope
                 if (this._avatar.position.y - this._avStartPos.y > 0.01) {
                 //if (this._avatar.position.y > this._avStartPos.y) {
@@ -1080,11 +1075,11 @@ export class CharacterController {
                                 //move av back to its position at begining of steps
                                 this._avatar.position.copyFrom(this._vMovStartPos);
                             }
-                            // else if (this._vMoveTot > this._stepOffset) {
-                            //     this._avatar.position.copyFrom(this._vMovStartPos);
-                            //     this._pauseCam=true;
-                            //     this._vMoveTot = 0
-                            // }   
+                            else if (this._vMoveTot > this._stepOffset) {
+                                this._avatar.position.copyFrom(this._vMovStartPos);
+                                this._pauseCam=true;
+                                this._vMoveTot = 0
+                            }   
                         }
                     } else {
                         //looks like the avatar is going up a slope
