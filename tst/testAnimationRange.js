@@ -59,54 +59,54 @@ function main() {
   var ground = createGround(scene, groundMaterial);
 
   loadPlayer(scene, engine, canvas);
+  
+  var slope1 = BABYLON.Mesh.CreateBox("unwalkable-steep-slope", 2, scene);
+  slope1.checkCollisions = true;
+  slope1.position = new BABYLON.Vector3(-6, 7, 14);
+  slope1.scaling = new BABYLON.Vector3(1, .1, 5);
+  slope1.rotation = new BABYLON.Vector3(-65 * Math.PI / 180, 0, 0);
 
-  //box to test view obstruction
-  var box = BABYLON.Mesh.CreateBox("sight-obstructing-box", 2, scene);
-  box.checkCollisions = true;
-  // box.position = new BABYLON.Vector3(0, 8, 5);
-  box.position = new BABYLON.Vector3(-0.26505887508392334, 5.579569149017334, 10.406900405883789);// (debugNode as BABYLON.Mesh)
-  box.scaling = new BABYLON.Vector3(3.7386960983276367, 1, 3.796574831008911);// (debugNode as BABYLON.Mesh)
+  var slope2 = BABYLON.Mesh.CreateBox("walkable-steep-slope", 2, scene);
+  slope2.checkCollisions = true;
+  slope2.position = new BABYLON.Vector3(6, 7, 14);
+  slope2.scaling = new BABYLON.Vector3(1, .1, 5);
+  slope2.rotation = new BABYLON.Vector3(-35 * Math.PI / 180, 0, 0);
 
+  var slope3 = BABYLON.Mesh.CreateBox("walkable-slope", 2, scene);
+  slope3.checkCollisions = true;
+  slope3.position = new BABYLON.Vector3(12, 7, 14);
+  slope3.scaling = new BABYLON.Vector3(1, .1, 5);
+  slope3.rotation = new BABYLON.Vector3(-25 * Math.PI / 180, 0, 0);
 
-  var box2 = BABYLON.Mesh.CreateBox("unwalkable-steep-slope", 2, scene);
-  box2.checkCollisions = true;
-  box2.position = new BABYLON.Vector3(-6, 7, 14);
-  box2.scaling = new BABYLON.Vector3(1, .1, 5);
-  box2.rotation = new BABYLON.Vector3(-65 * Math.PI / 180, 0, 0);
+  
+  //steps
+  var step = 0.5;
 
+  var step0 = BABYLON.Mesh.CreateBox("high-step0", 2, scene);
+  var ypos= 5.5;
+  step0.checkCollisions = true;
+  step0.position = new BABYLON.Vector3(-0.5, ypos, 10.25);
+  step0.scaling = new BABYLON.Vector3(1, 1, 2);
+  
+  var step1 = BABYLON.Mesh.CreateBox("high-step1", 2, scene);
+  step1.checkCollisions = true;
+  step1.position = new BABYLON.Vector3(0, ypos+step, 10.25);
+  step1.scaling = new BABYLON.Vector3(1, 1, 2);
 
-  var box3 = BABYLON.Mesh.CreateBox("walkable-steep-slope", 2, scene);
-  box3.checkCollisions = true;
-  box3.position = new BABYLON.Vector3(6, 7, 14);
-  box3.scaling = new BABYLON.Vector3(1, .1, 5);
-  box3.rotation = new BABYLON.Vector3(-35 * Math.PI / 180, 0, 0);
+  var step2 = BABYLON.Mesh.CreateBox("high-step2", 2, scene);
+  step2.checkCollisions = true;
+  step2.position = new BABYLON.Vector3(0.5, ypos+2*step, 10.25);
+  step2.scaling = new BABYLON.Vector3(1, 1, 2);
 
-  var box4 = BABYLON.Mesh.CreateBox("walkable-slope", 2, scene);
-  box4.checkCollisions = true;
-  box4.position = new BABYLON.Vector3(12, 7, 14);
-  box4.scaling = new BABYLON.Vector3(1, .1, 5);
-  box4.rotation = new BABYLON.Vector3(-25 * Math.PI / 180, 0, 0);
+  var step3 = BABYLON.Mesh.CreateBox("high-step3", 2, scene);
+  step3.checkCollisions = true;
+  step3.position = new BABYLON.Vector3(1, ypos+3*step, 10.25);
+  step3.scaling = new BABYLON.Vector3(1, 1, 2);
 
-  var step = 0.4
-  var box5 = BABYLON.Mesh.CreateBox("high-step1", 2, scene);
-  box5.checkCollisions = true;
-  box5.position = new BABYLON.Vector3(0, 6.0, 10.25);
-  box5.scaling = new BABYLON.Vector3(1, 1, 2);
-
-  var box6 = BABYLON.Mesh.CreateBox("high-step2", 2, scene);
-  box6.checkCollisions = true;
-  box6.position = new BABYLON.Vector3(0.5, 6.0+step, 10.25);
-  box6.scaling = new BABYLON.Vector3(1, 1, 2);
-
-  var box7 = BABYLON.Mesh.CreateBox("high-step3", 2, scene);
-  box7.checkCollisions = true;
-  box7.position = new BABYLON.Vector3(1, 6.0+2*step, 10.25);
-  box7.scaling = new BABYLON.Vector3(1, 1, 2);
-
-  var box8 = BABYLON.Mesh.CreateBox("high-step4", 2, scene);
-  box8.checkCollisions = true;
-  box8.position = new BABYLON.Vector3(1.5, 6.0+3*step, 10.25);
-  box8.scaling = new BABYLON.Vector3(1, 1, 2);
+  var step4 = BABYLON.Mesh.CreateBox("high-step4", 2, scene);
+  step4.checkCollisions = true;
+  step4.position = new BABYLON.Vector3(1.5, ypos+4*step, 10.25);
+  step4.scaling = new BABYLON.Vector3(1, 1, 2);
 
 
 
@@ -182,7 +182,7 @@ function loadPlayer(scene, engine, canvas) {
     //if the camera comes close to the player we want to enter first person mode.
     cc.setNoFirstPerson(false);
     //the height of steps which the player can climb
-    cc.setStepOffset(0.25);
+    cc.setStepOffset(0.5);
     //cc.setStepOffset(0);
     //the minimum and maximum slope the player can go up
     //between the two the player will start sliding down if it stops

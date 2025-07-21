@@ -151,7 +151,9 @@ var CharacterController = (function () {
         this._isTurning = false;
         this._noRot = false;
         this._steps = true;
-        this._aLine = null;
+        this._stepHigh = false;
+        this._rayLine = null;
+        this._lineOptions = {};
         this._idleFallTime = 0;
         this._groundFrameCount = 0;
         this._groundFrameMax = 10;
@@ -919,21 +921,26 @@ var CharacterController = (function () {
                 this._avatar.moveWithCollisions(this._moveVector);
                 var actDisp = this._avatar.position.subtract(this._avStartPos);
                 var _ng = this._isNearGround(actDisp);
-                if (this._avatar.position.y > this._avStartPos.y) {
+                var dy = this._avatar.position.y - this._avStartPos.y;
+                if (Math.abs(dy) > 0.01) {
+                    console.log(dy);
+                }
+                if (this._avatar.position.y - this._avStartPos.y > 0.01) {
                     if (_ng.slope == 0) {
                         if (this._stepOffset > 0) {
                             if (this._vMoveTot == 0) {
                                 this._vMovStartPos.copyFrom(this._avStartPos);
                                 var stepHeight = _ng.y - this._vMovStartPos.y;
                                 if (stepHeight > this._stepOffset) {
-                                    this._avatar.position.copyFrom(this._vMovStartPos);
+                                    this._stepHigh = true;
+                                }
+                                else {
+                                    this._stepHigh = false;
                                 }
                             }
                             this._vMoveTot = this._avatar.position.y - this._vMovStartPos.y;
-                            if (this._vMoveTot > this._stepOffset) {
+                            if (this._stepHigh) {
                                 this._avatar.position.copyFrom(this._vMovStartPos);
-                                this._pauseCam = true;
-                                this._vMoveTot = 0;
                             }
                         }
                     }
@@ -958,22 +965,24 @@ var CharacterController = (function () {
                         }
                     }
                 }
-                else if (this._avStartPos.y > this._avatar.position.y) {
+                else if (this._avatar.position.y < this._avStartPos.y) {
                     this._pauseCam = false;
                     this._vMoveTot = 0;
-                    if (_ng.y >= this._avatar.position.y) {
+                    var actDisp_1 = this._avatar.position.subtract(this._avStartPos);
+                    if (this._areVectorsEqual(actDisp_1, this._moveVector, 0.001) && !_ng.hit) {
+                        this._pauseCam = false;
+                        this._inFreeFall = true;
+                        actdata = this._actionMap.fall;
+                    }
+                    else {
                         if (_ng.slope <= this._sl1) {
-                            this._endFreeFall();
+                            this._fallFrameCount = 0;
+                            this._inFreeFall = false;
                         }
                         else {
                             this._fallFrameCount = 0;
                             this._inFreeFall = false;
                         }
-                    }
-                    else if (this._avatar.position.y - _ng.y > 1 || !_ng.hit) {
-                        this._pauseCam = false;
-                        this._inFreeFall = true;
-                        actdata = this._actionMap.fall;
                     }
                 }
                 else {
@@ -1011,7 +1020,9 @@ var CharacterController = (function () {
         this._ray.origin.addToRef(this._avatar.ellipsoidOffset, this._ray.origin);
         this._ray.length = this._avatar.ellipsoid.y * 2;
         this._ray.direction = this._down;
-        this._drawLines(this._ray.origin, this._ray.origin.add(new babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3(0, -this._ray.length, 0)));
+        if (this._ellipsoid != null) {
+            this._drawLines(this._ray.origin, this._ray.origin.add(new babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3(0, -this._ray.length, 0)));
+        }
         var pi = this._scene.pickWithRay(this._ray, function (mesh) {
             if (_this._avChildren.includes(mesh))
                 return false;
@@ -1051,14 +1062,20 @@ var CharacterController = (function () {
             return { "name": "", "ground": false, "slope": 0 };
     };
     CharacterController.prototype._drawLines = function (pt1, pt2) {
-        if (this._aLine != null)
-            this._aLine.dispose();
-        var myPoints = [pt1, pt2];
-        var options = {
-            points: myPoints,
-            updatable: true
-        };
-        this._aLine = babylonjs__WEBPACK_IMPORTED_MODULE_0__.MeshBuilder.CreateLines("lines", options);
+        if (this._rayLine == null) {
+            var myPoints = [pt1, pt2];
+            this._lineOptions = {
+                points: myPoints,
+                updatable: true
+            };
+            this._rayLine = babylonjs__WEBPACK_IMPORTED_MODULE_0__.MeshBuilder.CreateLines("lines", this._lineOptions);
+        }
+        else {
+            this._lineOptions.points[0] = pt1;
+            this._lineOptions.points[1] = pt2;
+            this._lineOptions.instance = this._rayLine;
+            this._rayLine = babylonjs__WEBPACK_IMPORTED_MODULE_0__.MeshBuilder.CreateLines("lines", this._lineOptions);
+        }
     };
     CharacterController.prototype._rotateAV2C = function () {
         if (this._hasCam)
@@ -1594,6 +1611,10 @@ var CharacterController = (function () {
             if (this._ellipsoid != null)
                 this._ellipsoid.dispose();
             this._ellipsoid = null;
+            if (this._rayLine != null) {
+                this._rayLine.dispose();
+                this._rayLine = null;
+            }
             return;
         }
         var ellipsoid = new babylonjs__WEBPACK_IMPORTED_MODULE_0__.TransformNode("ellipsoid", this._scene);

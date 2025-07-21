@@ -932,6 +932,7 @@ export class CharacterController {
     private _isTurning = false;
     private _noRot = false;
     private _steps = true;
+    private _stepHigh:boolean = false;
     private _doMove(dt: number): ActionData {
         // console.log("doMove");
 
@@ -1034,9 +1035,14 @@ export class CharacterController {
 
                 const _ng = this._isNearGround(actDisp);
 
+                let dy = this._avatar.position.y - this._avStartPos.y;
+                if (Math.abs(dy) > 0.01) {
+                    console.log(dy);
+                }
+
                 //walking up a step or a  slope
-                //if (this._avatar.position.y - this._avStartPos.y > 0.01) {
-                if (this._avatar.position.y > this._avStartPos.y) {
+                if (this._avatar.position.y - this._avStartPos.y > 0.01) {
+                //if (this._avatar.position.y > this._avStartPos.y) {
                     //if AV is going up even though slope is 0 then that means AV is trying to climb steps
                     //The elliptical shape of ellipsoid allows this.
                     if (_ng.slope == 0) {
@@ -1053,11 +1059,15 @@ export class CharacterController {
 
                                 //if the step height is more than that allowed
                                 if (stepHeight > this._stepOffset) {
+                                    this._stepHigh = true;
                                     //move av back to its position at begining of steps
-                                    this._avatar.position.copyFrom(this._vMovStartPos);
+                                    // this._avatar.position.copyFrom(this._vMovStartPos);
                                     // this._pauseCam = true;
+                                }else{
+                                    this._stepHigh = false;
                                 }
                             }
+                          
 
                             //if the av is trying to climb step at an angle then the pick might miss the step
                             //in such case let the av move up but keep track of how much it has moved up
@@ -1066,11 +1076,15 @@ export class CharacterController {
                             //if the total amount by which the AV has moved up exceeds the allowable limit then
                             //move av back to its position at begining of steps
                             //(this doesnot seem to work very reliably)
-                            if (this._vMoveTot > this._stepOffset) {
+                            if (this._stepHigh) {
+                                //move av back to its position at begining of steps
                                 this._avatar.position.copyFrom(this._vMovStartPos);
-                                this._pauseCam=true;
-                                this._vMoveTot = 0
-                            }   
+                            }
+                            // else if (this._vMoveTot > this._stepOffset) {
+                            //     this._avatar.position.copyFrom(this._vMovStartPos);
+                            //     this._pauseCam=true;
+                            //     this._vMoveTot = 0
+                            // }   
                         }
                     } else {
                         //looks like the avatar is going up a slope
@@ -1078,19 +1092,19 @@ export class CharacterController {
                         this._pauseCam=false;
                         const _slp = _ng.slope;
 
-                        //if slope is less than the higher slope limit the continue moving up
+                        //if slope is less than the higher slope limit then continue moving up
                         //if slope is greater than the higher slope limit then stop moving up
                         //
                         //But sometimes even if the the slope is greater than the higher slope limit 
-                        //we want avatar to continue moving up the slope.
+                        //we may want avatar to continue moving up the slope.
                         //Remember that the the ray is in front of the avatar (when the avatar is facing the slope).
                         //Thus the slope read, is not the slope of the ground under the avatar but of ground in front of the avatar.
-                        //Now the ground in front can suddenly start sloping down steeply.
+                        //Now the ground in front can suddenly start sloping down more than allowable limit.
                         //In that case the avatar should not stop but continue moving forward.
-                        //To identify this case we need to check if the current pickpoint is below the previous pickpoint.
+                        //To identify this use case we need to check if the current pickpoint is below the previous pickpoint.
                         //Normally if we are going up the slope then the current pickpoint
-                        //should always be above the previous pickpoint given that.
-                        //If this is not the case then we have identifed this case of a downward slope ahead.
+                        //should always be above the previous pickpoint.
+                        //If this is not the case then we have identifed this use case of a downward slope ahead.
                         //Note: the slope does not tell us if it is a upward slope or a downward slope
 
                         if (_slp >= this._sl2 && _ng.y > this._pickStartY) {
@@ -1112,42 +1126,53 @@ export class CharacterController {
                         }
                     }
                    
-                } else //if (this._avStartPos.y - this._avatar.position.y > 0.01 ) {
-                    if (this._avStartPos.y > this._avatar.position.y ) {
-                        this._pauseCam = false;
+                } else 
+                    // if (this._avStartPos.y - this._avatar.position.y > 0.01 ) {
+                    if ( this._avatar.position.y < this._avStartPos.y ) {
+                    this._pauseCam = false;
                     //av is going down a slope or is in free fall
                     this._vMoveTot = 0;
-                    //const actDisp: Vector3 = this._avatar.position.subtract(this._avStartPos);
-                    //if (!(this._areVectorsEqual(actDisp, this._moveVector, 0.001))) {
-                    if (_ng.y >= this._avatar.position.y) {
-                        //AV is on ground and thus on slope
-                        //
-                        //Should AV continue to slide or walk?
-                        //if slope is less steeper than acceptable then walk else slide
-                        //if (this._verticalSlope(actDisp) <= this._sl1) {
-                        if (_ng.slope <= this._sl1) {
-                            this._endFreeFall();
-                        } else {
-                            //av is on a steep slope , keep the moveFallTIme incremented somwhere abovce to deaccelerate it
-                            this._fallFrameCount = 0;
-                            this._inFreeFall = false;
-                        }
-                    }else if (this._avatar.position.y - _ng.y > 1 || !_ng.hit) {
-                        //if the AV is atleast 1 unit(?) above the pickpoint or there is no pickpoint then
+                    const actDisp: Vector3 = this._avatar.position.subtract(this._avStartPos);
+
+                    //if the AV falls by an amount equal to the free fall distance calculated then it is in freefall
+                    //Now the AV could be going down a slope but still be seen as if it is in a freefall.
+                    //This could happen if the AV is going down a steep fall. In such cases the AV move forward, 
+                    // goes in freefall,hits the slope,goes in freefall again and so on
+                    //To make sure this is not the case check the pickray does not hit the ground or if it does then 
+                    // the pickpoint is atleast 1 unit(?) below the avatar's position
+                    //if (this._areVectorsEqual(actDisp, this._moveVector, 0.001) &&  (!_ng.hit || (_ng.hit && this._avatar.position.y - _ng.y > 1))) {
+                    if (this._areVectorsEqual(actDisp, this._moveVector, 0.001) &&  !_ng.hit) {
                         //AV is in freefall
+
                         this._pauseCam = false;
                         this._inFreeFall = true;
                         
                         //AV could be running down a slope which mean freefall,run,freefall run ...
                         //to remove anim flicker, check if AV has been falling down continously for last few consecutive frames
                         //before changing to free fall animation
-                        //this._fallFrameCount++;
+                        // this._fallFrameCount++;
                         // if (this._fallFrameCount > this._fallFrameCountMin) {
-                        //     actdata = this._actionMap.fall;
+                            actdata = this._actionMap.fall;
                         // }
-
-                        actdata = this._actionMap.fall;
-
+                    
+                  
+                    }else {
+                          //if (_ng.y >= this._avatar.position.y) {
+                        //AV is on ground and thus on slope
+                        //
+                        //Should AV continue to slide or walk?
+                        //if slope is less steeper than acceptable then walk else slide
+                        //if (this._verticalSlope(actDisp) <= this._sl1) {
+                            if (_ng.slope <= this._sl1) {
+                               // this._endFreeFall();
+                               this._fallFrameCount = 0;
+                                this._inFreeFall = false;
+                            } else {
+                                //av is on a steep slope , keep the moveFallTIme non zero to continue deaccelerate it vertically
+                                this._fallFrameCount = 0;
+                                this._inFreeFall = false;
+                            }
+                       
                     }
                 } else {
                     //AV is walking on a flat surface
@@ -1157,7 +1182,6 @@ export class CharacterController {
                     this._fallFrameCount = 0;
                     this._inFreeFall = false;
                 }
-
             }
         }
         return actdata;
@@ -1186,6 +1210,9 @@ export class CharacterController {
         }
         let fact = (up && fwd) || (!up && !fwd) ? 1 : -1;
 
+        //SAT DEBUG
+        // fact=1;
+
         // send the pick ray vertically down starting from a pont which is
         // a) in the middle of the ellipsoid  and
         // b) either front or back of the avatar
@@ -1204,12 +1231,14 @@ export class CharacterController {
         //this._ray.origin.y = this._ray.origin.y - this._avatar.ellipsoid.y;
         //from the bottom of ellipsoid go down 1/4 the ellipsoid height to check for any mesh
         //this._ray.length = this._avatar.ellipsoid.y + this._stepOffset;
-            this._ray.length = this._avatar.ellipsoid.y *2;
+        this._ray.length = this._avatar.ellipsoid.y *2;
         //direction is towards the bottom
         this._ray.direction = this._down;
 
         //draw pick ray
-        this._drawLines(this._ray.origin, this._ray.origin.add(new Vector3(0, -this._ray.length, 0)));
+        if (this._ellipsoid !=null) {
+            this._drawLines(this._ray.origin, this._ray.origin.add(new Vector3(0, -this._ray.length, 0)));
+        }
 
         
         //handle case were pick is with a child of avatar, avatar atatchment. etc
@@ -1265,17 +1294,24 @@ export class CharacterController {
 
     }
 
-    _aLine: LinesMesh = null;
+
+    //for debugging purpose draws the rayline use to detect slope or steps
+    _rayLine: LinesMesh = null;
+    _lineOptions:any = {};
     private _drawLines(pt1: Vector3, pt2: Vector3) {
-
-        if (this._aLine != null) this._aLine.dispose();
-        const myPoints = [pt1, pt2];
-        const options = {
-            points: myPoints,
-            updatable: true
+        if (this._rayLine == null){
+            const myPoints = [pt1, pt2];
+            this._lineOptions = {
+                points: myPoints,
+                updatable: true
+            }
+            this._rayLine = MeshBuilder.CreateLines("lines", this._lineOptions );
+        }else {
+            this._lineOptions.points[0]=pt1;
+            this._lineOptions.points[1]=pt2;
+            this._lineOptions.instance = this._rayLine;
+            this._rayLine = MeshBuilder.CreateLines("lines", this._lineOptions);
         }
-        this._aLine = MeshBuilder.CreateLines("lines", options);
-
     }
 
     /**
@@ -1906,6 +1942,7 @@ export class CharacterController {
         if (!show){
             if (this._ellipsoid != null) this._ellipsoid.dispose();
             this._ellipsoid = null;
+            if (this._rayLine != null) { this._rayLine.dispose(); this._rayLine = null; }
             return;
         }
         let ellipsoid:TransformNode = new TransformNode("ellipsoid", this._scene);

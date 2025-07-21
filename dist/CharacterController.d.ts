@@ -128,10 +128,12 @@ export declare class CharacterController {
     private _isTurning;
     private _noRot;
     private _steps;
+    private _stepHigh;
     private _doMove;
     private _isNearGround;
     private _isNearGround_old;
-    _aLine: LinesMesh;
+    _rayLine: LinesMesh;
+    _lineOptions: any;
     private _drawLines;
     private _rotateAV2C;
     private _rotateAVnC;
