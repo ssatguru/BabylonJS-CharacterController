@@ -81,32 +81,18 @@ function main() {
   
   //steps
   var step = 0.5;
-
-  var step0 = BABYLON.Mesh.CreateBox("high-step0", 2, scene);
+  var steplength = 1;
+  var xpos=-0.5;
   var ypos= 5.5;
-  step0.checkCollisions = true;
-  step0.position = new BABYLON.Vector3(-0.5, ypos, 10.25);
-  step0.scaling = new BABYLON.Vector3(1, 1, 2);
-  
-  var step1 = BABYLON.Mesh.CreateBox("high-step1", 2, scene);
-  step1.checkCollisions = true;
-  step1.position = new BABYLON.Vector3(0, ypos+step, 10.25);
-  step1.scaling = new BABYLON.Vector3(1, 1, 2);
-
-  var step2 = BABYLON.Mesh.CreateBox("high-step2", 2, scene);
-  step2.checkCollisions = true;
-  step2.position = new BABYLON.Vector3(0.5, ypos+2*step, 10.25);
-  step2.scaling = new BABYLON.Vector3(1, 1, 2);
-
-  var step3 = BABYLON.Mesh.CreateBox("high-step3", 2, scene);
-  step3.checkCollisions = true;
-  step3.position = new BABYLON.Vector3(1, ypos+3*step, 10.25);
-  step3.scaling = new BABYLON.Vector3(1, 1, 2);
-
-  var step4 = BABYLON.Mesh.CreateBox("high-step4", 2, scene);
-  step4.checkCollisions = true;
-  step4.position = new BABYLON.Vector3(1.5, ypos+4*step, 10.25);
-  step4.scaling = new BABYLON.Vector3(1, 1, 2);
+  var stepId;
+  var aStep;
+  for (var stps=0;stps<10;stps++){
+    stepId = "high-step-"+stps;
+    aStep = BABYLON.Mesh.CreateBox(stepId, 2, scene);
+    aStep.checkCollisions = true;
+    aStep.position = new BABYLON.Vector3(xpos+stps*steplength, ypos+stps*step, 4.5);
+    aStep.scaling = new BABYLON.Vector3(1, 1, 2);
+  }
 
 
 
@@ -227,6 +213,7 @@ function loadPlayer(scene, engine, canvas) {
     //show the player's ellipsoid for debugging
     cc.showEllipsoid(true);
 
+    cc.setGravity(9.8);//default value
     cc.start();
 
     engine.runRenderLoop(function () {

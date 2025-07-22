@@ -118,9 +118,6 @@ var CharacterController = (function () {
         this._sl1 = Math.PI * this._minSlopeLimit / 180;
         this._sl2 = Math.PI * this._maxSlopeLimit / 180;
         this._stepOffset = 0.25;
-        this._vMoveTot = 0;
-        this._pauseCam = false;
-        this._vMovStartPos = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Zero();
         this._actionMap = new ActionMap();
         this._cameraElastic = true;
         this._cameraTarget = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Zero();
@@ -134,14 +131,13 @@ var CharacterController = (function () {
         this._stopAnim = false;
         this._prevActData = null;
         this._avStartPos = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Zero();
-        this._pickStartY = 0;
+        this._prevPickY = 0;
         this._grounded = false;
         this._freeFallDist = 0;
-        this._fallFrameCountMin = 20;
-        this._fallFrameCount = 0;
         this._inFreeFall = false;
         this._wasWalking = false;
         this._wasRunning = false;
+        this._moveVector = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Zero();
         this._soundLoopTime = 700;
         this._sndId = null;
         this._jumpStartPosY = 0;
@@ -732,8 +728,6 @@ var CharacterController = (function () {
         var actData = null;
         var dt = this._scene.getEngine().getDeltaTime() / 1000;
         if (this._act._jump && !this._inFreeFall) {
-            this._vMoveTot = 0;
-            this._pauseCam = false;
             this._grounded = false;
             this._idleFallTime = 0;
             actData = this._doJump(dt);
@@ -850,6 +844,9 @@ var CharacterController = (function () {
         this._movFallTime = this._movFallTime + dt;
         var moving = false;
         var actdata = null;
+        this._moveVector.x = 0;
+        this._moveVector.y = 0;
+        this._moveVector.z = 0;
         if (this._inFreeFall) {
             this._moveVector.y = -this._freeFallDist;
             moving = true;
@@ -922,42 +919,34 @@ var CharacterController = (function () {
                 var actDisp = this._avatar.position.subtract(this._avStartPos);
                 var _ng = this._isNearGround(actDisp);
                 if (this._avatar.position.y - this._avStartPos.y > 0.01) {
-                    if (_ng.slope == 0) {
+                    if (_ng.hit && _ng.slope == 0) {
                         if (this._stepOffset > 0) {
-                            if (this._vMoveTot == 0) {
-                                this._vMovStartPos.copyFrom(this._avStartPos);
-                                var stepHeight = _ng.y - this._vMovStartPos.y;
-                                if (stepHeight > this._stepOffset) {
-                                    this._stepHigh = true;
-                                }
-                                else {
-                                    this._stepHigh = false;
-                                }
+                            var stepHeight = _ng.y - this._avStartPos.y;
+                            if (stepHeight > this._stepOffset) {
+                                this._stepHigh = true;
                             }
-                            this._vMoveTot = this._avatar.position.y - this._vMovStartPos.y;
+                            else {
+                                this._stepHigh = false;
+                            }
                             if (this._stepHigh) {
-                                this._avatar.position.copyFrom(this._vMovStartPos);
+                                this._avatar.position.copyFrom(this._avStartPos);
                             }
-                            else if (this._vMoveTot > this._stepOffset) {
-                                this._avatar.position.copyFrom(this._vMovStartPos);
-                                this._pauseCam = true;
-                                this._vMoveTot = 0;
+                            else {
+                                this._avatar.position.y = _ng.y;
+                                this._movFallTime = 0;
                             }
                         }
                     }
                     else {
-                        this._vMoveTot = 0;
-                        this._pauseCam = false;
                         var _slp = _ng.slope;
-                        if (_slp >= this._sl2 && _ng.y > this._pickStartY) {
+                        if (_slp >= this._sl2 && _ng.y > this._prevPickY) {
                             this._avatar.position.copyFrom(this._avStartPos);
                             this._endFreeFall();
-                            this._pickStartY = 0;
+                            this._prevPickY = 0;
                         }
                         else {
-                            this._pickStartY = _ng.y;
+                            this._prevPickY = _ng.y;
                             if (_slp > this._sl1) {
-                                this._fallFrameCount = 0;
                                 this._inFreeFall = false;
                             }
                             else {
@@ -967,29 +956,21 @@ var CharacterController = (function () {
                     }
                 }
                 else if (this._avatar.position.y < this._avStartPos.y) {
-                    this._pauseCam = false;
-                    this._vMoveTot = 0;
                     var actDisp_1 = this._avatar.position.subtract(this._avStartPos);
                     if (this._areVectorsEqual(actDisp_1, this._moveVector, 0.001) && !_ng.hit) {
-                        this._pauseCam = false;
                         this._inFreeFall = true;
                         actdata = this._actionMap.fall;
                     }
                     else {
                         if (_ng.slope <= this._sl1) {
-                            this._fallFrameCount = 0;
                             this._inFreeFall = false;
                         }
                         else {
-                            this._fallFrameCount = 0;
                             this._inFreeFall = false;
                         }
                     }
                 }
                 else {
-                    this._pauseCam = false;
-                    this._vMoveTot = 0;
-                    this._fallFrameCount = 0;
                     this._inFreeFall = false;
                 }
             }
@@ -1174,7 +1155,6 @@ var CharacterController = (function () {
     };
     CharacterController.prototype._endFreeFall = function () {
         this._movFallTime = 0;
-        this._fallFrameCount = 0;
         this._inFreeFall = false;
     };
     CharacterController.prototype._doIdle = function (dt) {
@@ -1185,7 +1165,6 @@ var CharacterController = (function () {
         this._wasRunning = false;
         this._movFallTime = 0;
         var anim = this._actionMap.idle;
-        this._fallFrameCount = 0;
         if (dt === 0) {
             this._freeFallDist = 5;
         }
@@ -1243,12 +1222,7 @@ var CharacterController = (function () {
     CharacterController.prototype._updateTargetValue = function () {
         if (!this._hasCam)
             return;
-        if (!this._pauseCam) {
-            this._avatar.position.addToRef(this._cameraTarget, this._camera.target);
-        }
-        else {
-            this._vMovStartPos.addToRef(this._cameraTarget, this._camera.target);
-        }
+        this._avatar.position.addToRef(this._cameraTarget, this._camera.target);
         if (this._camera.radius > this._camera.lowerRadiusLimit) {
             if (this._cameraElastic || this._makeInvisible)
                 this._handleObstruction();

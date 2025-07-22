@@ -47,13 +47,8 @@ export class CharacterController {
 
     //The av will step up a stair only if it is closer to the ground than the indicated value.
     private _stepOffset: number = 0.25;
-    //toal amount by which the av has moved up
-    private _vMoveTot: number = 0;
-    private _pauseCam:boolean = false;
-    //position of av when it started moving up
-    private _vMovStartPos: Vector3 = Vector3.Zero();
 
-
+    
     private _actionMap: ActionMap = new ActionMap();
 
     private _cameraElastic: boolean = true;
@@ -738,22 +733,15 @@ export class CharacterController {
 
     private _prevActData: ActionData = null;
     private _avStartPos: Vector3 = Vector3.Zero();
-    private _pickStartY: number = 0;
+    private _prevPickY: number = 0;
     private _grounded: boolean = false;
     //distance by which AV would move down if in freefall
     private _freeFallDist: number = 0;
 
-    //how many minimum contiguos frames should the AV have been in free fall
-    //before we assume AV is in big freefall.
-    //we will use this to remove animation flicker during move down a slope (fall, move, fall move etc)
-    //TODO: base this on slope - large slope large count
-    private _fallFrameCountMin: number = 20;
-    private _fallFrameCount: number = 0;
-
     private _inFreeFall: boolean = false;
     private _wasWalking: boolean = false;
     private _wasRunning: boolean = false;
-    private _moveVector: Vector3;
+    private _moveVector: Vector3 = Vector3.Zero();
 
     //used only in mode 1
     //value 1 or -1 , -1 if avatar is facing camera
@@ -771,8 +759,6 @@ export class CharacterController {
         const dt: number = this._scene.getEngine().getDeltaTime() / 1000;
 
         if (this._act._jump && !this._inFreeFall) {
-            this._vMoveTot = 0;
-            this._pauseCam = false;
             this._grounded = false;
             this._idleFallTime = 0;
             actData = this._doJump(dt);
@@ -948,6 +934,10 @@ export class CharacterController {
         let moving: boolean = false;
         let actdata: ActionData = null;
 
+        this._moveVector.x=0;
+        this._moveVector.y=0;
+        this._moveVector.z=0;
+
         if (this._inFreeFall) {
             this._moveVector.y = -this._freeFallDist;
             moving = true;
@@ -1028,7 +1018,6 @@ export class CharacterController {
         // move the avatar
         if (moving) {
             if (this._moveVector.length() > 0.001) {
-                //console.log("moving", this._moveVector);
                 this._avatar.moveWithCollisions(this._moveVector);
 
                 let actDisp: Vector3 = this._avatar.position.subtract(this._avStartPos);
@@ -1040,51 +1029,34 @@ export class CharacterController {
                 //if (this._avatar.position.y > this._avStartPos.y) {
                     //if AV is going up even though slope is 0 then that means AV is trying to climb steps
                     //The elliptical shape of ellipsoid allows this.
-                    if (_ng.slope == 0) {
+                    if (_ng.hit && _ng.slope == 0 ) {
                         //if user has specified step offset then prevent AV from going beyond that
                         //otherwise allow whatever the ellisoid allows
                         if (this._stepOffset > 0) {
-                            if (this._vMoveTot == 0) {
-                                //if AV just started climbing step, note down the position
-                                this._vMovStartPos.copyFrom(this._avStartPos);
 
-                                //The pick ray being in front, will pick a step and 
-                                //thus can be used to calc the step height
-                                let stepHeight = _ng.y - this._vMovStartPos.y;
+                            //The pick ray being in front, will pick a step and 
+                            //thus can be used to calc the step height
+                            let stepHeight = _ng.y - this._avStartPos.y;
 
-                                //if the step height is more than that allowed
-                                if (stepHeight > this._stepOffset) {
-                                    this._stepHigh = true;
-                                    //move av back to its position at begining of steps
-                                    // this._avatar.position.copyFrom(this._vMovStartPos);
-                                    // this._pauseCam = true;
-                                }else{
-                                    this._stepHigh = false;
-                                }
+                            //if the step height is more than that allowed
+                            if (stepHeight > this._stepOffset) {
+                                this._stepHigh = true;
+                            }else{
+                                this._stepHigh = false;
                             }
-                          
-
-                            //if the av is trying to climb step at an angle then the pick might miss the step
-                            //in such case let the av move up but keep track of how much it has moved up
-                            this._vMoveTot = this._avatar.position.y - this._vMovStartPos.y;
 
                             //if the total amount by which the AV has moved up exceeds the allowable limit then
                             //move av back to its position at begining of steps
-                            //(this doesnot seem to work very reliably)
-                            if (this._stepHigh) {
+                             if (this._stepHigh) {
                                 //move av back to its position at begining of steps
-                                this._avatar.position.copyFrom(this._vMovStartPos);
+                                this._avatar.position.copyFrom(this._avStartPos);
+                            }else{
+                                this._avatar.position.y = _ng.y;
+                                this._movFallTime = 0;
                             }
-                            else if (this._vMoveTot > this._stepOffset) {
-                                this._avatar.position.copyFrom(this._vMovStartPos);
-                                this._pauseCam=true;
-                                this._vMoveTot = 0
-                            }   
-                        }
+                         }
                     } else {
                         //looks like the avatar is going up a slope
-                        this._vMoveTot = 0;
-                        this._pauseCam=false;
                         const _slp = _ng.slope;
 
                         //if slope is less than the higher slope limit then continue moving up
@@ -1102,17 +1074,17 @@ export class CharacterController {
                         //If this is not the case then we have identifed this use case of a downward slope ahead.
                         //Note: the slope does not tell us if it is a upward slope or a downward slope
 
-                        if (_slp >= this._sl2 && _ng.y > this._pickStartY) {
+                        if (_slp >= this._sl2 && _ng.y > this._prevPickY) {
+                       // if (_slp >= this._sl2 ) {
                             //move av back to old position
                             this._avatar.position.copyFrom(this._avStartPos);
                             this._endFreeFall();
-                            this._pickStartY = 0;
+                            this._prevPickY = 0;
                         } else {
                             //keep moving up the slope
-                            this._pickStartY = _ng.y;
+                            this._prevPickY = _ng.y;
                             if (_slp > this._sl1) {
                                 //av is on a steep slope , continue increasing the moveFallTIme to deaccelerate it
-                                this._fallFrameCount = 0;
                                 this._inFreeFall = false;
                             } else {
                                 //continue walking
@@ -1121,12 +1093,9 @@ export class CharacterController {
                         }
                     }
                    
-                } else 
+                } else if ( this._avatar.position.y < this._avStartPos.y ) {
                     // if (this._avStartPos.y - this._avatar.position.y > 0.01 ) {
-                    if ( this._avatar.position.y < this._avStartPos.y ) {
-                    this._pauseCam = false;
                     //av is going down a slope or is in free fall
-                    this._vMoveTot = 0;
                     const actDisp: Vector3 = this._avatar.position.subtract(this._avStartPos);
 
                     //if the AV falls by an amount equal to the free fall distance calculated then it is in freefall
@@ -1138,19 +1107,8 @@ export class CharacterController {
                     //if (this._areVectorsEqual(actDisp, this._moveVector, 0.001) &&  (!_ng.hit || (_ng.hit && this._avatar.position.y - _ng.y > 1))) {
                     if (this._areVectorsEqual(actDisp, this._moveVector, 0.001) &&  !_ng.hit) {
                         //AV is in freefall
-
-                        this._pauseCam = false;
                         this._inFreeFall = true;
-                        
-                        //AV could be running down a slope which mean freefall,run,freefall run ...
-                        //to remove anim flicker, check if AV has been falling down continously for last few consecutive frames
-                        //before changing to free fall animation
-                        // this._fallFrameCount++;
-                        // if (this._fallFrameCount > this._fallFrameCountMin) {
-                            actdata = this._actionMap.fall;
-                        // }
-                    
-                  
+                        actdata = this._actionMap.fall;
                     }else {
                           //if (_ng.y >= this._avatar.position.y) {
                         //AV is on ground and thus on slope
@@ -1160,21 +1118,15 @@ export class CharacterController {
                         //if (this._verticalSlope(actDisp) <= this._sl1) {
                             if (_ng.slope <= this._sl1) {
                                // this._endFreeFall();
-                               this._fallFrameCount = 0;
                                 this._inFreeFall = false;
                             } else {
                                 //av is on a steep slope , keep the moveFallTIme non zero to continue deaccelerate it vertically
-                                this._fallFrameCount = 0;
                                 this._inFreeFall = false;
                             }
-                       
                     }
                 } else {
                     //AV is walking on a flat surface
-                    this._pauseCam = false;
-                    this._vMoveTot = 0;
                     //this._endFreeFall();
-                    this._fallFrameCount = 0;
                     this._inFreeFall = false;
                 }
             }
@@ -1188,7 +1140,6 @@ export class CharacterController {
     private _isNearGround(actDisp: Vector3): { "name": string, "ground": boolean, "slope": number,"y":number,"hit":boolean } {
 
         let upDist = this._avatar.position.y - this._avStartPos.y;
-        // console.log("upDist", upDist);
         let up:boolean = true;
         if (Math.abs(upDist) < 0.006) { 
             up = true;
@@ -1403,14 +1354,12 @@ export class CharacterController {
 
     private _endFreeFall(): void {
         this._movFallTime = 0;
-        this._fallFrameCount = 0;
         this._inFreeFall = false;
     }
 
     //for how long has the av been falling while idle (not moving)
     private _idleFallTime: number = 0;
     private _doIdle(dt: number): ActionData {
-        // console.log("idling");
         if (this._grounded) {
             return this._actionMap.idle;
         }
@@ -1418,8 +1367,6 @@ export class CharacterController {
         this._wasRunning = false;
         this._movFallTime = 0;
         let anim: ActionData = this._actionMap.idle;
-        this._fallFrameCount = 0;
-
 
         if (dt === 0) {
             this._freeFallDist = 5;
@@ -1497,13 +1444,8 @@ export class CharacterController {
     private _inFP = false;
     private _updateTargetValue() {
         if (!this._hasCam) return;
-        //donot move camera if av is trying to clinb steps
-        //if (this._vMoveTot == 0)
-        if (!this._pauseCam) {
-            this._avatar.position.addToRef(this._cameraTarget, this._camera.target);
-        }else{ 
-            this._vMovStartPos.addToRef(this._cameraTarget, this._camera.target);
-        }
+      
+        this._avatar.position.addToRef(this._cameraTarget, this._camera.target);
 
         if (this._camera.radius > this._camera.lowerRadiusLimit) { if (this._cameraElastic || this._makeInvisible) this._handleObstruction(); }
 

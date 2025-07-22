@@ -11,9 +11,6 @@ export declare class CharacterController {
     private _sl1;
     private _sl2;
     private _stepOffset;
-    private _vMoveTot;
-    private _pauseCam;
-    private _vMovStartPos;
     private _actionMap;
     private _cameraElastic;
     private _cameraTarget;
@@ -103,11 +100,9 @@ export declare class CharacterController {
     resumeAnim(): void;
     private _prevActData;
     private _avStartPos;
-    private _pickStartY;
+    private _prevPickY;
     private _grounded;
     private _freeFallDist;
-    private _fallFrameCountMin;
-    private _fallFrameCount;
     private _inFreeFall;
     private _wasWalking;
     private _wasRunning;
