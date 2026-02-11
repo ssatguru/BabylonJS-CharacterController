@@ -1,3 +1,8 @@
+01/23/2026 0.4.4-alpha.12
+- fixed issue with npc faceforward issue.
+- serialize animation blending value (set with enableBlending())
+- serialize avatar ellipsoid and ellipsoid offset
+- fixed bug in showEllipsoid wherein calling show true multiple times would result in multiple ellipsoids
 
 07/20/2025 0.4.4-alpha.11
 - steps detection issues resolved

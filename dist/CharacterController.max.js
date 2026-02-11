@@ -100,6 +100,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "ActionData": () => (/* binding */ ActionData),
 /* harmony export */   "ActionMap": () => (/* binding */ ActionMap),
+/* harmony export */   "Actions": () => (/* binding */ Actions),
 /* harmony export */   "CCSettings": () => (/* binding */ CCSettings),
 /* harmony export */   "CharacterController": () => (/* binding */ CharacterController)
 /* harmony export */ });
@@ -344,6 +345,9 @@ var CharacterController = (function () {
         ccs.noFirstPerson = this._noFirstPerson;
         ccs.stepOffset = this._stepOffset;
         ccs.sound = this._stepSound;
+        ccs.animBlend = this._animBlend;
+        ccs.ellipsoid = this._avatar.ellipsoid;
+        ccs.ellipsoidOffset = this._avatar.ellipsoidOffset;
         return ccs;
     };
     CharacterController.prototype.setSettings = function (ccs) {
@@ -360,6 +364,9 @@ var CharacterController = (function () {
         this.setNoFirstPerson(ccs.noFirstPerson);
         this.setStepOffset(ccs.stepOffset);
         this.setSound(ccs.sound);
+        this.enableBlending(ccs.animBlend);
+        this._avatar.ellipsoid = ccs.ellipsoid;
+        this._avatar.ellipsoidOffset = ccs.ellipsoidOffset;
     };
     CharacterController.prototype._setAnim = function (anim, animName, rate, loop) {
         if (!this._isAG && this._skeleton == null)
@@ -397,6 +404,7 @@ var CharacterController = (function () {
                     continue;
                 if (act.exist) {
                     var ar = act.ag;
+                    this._animBlend = n;
                     for (var _a = 0, _b = ar.targetedAnimations; _a < _b.length; _a++) {
                         var ta = _b[_a];
                         ta.animation.enableBlending = true;
@@ -406,8 +414,10 @@ var CharacterController = (function () {
             }
         }
         else {
-            if (this._skeleton !== null)
+            if (this._skeleton !== null) {
                 this._skeleton.enableBlending(n);
+                this._animBlend = n;
+            }
         }
     };
     CharacterController.prototype.disableBlending = function () {
@@ -615,11 +625,6 @@ var CharacterController = (function () {
     CharacterController.prototype.setFaceForward = function (b) {
         this._ff = b;
         this._rhsSign = this._scene.useRightHandedSystem ? -1 : 1;
-        if (!this._hasCam) {
-            this._av2cam = 0;
-            this._ffSign = 1;
-            return;
-        }
         if (this._isLHS_RHS) {
             this._av2cam = b ? Math.PI / 2 : 3 * Math.PI / 2;
             this._ffSign = b ? 1 : -1;
@@ -627,6 +632,10 @@ var CharacterController = (function () {
         else {
             this._av2cam = b ? 3 * Math.PI / 2 : Math.PI / 2;
             this._ffSign = b ? -1 : 1;
+        }
+        if (!this._hasCam) {
+            this._av2cam = 0;
+            return;
         }
     };
     CharacterController.prototype.isFaceForward = function () {
@@ -717,7 +726,7 @@ var CharacterController = (function () {
     };
     CharacterController.prototype._isAvFacingCamera = function () {
         if (!this._hasCam)
-            return 1;
+            return -1;
         if (babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Dot(this._avatar.forward, this._avatar.position.subtract(this._camera.position)) < 0)
             return 1;
         else
@@ -1467,59 +1476,73 @@ var CharacterController = (function () {
         canvas.removeEventListener("keydown", this._handleKeyDown, false);
     };
     CharacterController.prototype.walk = function (b) {
+        this._act.reset();
         this._act._walk = b;
     };
     CharacterController.prototype.walkBack = function (b) {
+        this._act.reset();
         this._act._walkback = b;
     };
     CharacterController.prototype.walkBackFast = function (b) {
+        this._act.reset();
         this._act._walkback = b;
         this._act._speedMod = b;
     };
     CharacterController.prototype.run = function (b) {
+        this._act.reset();
         this._act._walk = b;
         this._act._speedMod = b;
     };
     CharacterController.prototype.turnLeft = function (b) {
+        this._act.reset();
         this._act._turnLeft = b;
         if (!b)
             this._isTurning = b;
     };
     CharacterController.prototype.turnLeftFast = function (b) {
+        this._act.reset();
         this._act._turnLeft = b;
         if (!b)
             this._isTurning = b;
         this._act._speedMod = b;
     };
     CharacterController.prototype.turnRight = function (b) {
+        this._act.reset();
         this._act._turnRight = b;
         if (!b)
             this._isTurning = b;
     };
     CharacterController.prototype.turnRightFast = function (b) {
+        this._act.reset();
         this._act._turnRight = b;
         if (!b)
             this._isTurning = b;
         this._act._speedMod = b;
     };
     CharacterController.prototype.strafeLeft = function (b) {
+        this._act.reset();
         this._act._stepLeft = b;
     };
     CharacterController.prototype.strafeLeftFast = function (b) {
+        this._act.reset();
         this._act._stepLeft = b;
         this._act._speedMod = b;
     };
     CharacterController.prototype.strafeRight = function (b) {
+        this._act.reset();
         this._act._stepRight = b;
     };
     CharacterController.prototype.strafeRightFast = function (b) {
+        this._act.reset();
         this._act._stepRight = b;
         this._act._speedMod = b;
     };
     CharacterController.prototype.jump = function () {
+        this._act.reset();
         this._act._jump = true;
     };
     CharacterController.prototype.fall = function () {
+        this._act.reset();
         this._grounded = false;
     };
     CharacterController.prototype.idle = function () {
@@ -1592,6 +1615,8 @@ var CharacterController = (function () {
             }
             return;
         }
+        if (this._ellipsoid !== null)
+            return;
         var ellipsoid = new babylonjs__WEBPACK_IMPORTED_MODULE_0__.TransformNode("ellipsoid", this._scene);
         var a = this._avatar.ellipsoid.x;
         var b = this._avatar.ellipsoid.y;
@@ -1687,25 +1712,45 @@ var ActionData = (function () {
     return ActionData;
 }());
 
+var Actions = {
+    WALK: "walk",
+    WALKBACK: "walkBack",
+    WALKBACKFAST: "walkBackFast",
+    IDLE: "idle",
+    IDLEJUMP: "idleJump",
+    RUN: "run",
+    RUNJUMP: "runJump",
+    FALL: "fall",
+    TURNLEFT: "turnLeft",
+    TURNLEFTFAST: "turnLeftFast",
+    TURNRIGHT: "turnRight",
+    TURNRIGHTFAST: "turnRightFast",
+    STRAFELEFT: "strafeLeft",
+    STRAFELEFTFAST: "strafeLeftFast",
+    STRAFERIGHT: "strafeRight",
+    STRAFERIGHTFAST: "strafeRightFast",
+    SLIDEBACK: "slideBack",
+    getAll: function () { return Object.values(Actions).filter(function (v) { return typeof v === "string"; }); }
+};
 var ActionMap = (function () {
     function ActionMap() {
-        this.walk = new ActionData("walk", 3, "w");
-        this.walkBack = new ActionData("walkBack", 1.5, "s");
-        this.walkBackFast = new ActionData("walkBackFast", 3, "na");
-        this.idle = new ActionData("idle", 0, "na");
-        this.idleJump = new ActionData("idleJump", 6, " ");
-        this.run = new ActionData("run", 6, "na");
-        this.runJump = new ActionData("runJump", 6, "na");
-        this.fall = new ActionData("fall", 0, "na");
-        this.turnLeft = new ActionData("turnLeft", Math.PI / 8, "a");
-        this.turnLeftFast = new ActionData("turnLeftFast", Math.PI / 4, "na");
-        this.turnRight = new ActionData("turnRight", Math.PI / 8, "d");
-        this.turnRightFast = new ActionData("turnRightFast", Math.PI / 4, "na");
-        this.strafeLeft = new ActionData("strafeLeft", 1.5, "q");
-        this.strafeLeftFast = new ActionData("strafeLeftFast", 3, "na");
-        this.strafeRight = new ActionData("strafeRight", 1.5, "e");
-        this.strafeRightFast = new ActionData("strafeRightFast", 3, "na");
-        this.slideBack = new ActionData("slideBack", 0, "na");
+        this.walk = new ActionData(Actions.WALK, 3, "w");
+        this.walkBack = new ActionData(Actions.WALKBACK, 1.5, "s");
+        this.walkBackFast = new ActionData(Actions.WALKBACKFAST, 3, "na");
+        this.idle = new ActionData(Actions.IDLE, 0, "na");
+        this.idleJump = new ActionData(Actions.IDLEJUMP, 6, " ");
+        this.run = new ActionData(Actions.RUN, 6, "na");
+        this.runJump = new ActionData(Actions.RUNJUMP, 6, "na");
+        this.fall = new ActionData(Actions.FALL, 0, "na");
+        this.turnLeft = new ActionData(Actions.TURNLEFT, Math.PI / 8, "a");
+        this.turnLeftFast = new ActionData(Actions.TURNLEFTFAST, Math.PI / 4, "na");
+        this.turnRight = new ActionData(Actions.TURNRIGHT, Math.PI / 8, "d");
+        this.turnRightFast = new ActionData(Actions.TURNRIGHTFAST, Math.PI / 4, "na");
+        this.strafeLeft = new ActionData(Actions.STRAFELEFT, 1.5, "q");
+        this.strafeLeftFast = new ActionData(Actions.STRAFELEFTFAST, 3, "na");
+        this.strafeRight = new ActionData(Actions.STRAFERIGHT, 1.5, "e");
+        this.strafeRightFast = new ActionData(Actions.STRAFERIGHTFAST, 3, "na");
+        this.slideBack = new ActionData(Actions.SLIDEBACK, 0, "na");
     }
     ActionMap.prototype.reset = function () {
         var keys = Object.keys(this);
@@ -1716,6 +1761,18 @@ var ActionMap = (function () {
                 continue;
             act.reset();
         }
+    };
+    ActionMap.prototype.actionNames = function () {
+        var ids = new Array();
+        var keys = Object.keys(this);
+        for (var _i = 0, keys_7 = keys; _i < keys_7.length; _i++) {
+            var key = keys_7[_i];
+            var act = this[key];
+            if (!(act instanceof ActionData))
+                continue;
+            ids.push(act.id);
+        }
+        return ids;
     };
     return ActionMap;
 }());

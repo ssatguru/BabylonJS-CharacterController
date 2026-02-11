@@ -16,6 +16,7 @@ export declare class CharacterController {
     private _cameraTarget;
     private _noFirstPerson;
     private _down;
+    private _animBlend;
     setSlopeLimit(minSlopeLimit: number, maxSlopeLimit: number): void;
     setStepOffset(stepOffset: number): void;
     setWalkSpeed(n: number): void;
@@ -215,6 +216,26 @@ export declare class ActionData {
     constructor(id?: string, speed?: number, key?: string);
     reset(): void;
 }
+export declare const Actions: {
+    readonly WALK: "walk";
+    readonly WALKBACK: "walkBack";
+    readonly WALKBACKFAST: "walkBackFast";
+    readonly IDLE: "idle";
+    readonly IDLEJUMP: "idleJump";
+    readonly RUN: "run";
+    readonly RUNJUMP: "runJump";
+    readonly FALL: "fall";
+    readonly TURNLEFT: "turnLeft";
+    readonly TURNLEFTFAST: "turnLeftFast";
+    readonly TURNRIGHT: "turnRight";
+    readonly TURNRIGHTFAST: "turnRightFast";
+    readonly STRAFELEFT: "strafeLeft";
+    readonly STRAFELEFTFAST: "strafeLeftFast";
+    readonly STRAFERIGHT: "strafeRight";
+    readonly STRAFERIGHTFAST: "strafeRightFast";
+    readonly SLIDEBACK: "slideBack";
+    readonly getAll: () => any;
+};
 export declare class ActionMap {
     walk: ActionData;
     walkBack: ActionData;
@@ -234,6 +255,7 @@ export declare class ActionMap {
     strafeRightFast: ActionData;
     slideBack: ActionData;
     reset(): void;
+    actionNames(): string[];
 }
 export declare class CCSettings {
     faceForward: boolean;
@@ -250,4 +272,7 @@ export declare class CCSettings {
     turningOff: boolean;
     keyboard: boolean;
     sound: Sound;
+    animBlend: number;
+    ellipsoid: Vector3;
+    ellipsoidOffset: Vector3;
 }

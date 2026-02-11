@@ -630,7 +630,7 @@ Two ways to test.
 
 1. using the webpack-dev-server.  
    Start the development server  
-   "npm run start"  
+   "npm run dev"  
    This will start the live dev server on port 8080 (could be different if this port is already in use) and open the browser pointing at http://localhost:8080/tst/test.html.  
    The dev server will live recompile your code any time you make changes.  
    Note: The dev server does not write the build to disk, instead it just builds and serves from memory. In our case it builds "CharacterController.max.js" in memory and serves it from url http://localhost:8080/dist. (see "devserver.devMidleware.publicPath" in wepack.config.js file).

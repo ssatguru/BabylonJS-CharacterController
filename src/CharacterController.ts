@@ -57,6 +57,7 @@ export class CharacterController {
     private _noFirstPerson: boolean = false;
 
     private _down: Vector3 = Vector3.DownReadOnly;
+    private _animBlend:number;
 
 
     public setSlopeLimit(minSlopeLimit: number, maxSlopeLimit: number) {
@@ -268,6 +269,9 @@ export class CharacterController {
         ccs.noFirstPerson = this._noFirstPerson;
         ccs.stepOffset = this._stepOffset;
         ccs.sound = this._stepSound;
+        ccs.animBlend = this._animBlend;
+        ccs.ellipsoid = this._avatar.ellipsoid;
+        ccs.ellipsoidOffset = this._avatar.ellipsoidOffset;
 
         return ccs;
     }
@@ -286,6 +290,9 @@ export class CharacterController {
         this.setNoFirstPerson(ccs.noFirstPerson);
         this.setStepOffset(ccs.stepOffset);
         this.setSound(ccs.sound);
+        this.enableBlending(ccs.animBlend);
+        this._avatar.ellipsoid=ccs.ellipsoid;
+        this._avatar.ellipsoidOffset=ccs.ellipsoidOffset;
 
     }
 
@@ -322,6 +329,7 @@ export class CharacterController {
                 if (!(act instanceof ActionData)) continue;
                 if (act.exist) {
                     let ar: AnimationGroup = act.ag;
+                    this._animBlend = n;
                     for (let ta of ar.targetedAnimations) {
                         ta.animation.enableBlending = true;
                         ta.animation.blendingSpeed = n;
@@ -329,8 +337,10 @@ export class CharacterController {
                 }
             }
         } else {
-            if (this._skeleton !== null)
+            if (this._skeleton !== null){
                 this._skeleton.enableBlending(n);
+                this._animBlend = n;
+            }
         }
     }
 
@@ -607,11 +617,7 @@ export class CharacterController {
 
         this._rhsSign = this._scene.useRightHandedSystem ? -1 : 1;
 
-        if (!this._hasCam) {
-            this._av2cam = 0;
-            this._ffSign = 1;
-            return;
-        }
+        
 
         if (this._isLHS_RHS) {
             this._av2cam = b ? Math.PI / 2 : 3 * Math.PI / 2;
@@ -619,6 +625,11 @@ export class CharacterController {
         } else {
             this._av2cam = b ? 3 * Math.PI / 2 : Math.PI / 2;
             this._ffSign = b ? -1 : 1;
+        }
+
+        if (!this._hasCam) {
+            this._av2cam = 0;
+            return;
         }
 
     }
@@ -748,7 +759,7 @@ export class CharacterController {
     //private _notFacingCamera = 1;
 
     private _isAvFacingCamera(): number {
-        if (!this._hasCam) return 1;
+        if (!this._hasCam) return -1;
         if (Vector3.Dot(this._avatar.forward, this._avatar.position.subtract(this._camera.position)) < 0) return 1
         else return -1;
     }
@@ -1346,7 +1357,6 @@ export class CharacterController {
                 if (this._hasCam)
                     this._camera.alpha = this._camera.alpha + this._rhsSign * turnAngle * a;
             }
-
             this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
         }
         return anim;
@@ -1742,56 +1752,70 @@ export class CharacterController {
 
     // control movement by commands rather than keyboard.
     public walk(b: boolean) {
+        this._act.reset();
         this._act._walk = b;
     }
     public walkBack(b: boolean) {
+        this._act.reset();
         this._act._walkback = b;
     }
     public walkBackFast(b: boolean) {
+        this._act.reset();
         this._act._walkback = b;
         this._act._speedMod = b;
     }
     public run(b: boolean) {
+        this._act.reset();
         this._act._walk = b;
         this._act._speedMod = b;
     }
     public turnLeft(b: boolean) {
+        this._act.reset();
         this._act._turnLeft = b;
         if (!b) this._isTurning = b;
     }
     public turnLeftFast(b: boolean) {
+        this._act.reset();
         this._act._turnLeft = b;
         if (!b) this._isTurning = b;
         this._act._speedMod = b;
     }
     public turnRight(b: boolean) {
+        this._act.reset();
         this._act._turnRight = b;
         if (!b) this._isTurning = b;
     }
     public turnRightFast(b: boolean) {
+        this._act.reset();
         this._act._turnRight = b;
         if (!b) this._isTurning = b;
         this._act._speedMod = b;
     }
     public strafeLeft(b: boolean) {
+        this._act.reset();
         this._act._stepLeft = b;
     }
     public strafeLeftFast(b: boolean) {
+        this._act.reset();
         this._act._stepLeft = b;
         this._act._speedMod = b;
     }
     public strafeRight(b: boolean) {
+        this._act.reset();
         this._act._stepRight = b;
     }
     public strafeRightFast(b: boolean) {
+        this._act.reset();
         this._act._stepRight = b;
         this._act._speedMod = b;
     }
     public jump() {
+        this._act.reset();
         this._act._jump = true;
     }
 
     public fall() {
+        this._act.reset();
         this._grounded = false;
     }
 
@@ -1882,6 +1906,7 @@ export class CharacterController {
             if (this._rayLine != null) { this._rayLine.dispose(); this._rayLine = null; }
             return;
         }
+        if (this._ellipsoid !== null) return;
         let ellipsoid:TransformNode = new TransformNode("ellipsoid", this._scene);
         
         let a = this._avatar.ellipsoid.x;
@@ -1967,7 +1992,7 @@ export class CharacterController {
         this._camera = camera;
 
         //if camera is null assume this would be used to control an NPC
-        //we cannot use mode 0 as that is dependent on camera being present. so force mode 1
+        //we cannot use mode 0 as that is dependent on camera being present. so force mode 1 (TODO revist this)
         if (this._camera == null) {
             this._hasCam = false;
             this.setMode(1);
@@ -2084,25 +2109,46 @@ export class ActionData {
 
 }
 
+export const Actions = {
+    WALK: "walk",
+    WALKBACK: "walkBack",
+    WALKBACKFAST: "walkBackFast",
+    IDLE: "idle",
+    IDLEJUMP: "idleJump",
+    RUN: "run",
+    RUNJUMP: "runJump",
+    FALL: "fall",
+    TURNLEFT: "turnLeft",
+    TURNLEFTFAST: "turnLeftFast",
+    TURNRIGHT: "turnRight",
+    TURNRIGHTFAST: "turnRightFast",
+    STRAFELEFT: "strafeLeft",
+    STRAFELEFTFAST: "strafeLeftFast",
+    STRAFERIGHT: "strafeRight",
+    STRAFERIGHTFAST: "strafeRightFast",
+    SLIDEBACK: "slideBack",
+    getAll: () => Object.values(Actions).filter(v => typeof v === "string")
+} as const
+ 
 //not really a "Map"
 export class ActionMap {
-    public walk = new ActionData("walk", 3, "w");
-    public walkBack = new ActionData("walkBack", 1.5, "s");
-    public walkBackFast = new ActionData("walkBackFast", 3, "na");
-    public idle = new ActionData("idle", 0, "na");
-    public idleJump = new ActionData("idleJump", 6, " ");
-    public run = new ActionData("run", 6, "na");
-    public runJump = new ActionData("runJump", 6, "na");
-    public fall = new ActionData("fall", 0, "na");
-    public turnLeft = new ActionData("turnLeft", Math.PI / 8, "a");
-    public turnLeftFast = new ActionData("turnLeftFast", Math.PI / 4, "na");
-    public turnRight = new ActionData("turnRight", Math.PI / 8, "d");
-    public turnRightFast = new ActionData("turnRightFast", Math.PI / 4, "na");
-    public strafeLeft = new ActionData("strafeLeft", 1.5, "q");
-    public strafeLeftFast = new ActionData("strafeLeftFast", 3, "na");
-    public strafeRight = new ActionData("strafeRight", 1.5, "e");
-    public strafeRightFast = new ActionData("strafeRightFast", 3, "na");
-    public slideBack = new ActionData("slideBack", 0, "na");
+    public walk = new ActionData(Actions.WALK, 3, "w");
+    public walkBack = new ActionData(Actions.WALKBACK, 1.5, "s");
+    public walkBackFast = new ActionData(Actions.WALKBACKFAST, 3, "na");
+    public idle = new ActionData(Actions.IDLE, 0, "na");
+    public idleJump = new ActionData(Actions.IDLEJUMP, 6, " ");
+    public run = new ActionData(Actions.RUN, 6, "na");
+    public runJump = new ActionData(Actions.RUNJUMP, 6, "na");
+    public fall = new ActionData(Actions.FALL, 0, "na");
+    public turnLeft = new ActionData(Actions.TURNLEFT, Math.PI / 8, "a");
+    public turnLeftFast = new ActionData(Actions.TURNLEFTFAST, Math.PI / 4, "na");
+    public turnRight = new ActionData(Actions.TURNRIGHT, Math.PI / 8, "d");
+    public turnRightFast = new ActionData(Actions.TURNRIGHTFAST, Math.PI / 4, "na");
+    public strafeLeft = new ActionData(Actions.STRAFELEFT, 1.5, "q");
+    public strafeLeftFast = new ActionData(Actions.STRAFELEFTFAST, 3, "na");
+    public strafeRight = new ActionData(Actions.STRAFERIGHT, 1.5, "e");
+    public strafeRightFast = new ActionData(Actions.STRAFERIGHTFAST, 3, "na");
+    public slideBack = new ActionData(Actions.SLIDEBACK, 0, "na");
 
     public reset() {
         let keys: string[] = Object.keys(this);
@@ -2111,6 +2157,17 @@ export class ActionMap {
             if (!(act instanceof ActionData)) continue;
             act.reset()
         }
+    }
+
+    public actionNames():string[]{
+        let ids: string[] = new Array();
+        let keys: string[] = Object.keys(this);
+        for (let key of keys) {
+            let act = this[key];
+            if (!(act instanceof ActionData)) continue;
+            ids.push(act.id);
+        }
+        return ids;
     }
 };
 
@@ -2130,4 +2187,7 @@ export class CCSettings {
     public turningOff: boolean = true;
     public keyboard: boolean = true;
     public sound: Sound;
+    public animBlend: number;
+    public ellipsoid:Vector3;   
+    public ellipsoidOffset:Vector3;
 }
