@@ -90,16 +90,10 @@ function loadPlayer(scene, engine, canvas) {
     player.ellipsoid = new BABYLON.Vector3(0.5, 1, 0.5);
     player.ellipsoidOffset = new BABYLON.Vector3(0, 1, 0);
 
-    // character controller  needs rotation in euler.
-    // if your mesh has rotation in quaternion then convert that to euler.
-    // NOTE: The GLTF/GLB files have rotation in quaternion
-    player.rotation = player.rotationQuaternion.toEulerAngles();
-    player.rotationQuaternion = null;
 
     //rotate the camera behind the player
-    //.glbs are RHS
-    player.rotation.y = Math.PI / 4;
-    var alpha = (3 * Math.PI) / 2 - player.rotation.y;
+
+    var alpha =  - Math.PI / 2 ;
     var beta = Math.PI / 2.5;
     var target = new BABYLON.Vector3(player.position.x, player.position.y + 1.5, player.position.z);
     var camera = new BABYLON.ArcRotateCamera("ArcRotateCamera", alpha, beta, 5, target, scene);

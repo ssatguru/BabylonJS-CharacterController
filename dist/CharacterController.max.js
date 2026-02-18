@@ -607,6 +607,32 @@ var CharacterController = (function () {
     CharacterController.prototype.isTurningOff = function () {
         return this._noRot;
     };
+    CharacterController.prototype._getAvatarRotationY = function () {
+        if (this._avatar.rotationQuaternion) {
+            return this._avatar.rotationQuaternion.toEulerAngles().y;
+        }
+        return this._avatar.rotation.y;
+    };
+    CharacterController.prototype._setAvatarRotationY = function (angle) {
+        if (this._avatar.rotationQuaternion) {
+            var euler = this._avatar.rotationQuaternion.toEulerAngles();
+            euler.y = angle;
+            this._avatar.rotationQuaternion = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Quaternion.RotationYawPitchRoll(euler.y, euler.x, euler.z);
+        }
+        else {
+            this._avatar.rotation.y = angle;
+        }
+    };
+    CharacterController.prototype._addToAvatarRotationY = function (angle) {
+        if (this._avatar.rotationQuaternion) {
+            var euler = this._avatar.rotationQuaternion.toEulerAngles();
+            euler.y += angle;
+            this._avatar.rotationQuaternion = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Quaternion.RotationYawPitchRoll(euler.y, euler.x, euler.z);
+        }
+        else {
+            this._avatar.rotation.y += angle;
+        }
+    };
     CharacterController.prototype._setRHS = function (mesh) {
         var meshMatrix = mesh.getWorldMatrix();
         var _localX = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.FromArray(meshMatrix.m, 0);
@@ -1075,34 +1101,34 @@ var CharacterController = (function () {
                 if (this._noRot) {
                     switch (true) {
                         case (this._act._walk && this._act._turnRight):
-                            this._avatar.rotation.y = ca + this._rhsSign * Math.PI / 4;
+                            this._setAvatarRotationY(ca + this._rhsSign * Math.PI / 4);
                             break;
                         case (this._act._walk && this._act._turnLeft):
-                            this._avatar.rotation.y = ca - this._rhsSign * Math.PI / 4;
+                            this._setAvatarRotationY(ca - this._rhsSign * Math.PI / 4);
                             break;
                         case (this._act._walkback && this._act._turnRight):
-                            this._avatar.rotation.y = ca + this._rhsSign * 3 * Math.PI / 4;
+                            this._setAvatarRotationY(ca + this._rhsSign * 3 * Math.PI / 4);
                             break;
                         case (this._act._walkback && this._act._turnLeft):
-                            this._avatar.rotation.y = ca - this._rhsSign * 3 * Math.PI / 4;
+                            this._setAvatarRotationY(ca - this._rhsSign * 3 * Math.PI / 4);
                             break;
                         case (this._act._walk):
-                            this._avatar.rotation.y = ca;
+                            this._setAvatarRotationY(ca);
                             break;
                         case (this._act._walkback):
-                            this._avatar.rotation.y = ca + Math.PI;
+                            this._setAvatarRotationY(ca + Math.PI);
                             break;
                         case (this._act._turnRight):
-                            this._avatar.rotation.y = ca + this._rhsSign * Math.PI / 2;
+                            this._setAvatarRotationY(ca + this._rhsSign * Math.PI / 2);
                             break;
                         case (this._act._turnLeft):
-                            this._avatar.rotation.y = ca - this._rhsSign * Math.PI / 2;
+                            this._setAvatarRotationY(ca - this._rhsSign * Math.PI / 2);
                             break;
                     }
                 }
                 else {
                     if (this._hasCam)
-                        this._avatar.rotation.y = ca;
+                        this._setAvatarRotationY(ca);
                 }
             }
     };
@@ -1158,7 +1184,7 @@ var CharacterController = (function () {
                 if (this._hasCam)
                     this._camera.alpha = this._camera.alpha + this._rhsSign * turnAngle * a;
             }
-            this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
+            this._addToAvatarRotationY(turnAngle * a);
         }
         return anim;
     };

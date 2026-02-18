@@ -22,7 +22,8 @@ import {
     int,
     LinesMesh,
     MeshBuilder,
-    Color3
+    Color3,
+    Quaternion
 } from "babylonjs";
 
 
@@ -583,6 +584,36 @@ export class CharacterController {
         * BABYLONJS GLB models are RHS and exhibit this behavior
         * 
         */
+    /**
+     * Helper methods to get/set Y rotation that work with both Euler and Quaternion
+     */
+    private _getAvatarRotationY(): number {
+        if (this._avatar.rotationQuaternion) {
+            return this._avatar.rotationQuaternion.toEulerAngles().y;
+        }
+        return this._avatar.rotation.y;
+    }
+
+    private _setAvatarRotationY(angle: number): void {
+        if (this._avatar.rotationQuaternion) {
+            const euler = this._avatar.rotationQuaternion.toEulerAngles();
+            euler.y = angle;
+            this._avatar.rotationQuaternion = Quaternion.RotationYawPitchRoll(euler.y, euler.x, euler.z);
+        } else {
+            this._avatar.rotation.y = angle;
+        }
+    }
+
+    private _addToAvatarRotationY(angle: number): void {
+        if (this._avatar.rotationQuaternion) {
+            const euler = this._avatar.rotationQuaternion.toEulerAngles();
+            euler.y += angle;
+            this._avatar.rotationQuaternion = Quaternion.RotationYawPitchRoll(euler.y, euler.x, euler.z);
+        } else {
+            this._avatar.rotation.y += angle;
+        }
+    }
+
     private _isLHS_RHS = false;
     private _signLHS_RHS = -1;
     private _setRHS(mesh: TransformNode) {
@@ -1281,33 +1312,33 @@ export class CharacterController {
                 if (this._noRot) {
                     switch (true) {
                         case (this._act._walk && this._act._turnRight):
-                            this._avatar.rotation.y = ca + this._rhsSign * Math.PI / 4;
+                            this._setAvatarRotationY(ca + this._rhsSign * Math.PI / 4);
                             break;
                         case (this._act._walk && this._act._turnLeft):
-                            this._avatar.rotation.y = ca - this._rhsSign * Math.PI / 4;
+                            this._setAvatarRotationY(ca - this._rhsSign * Math.PI / 4);
                             break;
                         case (this._act._walkback && this._act._turnRight):
-                            this._avatar.rotation.y = ca + this._rhsSign * 3 * Math.PI / 4;
+                            this._setAvatarRotationY(ca + this._rhsSign * 3 * Math.PI / 4);
                             break;
                         case (this._act._walkback && this._act._turnLeft):
-                            this._avatar.rotation.y = ca - this._rhsSign * 3 * Math.PI / 4;
+                            this._setAvatarRotationY(ca - this._rhsSign * 3 * Math.PI / 4);
                             break;
                         case (this._act._walk):
-                            this._avatar.rotation.y = ca;
+                            this._setAvatarRotationY(ca);
                             break;
                         case (this._act._walkback):
-                            this._avatar.rotation.y = ca + Math.PI;
+                            this._setAvatarRotationY(ca + Math.PI);
                             break;
                         case (this._act._turnRight):
-                            this._avatar.rotation.y = ca + this._rhsSign * Math.PI / 2;
+                            this._setAvatarRotationY(ca + this._rhsSign * Math.PI / 2);
                             break;
                         case (this._act._turnLeft):
-                            this._avatar.rotation.y = ca - this._rhsSign * Math.PI / 2;
+                            this._setAvatarRotationY(ca - this._rhsSign * Math.PI / 2);
                             break;
                     }
                 } else {
                     if (this._hasCam)
-                        this._avatar.rotation.y = ca;
+                        this._setAvatarRotationY(ca);
                 }
             }
     }
@@ -1357,7 +1388,7 @@ export class CharacterController {
                 if (this._hasCam)
                     this._camera.alpha = this._camera.alpha + this._rhsSign * turnAngle * a;
             }
-            this._avatar.rotation.y = this._avatar.rotation.y + turnAngle * a;
+            this._addToAvatarRotationY(turnAngle * a);
         }
         return anim;
     }

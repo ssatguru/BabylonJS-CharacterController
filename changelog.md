@@ -1,3 +1,6 @@
+02/173/2026 0.4.4-alpha.13
+- the avatar can now have quaternionrotation. The app can now handle both quaternion or euler rotation
+
 01/23/2026 0.4.4-alpha.12
 - fixed issue with npc faceforward issue.
 - serialize animation blending value (set with enableBlending())

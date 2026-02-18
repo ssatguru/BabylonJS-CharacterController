@@ -81,6 +81,9 @@ export declare class CharacterController {
     getMode(): number;
     setTurningOff(b: boolean): void;
     isTurningOff(): boolean;
+    private _getAvatarRotationY;
+    private _setAvatarRotationY;
+    private _addToAvatarRotationY;
     private _isLHS_RHS;
     private _signLHS_RHS;
     private _setRHS;
