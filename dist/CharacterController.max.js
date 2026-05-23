@@ -291,6 +291,8 @@ var CharacterController = (function () {
                             ccActData.rate = inActData.rate;
                         if (inActData.speed)
                             ccActData.speed = inActData.speed;
+                        if (inActData.key)
+                            ccActData.key = inActData.key;
                         if (inActData.sound)
                             ccActData.sound = inActData.sound;
                     }

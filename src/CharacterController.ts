@@ -216,7 +216,7 @@ export class CharacterController {
                         if (inActData.loop != null) ccActData.loop = inActData.loop;
                         if (inActData.rate) ccActData.rate = inActData.rate;
                         if (inActData.speed) ccActData.speed = inActData.speed;
-                        // if (actDataI.key) actDataO.key = actDataI.key;
+                        if (inActData.key) ccActData.key = inActData.key;
                         if (inActData.sound) ccActData.sound = inActData.sound;
                     } else {
                         ccActData.name = inActData;
