@@ -163,7 +163,7 @@ The package exports the following:
 - `Actions` — constant object with action name strings (e.g., `Actions.WALK`, `Actions.RUN`)
 - `CCSettings` — serializable settings class for saving/restoring controller configuration
 
-## API ( version 0.4.4 )
+## API ( version 0.4.5 )
 
 #### To Instantiate
 
