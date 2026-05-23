@@ -28,7 +28,7 @@ It currently supports
 - strafeLeftFast
 - strafeRight
 - strafeRightFast
-- slideDown
+- slideBack
 
 It supports two modes or ways of moving the avatar.  
 One suitable for third/first person kind of game
@@ -45,39 +45,6 @@ a position in front of the mesh. This way the avatar/player is always in view.
 
 It can also enter first person view if the camera comes very close to the avatar/player
 
-### Breaking change with 0.2.0
-
-Instead of "jump" animation it expects "idleJump" and "runJump" animations.
-
-Version 0.2.0 converts the project from a plain vanilla JavaScript project to a module based JavaScript project.  
-With this change, the way to load the application has changed.  
-In JavaScript, instead of
-
-```
-var CharacterControl = org.ssatguru.babylonjs.component.CharacterController;
-var characterControl = new CharacterControl(player, camera, scene);
-```
-
-now do
-
-```
-var characterControl = new CharacterController(player, camera, scene);
-```
-
-In TypeScript, instead of
-
-```
-import CharacterController = org.ssatguru.babylonjs.component.CharacterController;
-```
-
-now do
-
-```
-import {CharacterController} from "babylonjs-charactercontroller";
-```
-
-See below for more details.
-
 ## Quick start
 
 1. add the following dependencies
@@ -89,24 +56,13 @@ See below for more details.
 
 See INSTALL below to find where you can get "CharacterController.js".
 
-2. if your mesh rotation is in quaternion then switch to euler.  
-   NOTE: The GLTF/GLB files have rotation in quaternion
-
-```
-// character controller  needs rotation in euler.
-// if your mesh has rotation in quaternion then convert that to euler.
-player.rotation = player.rotationQuaternion.toEulerAngles();
-player.rotationQuaternion = null;
-
-```
-
-3. instantiate charcater controller and start it.
+2. instantiate character controller and start it.
 
 ```
   //------------------Character Controller -------------------------------------------------
-  //fourth parm agMap is optional and is used when animation groups rather than animation ranges
-  //are used.
-  var cc = new CharacterController(player, camera, scene, agMap);
+  // fourth parm actionMap is optional and is used to map animations (animation groups or
+  // animation ranges) and other action data like speed, sound, key bindings etc.
+  var cc = new CharacterController(player, camera, scene, actionMap);
   cc.start();
 ```
 
@@ -114,7 +70,7 @@ see "BabylonJS-CharacterController-Samples" [https://github.com/ssatguru/Babylon
 
 ## INSTALL
 
-You can get the "CharacterController.min.js" from its git repository "dist" folder or "releases" section  
+You can get the "CharacterController.js" from its git repository "dist" folder or "releases" section  
 [https://github.com/ssatguru/BabylonJS-CharacterController/tree/master/dist](https://github.com/ssatguru/BabylonJS-CharacterController/tree/master/dist)  
 [https://github.com/ssatguru/BabylonJS-CharacterController/releases](https://github.com/ssatguru/BabylonJS-CharacterController/releases)
 
@@ -197,6 +153,16 @@ let characterController = new CharacterController(player, camera, scene);
 </script>
 ```
 
+## Exports
+
+The package exports the following:
+
+- `CharacterController` — the main controller class
+- `ActionData` — class representing a single action's configuration (animation, speed, key, sound)
+- `ActionMap` — class holding all action definitions with their defaults
+- `Actions` — constant object with action name strings (e.g., `Actions.WALK`, `Actions.RUN`)
+- `CCSettings` — serializable settings class for saving/restoring controller configuration
+
 ## API ( version 0.4.4 )
 
 #### To Instantiate
@@ -204,28 +170,30 @@ let characterController = new CharacterController(player, camera, scene);
 ```
 // JavaScript
 
-// if using animation ranges
+// if using animation ranges (will auto-detect from skeleton)
 var cc = new CharacterController(player, camera, scene);
 
 // if using animation groups (.glb files use animation groups)
 var cc = new CharacterController(player, camera, scene, agMap);
-//agMap is a Map which maps an "animation name" to "animationGroup object".
+// agMap is a map of "animation name" to AnimationGroup object
+
+// using a full action map (supports animation groups, ranges, speeds, keys, sounds)
+var cc = new CharacterController(player, camera, scene, actionMap);
 
 // if the avatar face is forward facing (positive Z direction)
-var cc = new CharacterController(player, camera, scene, agMap, true);
+var cc = new CharacterController(player, camera, scene, actionMap, true);
 ```
 
 ```
 // TypeScript
 
-import {CharacterController} from "babylonjs-charactercontroller";
+import {CharacterController, ActionMap, ActionData, Actions} from "babylonjs-charactercontroller";
 
 // if using animation ranges
 let cc = new CharacterController(player, camera, scene);
 
 // if using animation groups (.glb files use animation groups)
 let cc = new CharacterController(player, camera, scene, agMap);
-//agMap is a Map which maps an "animation name" to "animationGroup object".
 
 // if the avatar face is forward facing (positive Z direction)
 let cc = new CharacterController(player, camera, scene, agMap, true);
@@ -236,23 +204,34 @@ Takes five parms
 - player - the player mesh containing a skeleton with appropriate animations as listed below
 - camera - arc rotate camera
 - scene - scene
-- agMap - This is optional and is only needed if using animation groups instead of animation ranges. ".glb" files have animation groups.  
-  It is a Map which maps an "animation name" to "animationGroup object" .  
-  In this Map the key would be the character controller animation name and
-  the key value would be the animationGroup object.  
-   example:
+- actionMap - This is optional. It can be:
+  - An animation group map (for backward compatibility): maps animation names to AnimationGroup objects
+  - A full action map: maps animation names to objects with `ag`, `name`, `rate`, `loop`, `speed`, `sound` properties
+
+  Example (animation group map):
 
 ```
 let myWalkAnimationGroup:AnimationGroup = ...;
 let agMap:{} = {
     	"walk": myWalkAnimationGroup,
-     	"run": ...,
+     	"run": myRunAnimationGroup,
+}
+```
+
+  Example (full action map with additional data):
+
+```
+let actionMap = {
+    "walk": {"ag": myWalkAnimationGroup, "rate": 1, "loop": true, "speed": 3},
+    "run": {"ag": myRunAnimationGroup, "rate": 1, "loop": true, "speed": 6},
 }
 ```
 
 - forwardFacing - Optional. If the avatar's face is forward facing (positive Z direction) set this to true. By default it is false.
 
-Note: If camera is set to null then the camera will not follow the character and keybaord will not controll the character. You can use this for an NPC which you can move around programmatically. See the section on "Controlling Avatar programmatically".  
+Note: If camera is set to null then the camera will not follow the character and keyboard will not control the character. You can use this for an NPC which you can move around programmatically. See the section on "Controlling Avatar programmatically".  
+
+Note: The controller supports both quaternion and euler rotation on the avatar mesh. You do NOT need to convert quaternion to euler.
 
 If using animation ranges the player skeleton is expected to have the animation ranges named as follows
 
@@ -272,14 +251,14 @@ If using animation ranges the player skeleton is expected to have the animation 
 - strafeLeftFast
 - strafeRight
 - strafeRightFast
-- slideDown
+- slideBack
 
 If a particular animation is not provided then the controller will not play that animation and will continue playing the animation it was playing just before.
-Note that if no animations are provided then no animations will be played. This, thus, can be used to move an non skeleton based mesh around.  
+Note that if no animations are provided then no animations will be played. This, thus, can be used to move a non skeleton based mesh around.  
 
 Note that there are some animations with name ending with string "Fast".
 If these are not present then the controller will play the non-fast version but at twice the speed.  
-So for example lets say you provided "strafeLeft" but not "strafeLeftFast" then the controller will play the "stafeLeft" animation whenever it has to play the "strafeLeftFast" but at twice the speed of "strafeLeft".
+So for example lets say you provided "strafeLeft" but not "strafeLeftFast" then the controller will play the "strafeLeft" animation whenever it has to play the "strafeLeftFast" but at twice the speed of "strafeLeft".
 
 The "Fast" animations are played when the user presses the "mod" key (usually "shift key) along with the normal key.
 Example: to play "strafeLeft" if the key is set to "q" then to play "strafeLeftFast" the key would be "q" and "shift".
@@ -287,15 +266,6 @@ Example: to play "strafeLeft" if the key is set to "q" then to play "strafeLeftF
 Now if your animation range is named differently from those mentioned above then use the setWalkAnim(..), setWalkBackAnim(..) etc API to specify your animation range name.
 
 If instead of animation ranges you have animation groups then you will have to provide a map of animation name to animation group object. This is explained further down below.
-
-NOTE :
-If your mesh rotation is in quaternion then switch to euler before creating character controller.
-The GLTF/GLB files have rotation in quaternion.
-
-```
-player.rotation = player.rotationQuaternion.toEulerAngles();
-player.rotationQuaternion = null;
-```
 
 #### To start/stop controller
 
@@ -307,8 +277,8 @@ cc.stop();
 #### To pause playing any animations
 
 Sometimes you might want to stop the character controller from playing
-any animation on the character and instead play your animation instead
-Example instead of idle animation you might want to play a shoot animation.
+any animation on the character and instead play your animation instead.
+Example: instead of idle animation you might want to play a shoot animation.
 Use the following to pause or resume
 
 ```
@@ -330,29 +300,49 @@ The CharacterController can run in one of two modes - 0 or 1.
 
 ```
 cc.setMode(n: number); // 0 or 1
+cc.getMode(): number;  // returns current mode
 ```
 
 ##### Turning on/off
 
 Use this to set turning on/off.  
-When turining is off  
-a) turn left or turn right keys result in avatar facing and moving left or right with respect to camera rather then just turning left or right  
+When turning is off  
+a) turn left or turn right keys result in avatar facing and moving left or right with respect to camera rather than just turning left or right  
 b) walkback/runback key results in avatar facing back, towards the camera and walking/running towards camera rather than walking backwards with back to the camera
 
 This setting has no effect when mode is 1.
 
 ```
 cc.setTurningOff(true/false);
+cc.isTurningOff(): boolean;
 ```
 
 default is false
+
+#### To set/change animation groups or ranges after construction
+
+You can provide or replace animations after the controller has been constructed:
+
+```
+// Set animation groups
+cc.setAnimationGroups(agMap);
+
+// Set animation ranges
+cc.setAnimationRanges(arMap);
+
+// Set a full action map (supports both, plus speed/key/sound data)
+cc.setActionMap(actionMap): string;  // returns "ag" or "ar"
+
+// Get the current action map
+cc.getActionMap(): ActionMap;
+```
 
 #### To change animation range name / animation group and their parameters
 
 Takes three parms
 
 - rangeName or Animation group Object
-- rate - rate of speed at which to play the aniamtion
+- rate - rate of speed at which to play the animation
 - loop - whether the animation should be looped or stop at end.
 
 To leave any parameter unchanged set its value to null.
@@ -363,10 +353,10 @@ cc.setIdleJumpAnim(name: string|AnimationGroup, rate: number, loop: boolean);
 
 cc.setWalkAnim(name: string|AnimationGroup, rate: number, loop: boolean);
 cc.setWalkBackAnim(name: string|AnimationGroup, rate: number, loop: boolean);
-cc.setWalkBacFastkAnim(name: string|AnimationGroup, rate: number, loop: boolean);
+cc.setWalkBackFastAnim(name: string|AnimationGroup, rate: number, loop: boolean);
 
 cc.setRunAnim(name: string|AnimationGroup, rate: number, loop: boolean);
-cc.setRunJumpAnim(name: string, rate: number, loop: boolean);
+cc.setRunJumpAnim(name: string|AnimationGroup, rate: number, loop: boolean);
 
 cc.setFallAnim(name: string|AnimationGroup, rate: number, loop: boolean);
 
@@ -382,14 +372,14 @@ cc.setStrafeLeftAnim(name: string|AnimationGroup, rate: number, loop: boolean);
 cc.setStrafeRightFastAnim(name: string|AnimationGroup, rate: number, loop: boolean);
 cc.setStrafeLeftFastAnim(name: string|AnimationGroup, rate: number, loop: boolean);
 
-cc.setSlideBackAnim(name :string|AnimationGroup, rate: number, loop: boolean);
+cc.setSlideBackAnim(name: string|AnimationGroup, rate: number, loop: boolean);
 ```
 
-So lets say your walk animation range is called "myWalk" and you want to play it at half speed and loop it continuoulsy then
+So lets say your walk animation range is called "myWalk" and you want to play it at half speed and loop it continuously then
 
 ```
 cc.setWalkAnim("myWalk", 0.5, true);
-//if you donot want to change the name or the rate then use below instead
+//if you do not want to change the name or the rate then use below instead
 cc.setWalkAnim(null, null, true);
 ```
 
@@ -400,9 +390,16 @@ let myWalkAnimationGroup:AnimationGroup = ...;
 cc.setWalkAnim(myWalkAnimationGroup, 0.5, true);
 ```
 
+#### Animation blending
+
+```
+cc.enableBlending(n: number);  // enable blending with speed n
+cc.disableBlending();           // disable blending
+```
+
 #### To change key binding
 
-By default the controller uses WASDQE, space, Capslock and arrow keys to controll your Avatar.
+By default the controller uses WASDQE, space, Capslock and arrow keys to control your Avatar.
 
 | KEY/KEYS          | ACTION                                                   |
 | ----------------- | -------------------------------------------------------- |
@@ -419,13 +416,13 @@ By default the controller uses WASDQE, space, Capslock and arrow keys to control
 To change these use
 
 ```
-cc.setWalkKey(string: key);
-cc.setWalkBackKey(string: key);
-cc.setTurnLeftKey(string: key);
-cc.setTurnRightKey(string: key);
-cc.setStrafeLeftKey(string: key);
-cc.setStrafeRightKey(string: key);
-cc.setJumpKey(string: key);
+cc.setWalkKey(key: string);
+cc.setWalkBackKey(key: string);
+cc.setTurnLeftKey(key: string);
+cc.setTurnRightKey(key: string);
+cc.setStrafeLeftKey(key: string);
+cc.setStrafeRightKey(key: string);
+cc.setJumpKey(key: string);
 ```
 
 Example: To use "x" key to walkback do
@@ -435,36 +432,30 @@ cc.setWalkBackKey("x");
 ```
 
 To specify spacebar key use " ". Example cc.setJumpKey(" ")
-If targetting IE11 and previous use the word "spacebar".  
-Example:
-
-```
-   var ua = window.navigator.userAgent;
-   var isIE = /MSIE|Trident/.test(ua);
-   if (isIE) {
-     //IE specific code goes here
-     cc.setJumpKey("spacebar");
-   }
-
-```
 
 Note: Currently you cannot reassign Shift, Capslock or Arrow Keys to other actions. This is on TODO list
 
 #### Controlling Avatar programmatically
 
-In addition to keyboard, as show above, the Avatar's movement can also be controlled from script using the following methods.  
-You might use these to controll movement using say UI, Mouse Clicks, Touch Controllers etc.
+In addition to keyboard, as shown above, the Avatar's movement can also be controlled from script using the following methods.  
+You might use these to control movement using say UI, Mouse Clicks, Touch Controllers etc.
 
 ```
 cc.walk(b: boolean);
 cc.walkBack(b: boolean);
+cc.walkBackFast(b: boolean);
 cc.run(b: boolean);
 cc.turnLeft(b: boolean);
+cc.turnLeftFast(b: boolean);
 cc.turnRight(b: boolean);
+cc.turnRightFast(b: boolean);
 cc.strafeLeft(b: boolean);
+cc.strafeLeftFast(b: boolean);
 cc.strafeRight(b: boolean);
-cc.jump(b: boolean);
+cc.strafeRightFast(b: boolean);
+cc.jump();
 cc.fall();
+cc.idle();
 ```
 
 Example:
@@ -475,16 +466,22 @@ cc.walk(false); // will stop walking the Avatar.
 ```
 
 A word about cc.fall(). The CharacterController doesn't constantly check if the user is "grounded". This is to prevent needless computation. Once the Avatar is on a ground/floor it assumes the Avatar will continue to stand on that ground/floor until the user uses keys to move the Avatar.
-In some use cases the ground/floor might move away and thus leave the Avatar hanging in mid air. In such cases use cc.fall() to force the Avatar to fall to the next gound/floor below.
+In some use cases the ground/floor might move away and thus leave the Avatar hanging in mid air. In such cases use cc.fall() to force the Avatar to fall to the next ground/floor below.
 
+#### Checking movement state
 
-#### Enabling/Disabling the KeyBoard controll
+```
+cc.anyMovement(): boolean;  // returns true if any movement key/command is active
+```
+
+#### Enabling/Disabling the Keyboard control
 
 Sometimes, when you are controlling the movement of the Avatar programmatically as shown above, you might want to disable the keyboard.  
-Use the following method to enable disable the keyboard.
+Use the following method to enable/disable the keyboard.
 
 ```
 cc.enableKeyBoard(b: boolean);
+cc.isKeyBoardEnabled(): boolean;
 ```
 
 cc.enableKeyBoard(true) enables the keyboard  
@@ -495,54 +492,56 @@ cc.enableKeyBoard(false) disables the keyboard
 Speed is specified in meters/second
 
 ```
-setGravity(n: number);    //default 9.8 m/s^2
-setWalkSpeed(n: number);  //default 3 m/s
-setRunSpeed(n: number);   //default 6 m/s
-setBackSpeed(n: number);  //default 3 m/s
-setBackFastSpeed(n: number);  //default 6 m/s
-setJumpSpeed(n: number);  //default 6 m/s
-setLeftSpeed(n: number);  //default 3 m/s
-setLeftFastSpeed(n: number);  //default 6 m/s
-setRightSpeed(n: number); //default 3 m/s
-setRightFastSpeed(n: number); //default 6 m/s
-setTurnSpeed (n:number);//default PI/8 degree/s
-setTurnFastSpeed (n:number);//default PI/4 degree/s
+cc.setGravity(n: number);        //default 9.8 m/s^2
+cc.setWalkSpeed(n: number);      //default 3 m/s
+cc.setRunSpeed(n: number);       //default 6 m/s
+cc.setBackSpeed(n: number);      //default 1.5 m/s
+cc.setBackFastSpeed(n: number);  //default 3 m/s
+cc.setJumpSpeed(n: number);      //default 6 m/s
+cc.setLeftSpeed(n: number);      //default 1.5 m/s
+cc.setLeftFastSpeed(n: number);  //default 3 m/s
+cc.setRightSpeed(n: number);     //default 1.5 m/s
+cc.setRightFastSpeed(n: number); //default 3 m/s
+cc.setTurnSpeed(n: number);      //default PI/8 radians/s
+cc.setTurnFastSpeed(n: number);  //default PI/4 radians/s
 ```
 
 #### To change the slope the avatar can traverse
 
 ```
-setSlopeLimit(minSlopeLimit: number, maxSlopeLimit: number); //the slope is specified in degrees
+cc.setSlopeLimit(minSlopeLimit: number, maxSlopeLimit: number); //the slope is specified in degrees
 ```
 
 Example
 
 ```
-setSlopeLimit(45, 55);
+cc.setSlopeLimit(45, 55);
 ```
 
 Here if the avatar is on a slope with angle between 45 and 55 degrees then it will start sliding back when it stops moving.  
 If the slope is 55 or more then avatar will not be able to move up on it.
 
+Default: minSlopeLimit = 30, maxSlopeLimit = 45
+
 #### To change the height of steps the avatar can climb
 
 ```
-setStepOffset(stepOffset: number);
+cc.setStepOffset(stepOffset: number);
 ```
 
 Example
 
 ```
-setStepOffset(0.5);
+cc.setStepOffset(0.5);
 ```
 
 The avatar can only move up a step if the height of the step is less than or equal to the "stepOffset".  
 By default the value is 0.25.
 
-#### To set/change the setup step sound.
+#### To set/change the footstep sound
 
 ```
-setSound(Babylon.Sound);
+cc.setSound(sound: Sound);
 ```
 
 Example
@@ -559,16 +558,27 @@ Example
     );
 ```
 
-The above will load sound from  file "footstep_carpet_000.ogg" and when loaded will set the Avatar step sound to that.   
-This sound will be played for all actions except idle.  
+The above will load sound from file "footstep_carpet_000.ogg" and when loaded will set the Avatar step sound to that.   
+This sound will be played for all actions except idle, fall, and slideBack.  
 The sound will be played twice per cycle of the animation.  
-The rate will be set automatically based on frames and fps of animation
+The rate will be set automatically based on frames and fps of animation.
 
-#### To change avatar or skeleton at
+#### To change avatar or skeleton
 
 ```
-setAvatar(avatar: Mesh);
-setAvatarSkeleton(skeleton: Skeleton);
+cc.setAvatar(avatar: Mesh, faceForward?: boolean): boolean;
+cc.getAvatar(): Mesh;
+cc.setAvatarSkeleton(skeleton: Skeleton);
+cc.getSkeleton(): Skeleton;
+```
+
+#### Face forward
+
+Use setFaceForward(true|false) to indicate that the avatar's face points forward (positive local Z axis direction) or backward.
+
+```
+cc.setFaceForward(b: boolean);
+cc.isFaceForward(): boolean;
 ```
 
 #### To change camera behavior
@@ -576,13 +586,13 @@ setAvatarSkeleton(skeleton: Skeleton);
 By default the camera focuses on the avatar/player origin. To focus on a different position on the avatar/player use
 
 ```
-setCameraTarget(v: Vector3);
+cc.setCameraTarget(v: Vector3);
 ```
 
-Lets say your avatar origin is at its feet but instead of focusing on its feet you would like camera to focus on its head then, assuming the the head is 1.8m above ground, you would do
+Lets say your avatar origin is at its feet but instead of focusing on its feet you would like camera to focus on its head then, assuming the head is 1.8m above ground, you would do
 
 ```
-cc.setCameraTarget(new BABYLON.Vector3(0, 1.8, 0);
+cc.setCameraTarget(new BABYLON.Vector3(0, 1.8, 0));
 ```
 
 By default the camera behaves "elastically". In other words if something comes between the camera and avatar the camera snaps to
@@ -590,10 +600,22 @@ a position in front of that something. This way the avatar/player is always in v
 To turn this off use
 
 ```
-setCameraElasticity(false);
+cc.setCameraElasticity(false);
 ```
 
-You can use the arc rotate camera's "lowerRadiusLimit" and "upperRadiusLimit" property to controll how close or how far away from the avatar the camera can get.  
+You can control the number of steps used for elastic camera movement:
+
+```
+cc.setElasticSteps(n: number);
+```
+
+You can make obstructing meshes invisible instead of moving the camera:
+
+```
+cc.makeObstructionInvisible(b: boolean);
+```
+
+You can use the arc rotate camera's "lowerRadiusLimit" and "upperRadiusLimit" property to control how close or how far away from the avatar the camera can get.  
 Example setting
 
 ```
@@ -606,7 +628,38 @@ When the camera comes to the "lowerRadiusLimit" the controller switches to first
 To prevent this use
 
 ```
-setNoFirstPerson(true);
+cc.setNoFirstPerson(true);
+```
+
+If you change the camera's checkCollisions property directly, notify the controller:
+
+```
+cc.cameraCollisionChanged();
+```
+
+#### Settings serialization
+
+You can save and restore all controller settings:
+
+```
+let settings: CCSettings = cc.getSettings();
+// ... later ...
+cc.setSettings(settings);
+```
+
+#### Debug visualization
+
+Show/hide the collision ellipsoid for debugging:
+
+```
+cc.showEllipsoid(show: boolean);
+```
+
+#### Utility methods
+
+```
+cc.getScene(): Scene;
+cc.isAg(): boolean;  // true if using animation groups, false if using animation ranges
 ```
 
 ## Build
@@ -633,9 +686,9 @@ Two ways to test.
    "npm run dev"  
    This will start the live dev server on port 8080 (could be different if this port is already in use) and open the browser pointing at http://localhost:8080/tst/test.html.  
    The dev server will live recompile your code any time you make changes.  
-   Note: The dev server does not write the build to disk, instead it just builds and serves from memory. In our case it builds "CharacterController.max.js" in memory and serves it from url http://localhost:8080/dist. (see "devserver.devMidleware.publicPath" in wepack.config.js file).
+   Note: The dev server does not write the build to disk, instead it just builds and serves from memory. In our case it builds "CharacterController.max.js" in memory and serves it from url http://localhost:8080/dist. (see "devserver.devMiddleware.publicPath" in webpack.config.js file).
 
 2. using any other http server.  
-   Start the server , say http-server, from the project root folder (not from within "/tst " folder).  
+   Start the server, say http-server, from the project root folder (not from within "/tst" folder).  
    Goto http://localhost:8080/tst/test.html (assuming the server was started on port 8080).  
-   Everytime you make changes you will have to build using "npm start build-dev".
+   Every time you make changes you will have to build using "npm run build-dev".

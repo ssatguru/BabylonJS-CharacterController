@@ -9,7 +9,7 @@ function main() {
          * The scene
          */
         canvas = document.querySelector("#renderCanvas");
-        var engine = new BABYLON.Engine(canvas, true);
+        var engine = new BABYLON.Engine(canvas, true, { audioEngine: true });
         var scene = new BABYLON.Scene(engine);
         //scene.useRightHandedSystem = true;
 

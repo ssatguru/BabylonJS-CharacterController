@@ -40,7 +40,7 @@ function main() {
    * The scene
    */
   var canvas = document.querySelector("#renderCanvas");
-  var engine = new BABYLON.Engine(canvas, true);
+  var engine = new BABYLON.Engine(canvas, true, { audioEngine: true });
   scene = new BABYLON.Scene(engine);
 
   scene.clearColor = new BABYLON.Color3(0.75, 0.75, 0.75);
