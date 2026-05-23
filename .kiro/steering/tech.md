@@ -34,8 +34,13 @@
 | `npm run build` | Production build (minified) → `dist/CharacterController.js` |
 | `npm run build-dev` | Development build (unminified) → `dist/CharacterController.max.js` |
 | `npm run dev` | Start webpack-dev-server, opens `tst/test.html` |
+| `npm test` | Run vitest property-based tests |
 | `npm install` | Install dependencies (run once after clone) |
 
 ## Testing
 
-No automated test framework. Testing is manual via HTML test pages in the `tst/` folder served by webpack-dev-server or any HTTP server.
+- **Vitest** — test runner (configured in `vitest.config.ts`)
+- **fast-check** — property-based testing library
+- Tests in `tests/` folder, run with `npm test` or `npx vitest run`
+- Tests extract pure logic into standalone functions (no BabylonJS scene instantiation needed)
+- Manual testing via HTML test pages in `tst/` folder served by webpack-dev-server

@@ -6,4 +6,8 @@ tst
 _config.yml
 *.bat
 **/ig_*.*
-
+.kiro
+tests
+tsconfig.json
+vitest.config.ts
+webpack.config.js

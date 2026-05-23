@@ -7,6 +7,18 @@
 │   ├── CharacterController.js     # Production (minified)
 │   ├── CharacterController.max.js # Development (unminified)
 │   └── CharacterController.d.ts   # TypeScript declarations
+├── tests/                         # Automated property-based tests (vitest + fast-check)
+│   ├── setup.test.ts
+│   ├── rotation-convergence.test.ts
+│   ├── shortest-arc-direction.test.ts
+│   ├── key-release-stops-rotation.test.ts
+│   ├── mode0-instant-rotation.test.ts
+│   ├── mode-turningoff-mid-rotation.test.ts
+│   ├── movement-direction-during-turn.test.ts
+│   ├── elastic-springback-step-formula.test.ts
+│   ├── elastic-springback-state-tracking.test.ts
+│   ├── elastic-springback-modes.test.ts
+│   └── elastic-springback-settings.test.ts
 ├── tst/                           # Manual test pages
 │   ├── test.html                  # Default dev server page
 │   ├── testAnimationGroup.html/js # Tests with AnimationGroup (.glb)
@@ -16,6 +28,7 @@
 │   ├── player/                    # Avatar models (.babylon, .glb, .blend)
 │   ├── ground/                    # Terrain textures and heightmaps
 │   └── sounds/                    # Footstep audio files
+├── vitest.config.ts
 ├── webpack.config.js
 ├── tsconfig.json
 ├── package.json

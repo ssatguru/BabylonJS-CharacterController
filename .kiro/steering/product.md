@@ -10,8 +10,10 @@ BabylonJS-CharacterController is a third-person character controller library for
 - Keyboard input handling with configurable key bindings
 - Programmatic avatar control (for NPCs or UI-driven movement)
 - Slope traversal limits and step climbing
-- Camera elasticity (snaps in front of obstructions)
+- Camera elasticity (moves camera in front of obstructions with smooth deceleration)
+- Camera springback (automatically recovers to original radius after obstruction clears, holds position while avatar moves away)
 - Automatic first-person mode when camera is close to avatar
+- Smooth turning (gradual avatar rotation with configurable speed)
 - Footstep sound playback synced to animation cycles
 
 ## Target Users

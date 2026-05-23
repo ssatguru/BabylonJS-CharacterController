@@ -115,6 +115,25 @@ export class CharacterController {
         this._actionMap.turnLeftFast.speed = n * Math.PI / 180;
         this._actionMap.turnRightFast.speed = n * Math.PI / 180;
     }
+
+    /**
+     * Set the smooth turn speed in degrees per second.
+     * This controls how fast the avatar rotates toward the target direction
+     * when turningOff is enabled in mode 0.
+     * Invalid values (zero, negative, NaN, Infinity) are silently ignored.
+     */
+    public setSmoothTurnSpeed(speed: number): void {
+        if (!isFinite(speed) || speed < 0) return;
+        this._smoothTurnSpeed = speed * Math.PI / 180;
+    }
+
+    /**
+     * Get the current smooth turn speed in degrees per second.
+     */
+    public getSmoothTurnSpeed(): number {
+        return this._smoothTurnSpeed * 180 / Math.PI;
+    }
+
     public setGravity(n: number) {
         this._gravity = n;
     }
@@ -273,6 +292,9 @@ export class CharacterController {
         ccs.animBlend = this._animBlend;
         ccs.ellipsoid = this._avatar.ellipsoid;
         ccs.ellipsoidOffset = this._avatar.ellipsoidOffset;
+        ccs.smoothTurnSpeed = this.getSmoothTurnSpeed();
+        ccs.springback = this._springback;
+        ccs.springbackSteps = Math.floor(Math.min(1000, Math.max(1, this._springbackSteps)));
 
         return ccs;
     }
@@ -294,6 +316,13 @@ export class CharacterController {
         this.enableBlending(ccs.animBlend);
         this._avatar.ellipsoid=ccs.ellipsoid;
         this._avatar.ellipsoidOffset=ccs.ellipsoidOffset;
+        this.setSmoothTurnSpeed(ccs.smoothTurnSpeed);
+        if (ccs.springback !== undefined) {
+            this._springback = ccs.springback;
+        }
+        if (ccs.springbackSteps !== undefined) {
+            this._springbackSteps = Math.floor(Math.min(1000, Math.max(1, ccs.springbackSteps)));
+        }
 
     }
 
@@ -465,10 +494,28 @@ export class CharacterController {
 
     public setCameraElasticity(b: boolean) {
         this._cameraElastic = b;
+        if (!b) {
+            this._originalRadius = null;
+        }
     }
 
     public setElasticiSteps(n: number) {
         this._elasticSteps = n;
+    }
+
+    public setCameraElasticSpringback(b: boolean) {
+        this._springback = b;
+    }
+
+    public isCameraElasticSpringback(): boolean {
+        return this._springback;
+    }
+
+    public setSpringbackSteps(n: number) {
+        n = Math.floor(n);
+        if (n < 1) n = 1;
+        if (n > 1000) n = 1000;
+        this._springbackSteps = n;
     }
 
     public makeObstructionInvisible(b: boolean) {
@@ -959,6 +1006,8 @@ export class CharacterController {
     private _sign = 1;
     private _isTurning = false;
     private _noRot = false;
+    // smooth turn speed in radians per second (default 360 deg/s = 2π rad/s)
+    private _smoothTurnSpeed: number = 2 * Math.PI ;
     private _steps = true;
     private _stepHigh:boolean = false;
     private _doMove(dt: number): ActionData {
@@ -988,6 +1037,7 @@ export class CharacterController {
 
         //rotate avatar with respect to camera direction. 
         this._rotateAV2C();
+        //if (!this.turnDone ) return;
 
         //rotate the avatar in case player is trying to rotate the avatar. rotate the camera too if camera turning is on
         actdata = this._rotateAVnC(actdata, moving, dt);
@@ -1305,36 +1355,63 @@ export class CharacterController {
     /**
      * rotate avatar with respect to camera direction. 
      */
+    // turnDone : boolean = true;
     private _rotateAV2C() {
         if (this._hasCam)
             if (this._mode != 1) {
                 let ca = (this._hasCam) ? (this._av2cam - this._camera.alpha) : 0;
                 if (this._noRot) {
+                    // Compute target angle from key combinations
+                    let targetAngle: number | null = null;
                     switch (true) {
                         case (this._act._walk && this._act._turnRight):
-                            this._setAvatarRotationY(ca + this._rhsSign * Math.PI / 4);
+                            targetAngle = ca + this._rhsSign * Math.PI / 4;
                             break;
                         case (this._act._walk && this._act._turnLeft):
-                            this._setAvatarRotationY(ca - this._rhsSign * Math.PI / 4);
+                            targetAngle = ca - this._rhsSign * Math.PI / 4;
                             break;
                         case (this._act._walkback && this._act._turnRight):
-                            this._setAvatarRotationY(ca + this._rhsSign * 3 * Math.PI / 4);
+                            targetAngle = ca + this._rhsSign * 3 * Math.PI / 4;
                             break;
                         case (this._act._walkback && this._act._turnLeft):
-                            this._setAvatarRotationY(ca - this._rhsSign * 3 * Math.PI / 4);
+                            targetAngle = ca - this._rhsSign * 3 * Math.PI / 4;
                             break;
                         case (this._act._walk):
-                            this._setAvatarRotationY(ca);
+                            targetAngle = ca;
                             break;
                         case (this._act._walkback):
-                            this._setAvatarRotationY(ca + Math.PI);
+                            targetAngle = ca + Math.PI;
                             break;
                         case (this._act._turnRight):
-                            this._setAvatarRotationY(ca + this._rhsSign * Math.PI / 2);
+                            targetAngle = ca + this._rhsSign * Math.PI / 2;
                             break;
                         case (this._act._turnLeft):
-                            this._setAvatarRotationY(ca - this._rhsSign * Math.PI / 2);
+                            targetAngle = ca - this._rhsSign * Math.PI / 2;
                             break;
+                    }
+
+                    if (targetAngle !== null) {
+                        // Incremental smooth rotation toward target
+                        const dt = this._scene.getEngine().getDeltaTime() / 1000;
+                        const current = this._getAvatarRotationY();
+
+                        // Compute shortest-arc delta normalized to [-PI, PI]
+                        let delta = targetAngle - current;
+                        while (delta > Math.PI) delta -= 2 * Math.PI;
+                        while (delta < -Math.PI) delta += 2 * Math.PI;
+
+                        const step = this._smoothTurnSpeed === 0 ? Math.abs(delta) : Math.min(Math.abs(delta), this._smoothTurnSpeed * dt);
+
+                        if (Math.abs(delta) <= step) {
+                            // Close enough — snap to target to prevent overshoot
+                            this._setAvatarRotationY(targetAngle);
+                            // this.turnDone = true;
+                        } else {
+                            // Rotate by step in the direction of shortest arc
+                            const sign = delta > 0 ? 1 : -1;
+                            this._setAvatarRotationY(current + step * sign);
+                            // this.turnDone = false;
+                        }
                     }
                 } else {
                     if (this._hasCam)
@@ -1485,8 +1562,40 @@ export class CharacterController {
     private _inFP = false;
     private _updateTargetValue() {
         if (!this._hasCam) return;
-      
+
+        // When camera is displaced by elastic push-in, save position before target update.
+        // After target update, we adjust radius to keep camera at its world position.
+        // Skip this while in first-person — let the FP exit logic handle it naturally.
+        let holdCameraPos: Vector3 = null;
+        if (this._originalRadius !== null && this._springback && this._cameraElastic && !this._inFP) {
+            holdCameraPos = this._camera.position.clone();
+        }
+        // Also save position for first-person hold (used in FP block below)
+        let fpHoldPos: Vector3 = null;
+        if (this._originalRadius !== null && this._springback && this._cameraElastic && this._inFP) {
+            fpHoldPos = this._camera.position.clone();
+        }
+
         this._avatar.position.addToRef(this._cameraTarget, this._camera.target);
+
+        // After target update, if camera is displaced, force camera back to its saved
+        // world position. This prevents the camera from following the avatar forward.
+        // The ArcRotateCamera will recompute radius/alpha/beta from the new target and this position.
+        if (holdCameraPos !== null) {
+            const newDist: number = Vector3.Distance(holdCameraPos, this._camera.target);
+            if (newDist >= this._originalRadius) {
+                // Avatar moved far enough — distance restored. Resume normal following.
+                this._originalRadius = null;
+                this._expectedRadius = this._camera.radius;
+            } else if (newDist > this._camera.radius) {
+                // Avatar moved away — hold camera at saved position
+                this._camera.position.copyFrom(holdCameraPos);
+                this._camera.rebuildAnglesAndRadius();
+                // Update expectedRadius so user-change detection doesn't misfire
+                this._expectedRadius = this._camera.radius;
+            }
+            // If newDist <= current radius, avatar moved toward camera or sideways — don't adjust
+        }
 
         if (this._camera.radius > this._camera.lowerRadiusLimit) { if (this._cameraElastic || this._makeInvisible) this._handleObstruction(); }
 
@@ -1499,12 +1608,31 @@ export class CharacterController {
                 this._mode = 0;
                 this._inFP = true;
             }
+            // If we're in first-person due to elastic push-in, hold camera position
+            // while avatar moves away. Use the position saved before target update.
+            if (this._inFP && fpHoldPos !== null) {
+                const distToTarget: number = Vector3.Distance(fpHoldPos, this._camera.target);
+                if (distToTarget > this._camera.lowerRadiusLimit) {
+                    // Avatar moved away enough to exit first-person
+                    if (distToTarget >= this._originalRadius) {
+                        this._originalRadius = null;
+                        this._expectedRadius = this._camera.radius;
+                    } else {
+                        this._camera.position.copyFrom(fpHoldPos);
+                        this._camera.rebuildAnglesAndRadius();
+                        this._expectedRadius = this._camera.radius;
+                    }
+                }
+            }
         } else {
             if (this._inFP) {
                 this._inFP = false;
                 this._mode = this._saveMode;
                 this._restoreVisiblity(this._avatar);
                 this._camera.checkCollisions = this._savedCameraCollision;
+                // Reset expected radius so user-change detection doesn't misfire
+                // after exiting first-person. This preserves _originalRadius for springback.
+                this._expectedRadius = this._camera.radius;
             }
         }
     }
@@ -1544,7 +1672,11 @@ export class CharacterController {
     private _prevPickedMeshes: AbstractMesh[];
     private _pickedMeshes: AbstractMesh[] = new Array();;
     private _makeInvisible = false;
-    private _elasticSteps = 50;
+    private _elasticSteps = 10;
+    private _springback: boolean = true;
+    private _springbackSteps: number = 50;
+    private _originalRadius: number | null = null;
+    private _expectedRadius: number | null = null;
     private _alreadyInvisible: AbstractMesh[];
 
     /**
@@ -1559,6 +1691,34 @@ export class CharacterController {
      * b) move the camera in front of the obstructing mesh
      */
     private _handleObstruction() {
+
+        // Detect user-initiated radius changes (e.g., scroll wheel input)
+        // If the radius changed unexpectedly, treat as user-initiated.
+        let userScrolled: boolean = false;
+        if (this._expectedRadius !== null) {
+            const radiusDelta = this._camera.radius - this._expectedRadius;
+            const absDelta = Math.abs(radiusDelta);
+
+            // If radius DECREASED while springback is active, it must be user-initiated
+            // (springback only increases radius, push-in only happens when obstruction detected)
+            if (radiusDelta < -0.01 && this._originalRadius !== null) {
+                userScrolled = true;
+                this._originalRadius = null;
+                this._expectedRadius = this._camera.radius;
+            } else {
+                // For other changes, use the step-based threshold
+                const maxPushInStep = this._camera.radius / this._elasticSteps;
+                const remainingToOriginal = this._originalRadius !== null ? Math.abs(this._originalRadius - this._camera.radius) : 0;
+                const maxSpringbackStep = remainingToOriginal / this._springbackSteps;
+                const maxExpectedStep = Math.max(maxPushInStep, maxSpringbackStep, 0.01);
+
+                if (absDelta > maxExpectedStep) {
+                    userScrolled = true;
+                    this._originalRadius = null;
+                    this._expectedRadius = this._camera.radius;
+                }
+            }
+        }
 
         //get vector from av (camera.target) to camera
         this._camera.position.subtractToRef(this._camera.target, this._rayDir);
@@ -1626,6 +1786,11 @@ export class CharacterController {
                 }
                 if (pp == null) return;
 
+                // Store original radius before first push-in so springback knows the recovery target
+                if (this._originalRadius === null) {
+                    this._originalRadius = this._camera.radius;
+                }
+
                 const c2p: Vector3 = this._camera.position.subtract(pp);
                 //note that when camera is collidable, changing the orbital camera radius may not work.
                 //changing the radius moves the camera forward (with collision?) and collision can interfere with movement
@@ -1637,21 +1802,76 @@ export class CharacterController {
                 //if collision is on
 
                 const l: number = c2p.length();
-                if (this._camera.checkCollisions) {
-                    let step: Vector3;
-                    if (l <= 1) {
-                        step = c2p.addInPlace(c2p.normalizeToNew().scaleInPlace(this._cameraSkin));
-                    } else {
-                        step = c2p.normalize().scaleInPlace(l / this._elasticSteps);
-                    }
+                if (l <= 0.1) {
+                    // Close enough — stop moving. The deceleration has brought us near the target.
+                } else if (this._camera.checkCollisions) {
+                    let step: Vector3 = c2p.normalize().scaleInPlace(l / this._elasticSteps);
                     this._camera.position = this._camera.position.subtract(step);
                 } else {
-                    let step: number;
-                    if (l <= 1) step = l + this._cameraSkin; else step = l / this._elasticSteps;
-                    this._camera.radius = this._camera.radius - (step);
+                    let step: number = l / this._elasticSteps;
+                    this._camera.radius = this._camera.radius - step;
+                }
+            } else {
+                // No obstruction detected — perform springback if applicable
+                if (this._originalRadius !== null && this._springback) {
+                    const remainingDistance: number = this._originalRadius - this._camera.radius;
+                    if (remainingDistance > 0) {
+                        // Before springing back, cast a ray from target to the original radius
+                        // to verify the path is actually clear. This prevents jitter where the
+                        // camera springs back into an obstruction that still exists further out.
+                        const springDir: Vector3 = this._camera.position.subtract(this._camera.target).normalize();
+                        this._ray.origin = this._camera.target;
+                        this._ray.direction = springDir;
+                        this._ray.length = this._originalRadius;
+                        const springPis: PickingInfo[] = this._scene.multiPickWithRay(this._ray, (mesh) => {
+                            if (this._avChildren.includes(mesh)) return false;
+                            return mesh.isPickable;
+                        });
+                        // Check if any obstruction exists between current position and original radius
+                        let springBlocked: boolean = false;
+                        const currentDist: number = Vector3.Distance(this._camera.position, this._camera.target);
+                        for (let i = 0; i < springPis.length; i++) {
+                            const pm = springPis[i].pickedMesh;
+                            if (this._isSeeAble(pm) || pm.checkCollisions) {
+                                const pickDist: number = Vector3.Distance(springPis[i].pickedPoint, this._camera.target);
+                                if (pickDist > currentDist) {
+                                    // Obstruction exists between camera and original radius — don't spring back
+                                    springBlocked = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!springBlocked) {
+                            if (remainingDistance <= 0.1) {
+                                // Close enough — stop. Clear displacement.
+                                this._originalRadius = null;
+                            } else if (this._camera.checkCollisions) {
+                                // Collision mode: move camera position along the avatar-to-camera vector
+                                const dir: Vector3 = this._camera.position.subtract(this._camera.target).normalize();
+                                const step: number = remainingDistance / this._springbackSteps;
+                                const stepVec: Vector3 = dir.scaleInPlace(step);
+                                this._camera.position = this._camera.position.add(stepVec);
+                            } else {
+                                // Radius mode: increase camera.radius toward _originalRadius
+                                const step: number = remainingDistance / this._springbackSteps;
+                                this._camera.radius = this._camera.radius + step;
+                            }
+                            // Clear _originalRadius when camera reaches target (within 0.01 tolerance)
+                            if (this._originalRadius !== null && Math.abs(this._camera.radius - this._originalRadius) <= 0.01) {
+                                this._originalRadius = null;
+                            }
+                        }
+                    } else {
+                        // Camera is at or beyond original radius — clear recovery target
+                        this._originalRadius = null;
+                    }
                 }
             }
         }
+
+        // Store current radius as expected for next frame's user-change detection
+        this._expectedRadius = this._camera.radius;
     }
 
     //how many ways can a mesh be invisible?
@@ -2221,4 +2441,7 @@ export class CCSettings {
     public animBlend: number;
     public ellipsoid:Vector3;   
     public ellipsoidOffset:Vector3;
+    public smoothTurnSpeed: number;
+    public springback?: boolean;
+    public springbackSteps?: number;
 }

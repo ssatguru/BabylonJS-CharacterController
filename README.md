@@ -163,7 +163,7 @@ The package exports the following:
 - `Actions` — constant object with action name strings (e.g., `Actions.WALK`, `Actions.RUN`)
 - `CCSettings` — serializable settings class for saving/restoring controller configuration
 
-## API ( version 0.4.5 )
+## API ( version 0.4.6 )
 
 #### To Instantiate
 
@@ -313,7 +313,7 @@ b) walkback/runback key results in avatar facing back, towards the camera and wa
 This setting has no effect when mode is 1.
 
 ```
-cc.setTurningOff(true/false);
+cc.setTurningOff(true/false);  //default: false
 cc.isTurningOff(): boolean;
 ```
 
@@ -502,8 +502,8 @@ cc.setLeftSpeed(n: number);      //default 1.5 m/s
 cc.setLeftFastSpeed(n: number);  //default 3 m/s
 cc.setRightSpeed(n: number);     //default 1.5 m/s
 cc.setRightFastSpeed(n: number); //default 3 m/s
-cc.setTurnSpeed(n: number);      //default PI/8 radians/s
-cc.setTurnFastSpeed(n: number);  //default PI/4 radians/s
+cc.setTurnSpeed(n: number);      //default 22.5 degrees/s (PI/8 rad/s)
+cc.setTurnFastSpeed(n: number);  //default 45 degrees/s (PI/4 rad/s)
 ```
 
 #### To change the slope the avatar can traverse
@@ -526,7 +526,7 @@ Default: minSlopeLimit = 30, maxSlopeLimit = 45
 #### To change the height of steps the avatar can climb
 
 ```
-cc.setStepOffset(stepOffset: number);
+cc.setStepOffset(stepOffset: number);  //default: 0.25
 ```
 
 Example
@@ -600,19 +600,19 @@ a position in front of that something. This way the avatar/player is always in v
 To turn this off use
 
 ```
-cc.setCameraElasticity(false);
+cc.setCameraElasticity(false);  //default: true
 ```
 
 You can control the number of steps used for elastic camera movement:
 
 ```
-cc.setElasticSteps(n: number);
+cc.setElasticSteps(n: number);  //default: 10
 ```
 
 You can make obstructing meshes invisible instead of moving the camera:
 
 ```
-cc.makeObstructionInvisible(b: boolean);
+cc.makeObstructionInvisible(b: boolean);  //default: false
 ```
 
 You can use the arc rotate camera's "lowerRadiusLimit" and "upperRadiusLimit" property to control how close or how far away from the avatar the camera can get.  
@@ -628,7 +628,50 @@ When the camera comes to the "lowerRadiusLimit" the controller switches to first
 To prevent this use
 
 ```
-cc.setNoFirstPerson(true);
+cc.setNoFirstPerson(true);  //default: false
+```
+
+#### Smooth Turning
+
+When turning is off (see `setTurningOff`), the avatar can rotate gradually toward the target direction instead of snapping instantly. This uses shortest-arc interpolation with frame-rate-independent stepping.
+
+```
+cc.setSmoothTurnSpeed(degreesPerSecond: number);  // default 360
+cc.getSmoothTurnSpeed(): number;
+```
+
+Example:
+
+```
+cc.setSmoothTurnSpeed(90);  // slower, more cinematic rotation
+cc.setSmoothTurnSpeed(240); // faster, snappier rotation
+```
+
+Set to 0 to disable smooth turning (instant rotation).
+
+#### Camera Springback
+
+When the camera is pushed closer to the avatar by an obstruction, it can automatically recover to its original distance once the obstruction clears. The camera holds its world position while the avatar moves away, naturally restoring the distance.
+
+```
+cc.setCameraElasticSpringback(b: boolean);   // enable/disable springback (default: true)
+cc.isCameraElasticSpringback(): boolean;     // check if springback is enabled
+cc.setSpringbackSteps(n: number);            // deceleration steps (default: 50, range: 1–1000)
+```
+
+Behavior:
+- When an obstruction pushes the camera closer, the original radius is remembered
+- Once the obstruction clears, the camera holds its position while the avatar moves away
+- The distance naturally restores as the avatar walks forward
+- If the user scrolls or rotates the camera, springback is cancelled — user always has priority
+- Works through first-person mode transitions
+
+Example:
+
+```
+cc.setCameraElasticSpringback(true);  // enable (default)
+cc.setSpringbackSteps(30);            // faster recovery
+cc.setSpringbackSteps(100);           // slower, smoother recovery
 ```
 
 If you change the camera's checkCollisions property directly, notify the controller:
@@ -646,6 +689,8 @@ let settings: CCSettings = cc.getSettings();
 // ... later ...
 cc.setSettings(settings);
 ```
+
+The CCSettings object includes all configurable properties including `smoothTurnSpeed`, `springback`, and `springbackSteps`. Properties not present in a restored settings object are left unchanged (backward compatible).
 
 #### Debug visualization
 

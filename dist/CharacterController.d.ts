@@ -30,6 +30,8 @@ export declare class CharacterController {
     setRightFastSpeed(n: number): void;
     setTurnSpeed(n: number): void;
     setTurnFastSpeed(n: number): void;
+    setSmoothTurnSpeed(speed: number): void;
+    getSmoothTurnSpeed(): number;
     setGravity(n: number): void;
     setAnimationGroups(agMap: {}): void;
     setAnimationRanges(arMap: {}): void;
@@ -68,6 +70,9 @@ export declare class CharacterController {
     setJumpKey(key: string): void;
     setCameraElasticity(b: boolean): void;
     setElasticiSteps(n: number): void;
+    setCameraElasticSpringback(b: boolean): void;
+    isCameraElasticSpringback(): boolean;
+    setSpringbackSteps(n: number): void;
     makeObstructionInvisible(b: boolean): void;
     setCameraTarget(v: Vector3): void;
     cameraCollisionChanged(): void;
@@ -126,6 +131,7 @@ export declare class CharacterController {
     private _sign;
     private _isTurning;
     private _noRot;
+    private _smoothTurnSpeed;
     private _steps;
     private _stepHigh;
     private _doMove;
@@ -156,6 +162,10 @@ export declare class CharacterController {
     private _pickedMeshes;
     private _makeInvisible;
     private _elasticSteps;
+    private _springback;
+    private _springbackSteps;
+    private _originalRadius;
+    private _expectedRadius;
     private _alreadyInvisible;
     private _handleObstruction;
     private _isSeeAble;
@@ -278,4 +288,7 @@ export declare class CCSettings {
     animBlend: number;
     ellipsoid: Vector3;
     ellipsoidOffset: Vector3;
+    smoothTurnSpeed: number;
+    springback?: boolean;
+    springbackSteps?: number;
 }

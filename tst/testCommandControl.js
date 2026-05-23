@@ -34,7 +34,7 @@ function main() {
   box.checkCollisions = false;
   box.position = new BABYLON.Vector3(0, 8, 5);
   box.material = myMaterial;
-  box.isVisible = false;
+ //  box.isVisible = false;
 
   var box2 = BABYLON.Mesh.CreateBox("box2", 2, scene);
   box2.checkCollisions = true;
@@ -48,7 +48,7 @@ function main() {
   let box4 = BABYLON.Mesh.CreateBox("box4", 2, scene);
   box4.position = new BABYLON.Vector3(5, 8, 5);
   box4.checkCollisions = false;
-  box4.visibility = 0;
+  //box4.visibility = 0;
 
   let groundMaterial = createGroundMaterial(scene);
   var ground = createGround(scene, groundMaterial);
@@ -94,7 +94,7 @@ function loadPlayer(scene, engine, canvas) {
 
     //standard camera setting
     camera.wheelPrecision = 15;
-    camera.checkCollisions = true;
+    camera.checkCollisions = false;
     //make sure the keyboard keys controlling camera are different from those controlling player
     //here we will not use any keyboard keys to control camera
     camera.keysLeft = [];
@@ -138,6 +138,8 @@ function loadPlayer(scene, engine, canvas) {
     cc.setFallAnim("fall", 2, false);
     cc.setSlideBackAnim("slideBack", 1, false);
 
+    // cc.setSmoothTurnSpeed(0);
+
     let walkSound = new BABYLON.Sound(
       "walk",
       "./sounds/footstep_carpet_000.ogg",
@@ -156,7 +158,7 @@ function loadPlayer(scene, engine, canvas) {
     }
 
     cc.setCameraElasticity(true);
-    cc.makeObstructionInvisible(true);
+    cc.makeObstructionInvisible(false);
     cc.start();
 
     engine.runRenderLoop(function () {

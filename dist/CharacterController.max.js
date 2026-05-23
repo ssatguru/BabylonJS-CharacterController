@@ -147,6 +147,7 @@ var CharacterController = (function () {
         this._sign = 1;
         this._isTurning = false;
         this._noRot = false;
+        this._smoothTurnSpeed = 2 * Math.PI / 3;
         this._steps = true;
         this._stepHigh = false;
         this._rayLine = null;
@@ -163,6 +164,10 @@ var CharacterController = (function () {
         this._pickedMeshes = new Array();
         this._makeInvisible = false;
         this._elasticSteps = 50;
+        this._springback = true;
+        this._springbackSteps = 50;
+        this._originalRadius = null;
+        this._expectedRadius = null;
         this._move = false;
         this._ekb = true;
         this._isAG = false;
@@ -241,6 +246,14 @@ var CharacterController = (function () {
     CharacterController.prototype.setTurnFastSpeed = function (n) {
         this._actionMap.turnLeftFast.speed = n * Math.PI / 180;
         this._actionMap.turnRightFast.speed = n * Math.PI / 180;
+    };
+    CharacterController.prototype.setSmoothTurnSpeed = function (speed) {
+        if (!isFinite(speed) || speed <= 0)
+            return;
+        this._smoothTurnSpeed = speed * Math.PI / 180;
+    };
+    CharacterController.prototype.getSmoothTurnSpeed = function () {
+        return this._smoothTurnSpeed * 180 / Math.PI;
     };
     CharacterController.prototype.setGravity = function (n) {
         this._gravity = n;
@@ -350,6 +363,9 @@ var CharacterController = (function () {
         ccs.animBlend = this._animBlend;
         ccs.ellipsoid = this._avatar.ellipsoid;
         ccs.ellipsoidOffset = this._avatar.ellipsoidOffset;
+        ccs.smoothTurnSpeed = this.getSmoothTurnSpeed();
+        ccs.springback = this._springback;
+        ccs.springbackSteps = Math.floor(Math.min(1000, Math.max(1, this._springbackSteps)));
         return ccs;
     };
     CharacterController.prototype.setSettings = function (ccs) {
@@ -369,6 +385,13 @@ var CharacterController = (function () {
         this.enableBlending(ccs.animBlend);
         this._avatar.ellipsoid = ccs.ellipsoid;
         this._avatar.ellipsoidOffset = ccs.ellipsoidOffset;
+        this.setSmoothTurnSpeed(ccs.smoothTurnSpeed);
+        if (ccs.springback !== undefined) {
+            this._springback = ccs.springback;
+        }
+        if (ccs.springbackSteps !== undefined) {
+            this._springbackSteps = Math.floor(Math.min(1000, Math.max(1, ccs.springbackSteps)));
+        }
     };
     CharacterController.prototype._setAnim = function (anim, animName, rate, loop) {
         if (!this._isAG && this._skeleton == null)
@@ -537,9 +560,26 @@ var CharacterController = (function () {
     };
     CharacterController.prototype.setCameraElasticity = function (b) {
         this._cameraElastic = b;
+        if (!b) {
+            this._originalRadius = null;
+        }
     };
     CharacterController.prototype.setElasticiSteps = function (n) {
         this._elasticSteps = n;
+    };
+    CharacterController.prototype.setCameraElasticSpringback = function (b) {
+        this._springback = b;
+    };
+    CharacterController.prototype.isCameraElasticSpringback = function () {
+        return this._springback;
+    };
+    CharacterController.prototype.setSpringbackSteps = function (n) {
+        n = Math.floor(n);
+        if (n < 1)
+            n = 1;
+        if (n > 1000)
+            n = 1000;
+        this._springbackSteps = n;
     };
     CharacterController.prototype.makeObstructionInvisible = function (b) {
         this._makeInvisible = b;
@@ -1101,31 +1141,49 @@ var CharacterController = (function () {
             if (this._mode != 1) {
                 var ca = (this._hasCam) ? (this._av2cam - this._camera.alpha) : 0;
                 if (this._noRot) {
+                    var targetAngle = null;
                     switch (true) {
                         case (this._act._walk && this._act._turnRight):
-                            this._setAvatarRotationY(ca + this._rhsSign * Math.PI / 4);
+                            targetAngle = ca + this._rhsSign * Math.PI / 4;
                             break;
                         case (this._act._walk && this._act._turnLeft):
-                            this._setAvatarRotationY(ca - this._rhsSign * Math.PI / 4);
+                            targetAngle = ca - this._rhsSign * Math.PI / 4;
                             break;
                         case (this._act._walkback && this._act._turnRight):
-                            this._setAvatarRotationY(ca + this._rhsSign * 3 * Math.PI / 4);
+                            targetAngle = ca + this._rhsSign * 3 * Math.PI / 4;
                             break;
                         case (this._act._walkback && this._act._turnLeft):
-                            this._setAvatarRotationY(ca - this._rhsSign * 3 * Math.PI / 4);
+                            targetAngle = ca - this._rhsSign * 3 * Math.PI / 4;
                             break;
                         case (this._act._walk):
-                            this._setAvatarRotationY(ca);
+                            targetAngle = ca;
                             break;
                         case (this._act._walkback):
-                            this._setAvatarRotationY(ca + Math.PI);
+                            targetAngle = ca + Math.PI;
                             break;
                         case (this._act._turnRight):
-                            this._setAvatarRotationY(ca + this._rhsSign * Math.PI / 2);
+                            targetAngle = ca + this._rhsSign * Math.PI / 2;
                             break;
                         case (this._act._turnLeft):
-                            this._setAvatarRotationY(ca - this._rhsSign * Math.PI / 2);
+                            targetAngle = ca - this._rhsSign * Math.PI / 2;
                             break;
+                    }
+                    if (targetAngle !== null) {
+                        var dt = this._scene.getEngine().getDeltaTime() / 1000;
+                        var current = this._getAvatarRotationY();
+                        var delta = targetAngle - current;
+                        while (delta > Math.PI)
+                            delta -= 2 * Math.PI;
+                        while (delta < -Math.PI)
+                            delta += 2 * Math.PI;
+                        var step = Math.min(Math.abs(delta), this._smoothTurnSpeed * dt);
+                        if (Math.abs(delta) <= step) {
+                            this._setAvatarRotationY(targetAngle);
+                        }
+                        else {
+                            var sign = delta > 0 ? 1 : -1;
+                            this._setAvatarRotationY(current + step * sign);
+                        }
                     }
                 }
                 else {
@@ -1306,6 +1364,21 @@ var CharacterController = (function () {
     ;
     CharacterController.prototype._handleObstruction = function () {
         var _this = this;
+        if (this._expectedRadius !== null && this._originalRadius !== null) {
+            var radiusDelta = Math.abs(this._camera.radius - this._expectedRadius);
+            var maxPushInStep = this._camera.radius / this._elasticSteps;
+            var remainingToOriginal = Math.abs(this._originalRadius - this._camera.radius);
+            var maxSpringbackStep = remainingToOriginal / this._springbackSteps;
+            var maxExpectedStep = Math.max(maxPushInStep, maxSpringbackStep, 0.01);
+            if (radiusDelta > maxExpectedStep) {
+                if (this._camera.radius >= this._originalRadius) {
+                    this._originalRadius = null;
+                }
+                else {
+                    this._originalRadius = this._camera.radius;
+                }
+            }
+        }
         this._camera.position.subtractToRef(this._camera.target, this._rayDir);
         this._ray.origin = this._camera.target;
         this._ray.length = this._rayDir.length();
@@ -1364,6 +1437,9 @@ var CharacterController = (function () {
                 }
                 if (pp == null)
                     return;
+                if (this._originalRadius === null) {
+                    this._originalRadius = this._camera.radius;
+                }
                 var c2p = this._camera.position.subtract(pp);
                 var l = c2p.length();
                 if (this._camera.checkCollisions) {
@@ -1385,7 +1461,44 @@ var CharacterController = (function () {
                     this._camera.radius = this._camera.radius - (step);
                 }
             }
+            else {
+                if (this._originalRadius !== null && this._springback) {
+                    var remainingDistance = this._originalRadius - this._camera.radius;
+                    if (remainingDistance > 0) {
+                        if (this._camera.checkCollisions) {
+                            var dir = this._camera.position.subtract(this._camera.target).normalize();
+                            if (remainingDistance <= 1) {
+                                var targetDist = this._originalRadius - this._cameraSkin;
+                                var currentDist = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Distance(this._camera.position, this._camera.target);
+                                var snapStep = dir.scaleInPlace(targetDist - currentDist);
+                                this._camera.position = this._camera.position.add(snapStep);
+                            }
+                            else {
+                                var step = remainingDistance / this._springbackSteps;
+                                var stepVec = dir.scaleInPlace(step);
+                                this._camera.position = this._camera.position.add(stepVec);
+                            }
+                        }
+                        else {
+                            if (remainingDistance <= 1) {
+                                this._camera.radius = this._originalRadius;
+                            }
+                            else {
+                                var step = remainingDistance / this._springbackSteps;
+                                this._camera.radius = this._camera.radius + step;
+                            }
+                        }
+                        if (Math.abs(this._camera.radius - this._originalRadius) <= 0.01) {
+                            this._originalRadius = null;
+                        }
+                    }
+                    else {
+                        this._originalRadius = null;
+                    }
+                }
+            }
         }
+        this._expectedRadius = this._camera.radius;
     };
     CharacterController.prototype._isSeeAble = function (mesh) {
         if (!mesh.isVisible)
