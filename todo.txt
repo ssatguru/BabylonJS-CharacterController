@@ -1,0 +1,12 @@
+1. make sure when elastic camera springs forward its final position clears the obstructions by a distance equal to its ellipsoid radius.
+this is in case camera collision is on. if not done the camera will snap forward at the end to avoid collision and might come out of spring back mode.
+2. improve test cases ui
+3. when turning from left to right or right to left make the avatar turn around towards the camera - clockwise rather than anit clockwise wrt to camera. better user experience 
+4 explore and document different patterns
+example
+a) in attack mode camera cannot be rotated around avatar
+b) creating differnt cc "profiles" using the configuration mapping capability and quickly switching between them
+example
+switching between armed set of animations to attack set of animations
+4. explore switching between the current UMD or "monolith" to ES6 or "modular" babylon library
+5 improve testing scene with proper props.

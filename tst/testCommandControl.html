@@ -4,51 +4,10 @@
 <head>
   <meta charset="utf-8" />
   <title>CharacterController Demo</title>
-  <style>
-    html,
-    body {
-      overflow: hidden;
-      width: 100%;
-      height: 100%;
-      margin: 0;
-      padding: 0;
-    }
-
-    #controls {
-      position: absolute;
-      top: 0;
-      left: 0;
-    }
-
-    #renderCanvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      touch-action: none;
-    }
-
-    #overlay {
-      visibility: hidden;
-      position: absolute;
-      left: 0px;
-      top: 0px;
-      width: 100%;
-      height: 100%;
-      text-align: center;
-      z-index: 1000;
-    }
-
-    #overlay div {
-      width: 600px;
-      margin: 100px auto;
-      opacity: 0.9;
-      text-align: center;
-    }
-  </style>
+  
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="w3.css" media="screen" />
+  <link rel="stylesheet" href="tst.css" media="screen" />
   <script src="/node_modules/babylonjs/babylon.max.js"></script>
   <script src="/node_modules/babylonjs-loaders/babylonjs.loaders.min.js"></script>
   <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
@@ -58,29 +17,33 @@
 
 </head>
 
-<body>
+<body class="w3-small">
   <canvas id="renderCanvas" tabindex="-1"></canvas>
 
   <div id="controls" style="opacity: 0.9;" class="w3-round w3-card-4 w3-grey">
-    <ui class="w3-ul w3-left">
-      <li><button id="pl">pointer lock</button></li>
-      <li><button id="w">walk</button><button id="r">run</button></li>
-      <li><button id="wb">walkBack</button><button id="wbf">walkBackFast</button></li>
-      <li><button id="j">jump</button></li>
-      <li><button id="tl">turnLeft</button><button id="tlf">turnLeftFast</button></li>
-      <li><button id="tr">turnRight</button><button id="trf">turnRightFast</button></li>
-      <li><button id="sl">strafeLeft</button><button id="slf">strafeLeftFast</button></li>
-      <li><button id="sr">strafeRight</button><button id="srf">strafeRightFast</button></li>
-      <li>
-        <input type="radio" name="mode" class="w3-radio" id="td" /> top down
-        <br />
-        <input type="radio" checked name="mode" class="w3-radio w3-orange" id="tp" /> third person
-        <input type="checkbox" id="toff" class="w3-check" />turning off
-      </li>
-      </li>
-      <li><input type="checkbox" id="kb" checked class="w3-check" />enable keyboard</li>
-      <li><button id="help">help</button></li>
-    </ui>
+    <div style="display:grid;grid-template-columns:auto auto;background-color: grey;margin:1em;gap:1em;padding: 1em;align-items: center;">
+
+      <div style="grid-column: span 2;text-align: center;">Command</div>
+      <button id="w">walk</button><button id="wb">walkBack</button>
+      <button id="r">run</button><button id="wbf">walkBackFast</button>
+      <button id="tl">turnLeft</button><button id="tr">turnRight</button>
+      <button id="tlf">turnLeftFast</button><button id="trf">turnRightFast</button>
+      <button id="sl">strafeLeft</button><button id="sr">strafeRight</button>
+      <button id="slf">strafeLeftFast</button><button id="srf">strafeRightFast</button>
+      <button id="j">jump</button><div></div>
+
+      <div style="grid-column: span 2;text-align: center;">Config</div>
+      <button id="pl">pointer lock</button><div></div>
+      <label><input type="radio" name="mode" class="w3-radio" id="td"> top down</label> <div></div>
+      <div style="grid-column: span 2;">
+        <label><input type="radio" checked name="mode" class="w3-radio aw3-orange" id="tp" /> third person</label>
+        <label><input type="checkbox" id="toff" class="w3-check" /> turning off</label>
+      </div>
+      <label><input type="checkbox" id="kb" checked class="w3-check" /> enable keyboard</label><div></div>
+      <label><input type="checkbox" id="elp" class="w3-check" /> show ellipsoid</label><div></div>
+
+      <div></div><button id="help">help</button>
+    </div>
   </div>
 
   <div id="overlay">

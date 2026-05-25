@@ -239,6 +239,7 @@ function createGroundMaterial(scene) {
 }
 
 var showHelp = function () {
+  console.log("show help");
   var el = document.getElementById("overlay");
   el.style.visibility = el.style.visibility == "visible" ? "hidden" : "visible";
   canvas.focus();
@@ -352,16 +353,22 @@ function setControls() {
     cc.enableKeyBoard(e.target.checked);
     canvas.focus();
   };
-  // document.getElementById("help").onclick = showHelp;
+
+  document.getElementById("elp").onclick = function (e) {
+    cc.showEllipsoid(e.target.checked);
+    canvas.focus();
+  };
+
+  document.getElementById("help").onclick = showHelp;
   document.getElementById("closehelp").onclick = showHelp;
 
-  let animPaused = false;
-  document.getElementById("help").onclick = (e) => {
-    if (animPaused) {
-      cc.resumeAnim();
-    } else {
-      cc.pauseAnim();
-    }
-    animPaused = !animPaused;
-  };
+  // let animPaused = false;
+  // document.getElementById("help").onclick = (e) => {
+  //   if (animPaused) {
+  //     cc.resumeAnim();
+  //   } else {
+  //     cc.pauseAnim();
+  //   }
+  //   animPaused = !animPaused;
+  // };
 }
