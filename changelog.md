@@ -1,3 +1,19 @@
+## 05/26/2026 0.4.7-alpha3
+### moveTo / turnTo navigation APIs
+- added `moveTo(target, options?)` — move character toward a Vector3 position or follow a TransformNode
+- added `moveToStop()` — cancel active moveTo operation
+- added `turnTo(target, options?)` — rotate character toward a Vector3, TransformNode, or by a numeric angle (radians)
+- added `turnToStop()` — cancel active turnTo operation
+- moveTo supports walk/run mode, configurable arrival distance, and obstruction detection (stops after 3 stalled frames)
+- turnTo supports normal/fast turn speed and configurable angular tolerance
+- TransformNode targets are tracked continuously (follow/track mode) until explicitly stopped
+- moveTo and turnTo are mutually exclusive — calling one cancels the other
+- navigation temporarily switches CC to mode 1 to prevent camera rotation interference, restores original mode on stop
+- keyboard input cancels active navigation immediately (avatars with keyboard enabled)
+- navigation uses a separate `beforeRender` observer that calls public command methods — no internal coupling to the CC render loop
+- added `MoveToOptions` and `TurnToOptions` exported interfaces
+- added 14 property-based tests validating navigation correctness properties
+
 ## 05/26/2026 0.4.7-alpha2
 ### dual module format support
 - added ES6 module output (`dist/CharacterController.es.js`) alongside the existing UMD output

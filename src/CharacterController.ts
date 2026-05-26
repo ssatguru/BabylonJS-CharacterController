@@ -1,4 +1,4 @@
-import {
+﻿import {
     Skeleton,
     ArcRotateCamera,
     Vector3,
@@ -25,6 +25,92 @@ import {
     Color3,
     Quaternion
 } from "babylonjs";
+
+
+// --- Navigation helper functions (pure, standalone) ---
+
+/**
+ * Compute the horizontal (XZ-plane) distance between two Vector3 positions.
+ */
+function horizontalDistance(a: Vector3, b: Vector3): number {
+    const dx = a.x - b.x;
+    const dz = a.z - b.z;
+    return Math.sqrt(dx * dx + dz * dz);
+}
+
+/**
+ * Compute the direction angle (Y rotation) from source to target on the XZ plane.
+ * Returns the angle in radians that the character should face.
+ * @param faceForward true if character's forward is along positive Z (back-facing model)
+ * @param isLHS_RHS true for left-hand/right-hand mismatch (e.g. GLB in LHS scene)
+ */
+function directionAngle(source: Vector3, target: Vector3, faceForward: boolean, isLHS_RHS: boolean): number {
+    const dx = target.x - source.x;
+    const dz = target.z - source.z;
+    // atan2(-dx, -dz) gives the angle from negative Z axis measured counter-clockwise,
+    // which matches BabylonJS rotation.y convention (positive = left/CCW from above)
+    // For back-facing models (faceForward=true), forward is +Z, so we use atan2(dx, dz) negated
+    let angle = Math.atan2(dx, dz);
+    if (!faceForward) {
+        angle += Math.PI; // Rotate 180Â° for front-facing models
+    }
+    // Normalize to [-PI, PI]
+    while (angle > Math.PI) angle -= 2 * Math.PI;
+    while (angle < -Math.PI) angle += 2 * Math.PI;
+    return angle;
+}
+
+/**
+ * Compute shortest-arc delta between current angle and target angle,
+ * normalized to [-PI, PI].
+ */
+function shortestArcDelta(current: number, target: number): number {
+    let delta = target - current;
+    while (delta > Math.PI) delta -= 2 * Math.PI;
+    while (delta < -Math.PI) delta += 2 * Math.PI;
+    return delta;
+}
+
+/**
+ * Determine turn direction based on shortest arc.
+ * Returns 'left' for positive delta (increase rotation.y), 'right' for negative delta.
+ */
+function turnDirection(current: number, target: number): 'left' | 'right' {
+    const delta = shortestArcDelta(current, target);
+    return delta >= 0 ? 'left' : 'right';
+}
+
+/**
+ * Check if distance is within arrival threshold.
+ */
+function isWithinArrival(distance: number, arrivalDistance: number): boolean {
+    return distance <= arrivalDistance;
+}
+
+/**
+ * Check if angular difference is within tolerance.
+ */
+function isWithinAngularTolerance(delta: number, tolerance: number): boolean {
+    return Math.abs(delta) <= tolerance;
+}
+
+/**
+ * Obstruction detection: given per-frame distance and threshold, update counter.
+ * Increments count if frame distance is below threshold, resets to 0 otherwise.
+ */
+function updateObstructionCount(frameDistance: number, threshold: number, currentCount: number): number {
+    return frameDistance < threshold ? currentCount + 1 : 0;
+}
+
+/**
+ * Validate and clamp a parameter to a default value.
+ * If value is <= 0, returns defaultValue.
+ */
+function clampPositive(value: number, defaultValue: number): number {
+    return value > 0 ? value : defaultValue;
+}
+
+// --- End navigation helper functions ---
 
 
 export class CharacterController {
@@ -843,6 +929,7 @@ export class CharacterController {
     }
 
     private _moveAVandCamera() {
+
         this._avStartPos.copyFrom(this._avatar.position);
         let actData: ActionData = null;
         const dt: number = this._scene.getEngine().getDeltaTime() / 1000;
@@ -1892,6 +1979,11 @@ export class CharacterController {
     private _onKeyDown(e: KeyboardEvent) {
         if (!e.key) return;
         if (e.repeat) return;
+        // Cancel navigation on keyboard press (only if keyboard is enabled)
+        if (this._ekb) {
+            this._cancelMoveTo();
+            this._cancelTurnTo();
+        }
         switch (e.key.toLowerCase()) {
             case this._actionMap.idleJump.key:
                 this._act._jump = true;
@@ -2001,6 +2093,32 @@ export class CharacterController {
         canvas.removeEventListener("keydown", this._handleKeyDown, false);
     }
 
+    /**
+     * Clear moveTo state (called from keyboard handler to cancel navigation).
+     */
+    private _cancelMoveTo(): void {
+        if (!this._moveToActive) return;
+        this._moveToTarget = null;
+        this._moveToNode = null;
+        this._moveToActive = false;
+        this._moveToObstructionCount = 0;
+        this._moveToLastPos = null;
+        this._stopNavRenderer();
+    }
+
+    /**
+     * Clear turnTo state (called from keyboard handler to cancel navigation).
+     */
+    private _cancelTurnTo(): void {
+        if (!this._turnToActive) return;
+        this._turnToTarget = null;
+        this._turnToNode = null;
+        this._turnToAngle = null;
+        this._turnToTargetAngle = null;
+        this._turnToActive = false;
+        this._stopNavRenderer();
+    }
+
     // control movement by commands rather than keyboard.
     public walk(b: boolean) {
         this._act.reset();
@@ -2074,6 +2192,88 @@ export class CharacterController {
         this._act.reset();
     }
 
+    public turnTo(target: Vector3 | TransformNode | number | null | undefined, options?: TurnToOptions): void {
+        // 1. Ignore null/undefined
+        if (target == null) return;
+
+        // 2. Extract and clamp options
+        const fast = options?.fast ?? false;
+        const angularTolerance = clampPositive(options?.angularTolerance ?? 0.035, 0.035);
+
+        // 3. Cancel previous turnTo (clear state without calling idle)
+        this._turnToTarget = null;
+        this._turnToNode = null;
+        this._turnToAngle = null;
+        this._turnToTargetAngle = null;
+        this._turnToActive = false;
+
+        // 4. Handle numeric angle
+        if (typeof target === 'number') {
+            if (target === 0) {
+                this.idle();
+                return;
+            }
+            // Compute absolute target angle from current Y rotation + relative angle
+            const currentY = this._avatar.rotation.y;
+            this._turnToTargetAngle = currentY + target;
+            this._turnToAngle = target;
+        }
+        // 5. Handle TransformNode
+        else if (target instanceof TransformNode) {
+            if (target.isDisposed()) {
+                this.idle();
+                return;
+            }
+            this._turnToNode = target;
+            // Compute initial target angle
+            const charPos = this._avatar.position;
+            const targetPos = target.getAbsolutePosition();
+            this._turnToTargetAngle = directionAngle(charPos, targetPos, this.isFaceForward(), false);
+        }
+        // 6. Handle Vector3
+        else {
+            this._turnToTarget = target;
+            // Compute initial target angle
+            const charPos = this._avatar.position;
+            this._turnToTargetAngle = directionAngle(charPos, target, this.isFaceForward(), false);
+        }
+
+        // 7. Check if already within angular tolerance
+        if (this._turnToTargetAngle != null) {
+            const currentY = this._avatar.rotation.y;
+            const delta = shortestArcDelta(currentY, this._turnToTargetAngle);
+            if (isWithinAngularTolerance(delta, angularTolerance)) {
+                // Already facing target, don't activate
+                this._turnToTargetAngle = null;
+                this._turnToTarget = null;
+                this._turnToNode = null;
+                this._turnToAngle = null;
+                return;
+            }
+        }
+
+        // 8. Activate
+        this._turnToFast = fast;
+        this._turnToAngularTolerance = angularTolerance;
+        this._turnToActive = true;
+        this.moveToStop();
+        this._turnToSaveMode = this.getMode();
+        this.setMode(1);
+        this._startNavRenderer();
+    }
+
+    public turnToStop(): void {
+        if (!this._turnToActive) return;
+        this.idle();
+        this._turnToTarget = null;
+        this._turnToNode = null;
+        this._turnToAngle = null;
+        this._turnToTargetAngle = null;
+        this._turnToActive = false;
+        this.setMode(this._turnToSaveMode);
+        this._stopNavRenderer();
+    }
+
     private _act: _Action;
     private _renderer: () => void;
     private _handleKeyUp: (e) => void;
@@ -2083,8 +2283,251 @@ export class CharacterController {
         return this._isAG;
     }
 
+    // moveTo navigation state
+    private _moveToTarget: Vector3 | null = null;
+    private _moveToNode: TransformNode | null = null;
+    private _moveToRun: boolean = false;
+    private _moveToArrivalDist: number = 0.5;
+    private _moveToObstructionThreshold: number = 0.001;
+    private _moveToObstructionCount: number = 0;
+    private _moveToActive: boolean = false;
+    private _moveToLastPos: Vector3 | null = null;
+    private _moveToSaveMode:number;
 
+    // turnTo navigation state
+    private _turnToTarget: Vector3 | null = null;
+    private _turnToNode: TransformNode | null = null;
+    private _turnToAngle: number | null = null;
+    private _turnToTargetAngle: number | null = null;
+    private _turnToFast: boolean = false;
+    private _turnToAngularTolerance: number = 0.035;
+    private _turnToActive: boolean = false;
+    private _turnToSaveMode:number;
 
+    // Navigation renderer (separate from CC's main renderer)
+    private _navRenderer: (() => void) | null = null;
+
+    /**
+     * Starts the navigation renderer if not already running.
+     * The renderer calls public methods each frame, just like external code would.
+     */
+    private _startNavRenderer(): void {
+        if (this._navRenderer != null) return;
+        this._navRenderer = () => { this._navUpdate(); };
+        this._scene.registerBeforeRender(this._navRenderer);
+    }
+
+    /**
+     * Stops the navigation renderer if no navigation is active.
+     */
+    private _stopNavRenderer(): void {
+        if (this._moveToActive || this._turnToActive) return;
+        if (this._navRenderer == null) return;
+        this._scene.unregisterBeforeRender(this._navRenderer);
+        this._navRenderer = null;
+    }
+
+    /**
+     * Per-frame navigation update. Registered as a separate beforeRender observer.
+     * Calls public methods exactly as external code would.
+     */
+    private _navUpdate(): void {
+        if (this._moveToActive) {
+            this._navUpdateMoveTo();
+        }
+        if (this._turnToActive) {
+            this._navUpdateTurnTo();
+        }
+    }
+
+    /**
+     * Per-frame moveTo logic. Calls public walk/run/idle methods.
+     */
+    private _navUpdateMoveTo(): void {
+        // 1. Handle disposed node
+        if (this._moveToNode != null) {
+            if (this._moveToNode.isDisposed()) {
+                this.moveToStop();
+                return;
+            }
+            if (!this._moveToTarget.equals(this._moveToNode.getAbsolutePosition())){
+                this._moveToTarget = this._moveToNode.getAbsolutePosition().clone();
+            }
+        }
+
+        if (this._moveToTarget == null) return;
+
+        // 2. Compute horizontal distance
+        const charPos = this._avatar.position;
+        const dist = horizontalDistance(charPos, this._moveToTarget);
+
+        // 3. Check arrival
+        if (isWithinArrival(dist, this._moveToArrivalDist)) {
+            if (this._moveToNode != null) {
+                // Following a node: idle but remain active (will resume when node moves)
+                this.idle();
+                this._moveToLastPos = null;
+                this._moveToObstructionCount = 0;
+            } else {
+                // Static target: stop completely
+                this.moveToStop();
+            }
+            return;
+        }
+
+        // 4. Orient character toward target (only if turnTo is not active)
+        if (!this._turnToActive) {
+            const targetAngle = directionAngle(charPos, this._moveToTarget, this.isFaceForward(), false);
+            this._avatar.rotation.y = targetAngle;
+        }
+
+        // 5. Issue walk or run
+        if (this._moveToRun) {
+            this.run(true);
+        } else {
+            this.walk(true);
+        }
+
+        // 6. Obstruction detection
+        if (this._moveToLastPos != null) {
+            const frameDistance = horizontalDistance(this._moveToLastPos, charPos);
+            this._moveToObstructionCount = updateObstructionCount(
+                frameDistance,
+                this._moveToObstructionThreshold,
+                this._moveToObstructionCount
+            );
+            if (this._moveToObstructionCount >= 3) {
+                this.moveToStop();
+                return;
+            }
+        }
+        this._moveToLastPos = charPos.clone();
+    }
+
+    /**
+     * Per-frame turnTo logic. Calls public turnLeft/turnRight/idle methods.
+     */
+    private _navUpdateTurnTo(): void {
+        // 1. Handle disposed node
+        if (this._turnToNode != null) {
+            if (this._turnToNode.isDisposed()) {
+                this.turnToStop();
+                return;
+            }
+            const charPos = this._avatar.position;
+            const nodePos = this._turnToNode.getAbsolutePosition();
+            this._turnToTargetAngle = directionAngle(charPos, nodePos, this.isFaceForward(), false);
+        }
+        // 2. Handle Vector3 target
+        else if (this._turnToTarget != null) {
+            const charPos = this._avatar.position;
+            this._turnToTargetAngle = directionAngle(charPos, this._turnToTarget, this.isFaceForward(), false);
+        }
+
+        // 3. Compute shortest-arc delta
+        if (this._turnToTargetAngle == null) return;
+        const currentY = this._avatar.rotation.y;
+        const delta = shortestArcDelta(currentY, this._turnToTargetAngle);
+
+        // 4. Check angular tolerance
+        if (isWithinAngularTolerance(delta, this._turnToAngularTolerance)) {
+            if (this._turnToNode != null) {
+                // Node tracking: stop turning, remain active (will resume when node moves)
+                this.idle();
+            } else {
+                // Static target or angle: operation complete
+                this.turnToStop();
+            }
+            return;
+        }
+
+        // 5. Issue turn command based on direction
+        // Positive delta = need to increase rotation.y = turnLeft
+        // Negative delta = need to decrease rotation.y = turnRight
+        if (delta > 0) {
+            if (this._turnToFast) {
+                this.turnLeftFast(true);
+            } else {
+                this.turnLeft(true);
+            }
+        } else {
+            if (this._turnToFast) {
+                this.turnRightFast(true);
+            } else {
+                this.turnRight(true);
+            }
+        }
+    }
+
+    /**
+     * Move the character toward a target position or follow a TransformNode.
+     * If the character is already within the arrival distance, idle() is called immediately.
+     * If a previous moveTo is active, it is replaced by the new target.
+     * @param target A world-space Vector3 position or a TransformNode to follow
+     * @param options Optional parameters: run, arrivalDistance, obstructionThreshold
+     */
+    public moveTo(target: Vector3 | TransformNode, options?: MoveToOptions): void {
+        // 1. Extract and clamp options
+        const run = options?.run ?? false;
+        const arrivalDist = clampPositive(options?.arrivalDistance ?? 0.5, 0.5);
+        const obstructionThreshold = clampPositive(options?.obstructionThreshold ?? 0.001, 0.001);
+
+        // 2. Determine target position
+        let targetPos: Vector3;
+        let targetNode: TransformNode | null = null;
+
+        if (target instanceof TransformNode) {
+            // Check if disposed
+            if (target.isDisposed()) {
+                this.idle();
+                return;
+            }
+            targetNode = target;
+            targetPos = target.getAbsolutePosition().clone();
+        } else {
+            targetPos = target;
+        }
+
+        // 3. Check if already within arrival distance
+        const charPos = this._avatar.position;
+        if (isWithinArrival(horizontalDistance(charPos, targetPos), arrivalDist)) {
+            this.idle();
+            return;
+        }
+
+        // 4. Clear previous state if replacing (reset fields without calling idle)
+        // This handles Requirement 10.1: replacing an existing moveTo
+
+        // 5. Set new state
+        this._moveToTarget = targetPos;
+        this._moveToNode = targetNode;
+        this._moveToRun = run;
+        this._moveToArrivalDist = arrivalDist;
+        this._moveToObstructionThreshold = obstructionThreshold;
+        this._moveToObstructionCount = 0;
+        this._moveToActive = true;
+        this.turnToStop();
+        this._moveToSaveMode = this.getMode();
+        this.setMode(1);
+        this._startNavRenderer();
+    }
+
+    /**
+     * Stop the current moveTo operation.
+     * Calls idle() and clears all moveTo state.
+     * No-op if no moveTo operation is currently active.
+     */
+    public moveToStop(): void {
+        if (!this._moveToActive) return;
+        this.idle();
+        this._moveToTarget = null;
+        this._moveToNode = null;
+        this._moveToActive = false;
+        this._moveToObstructionCount = 0;
+        this._moveToLastPos = null;
+        this.setMode(this._moveToSaveMode);
+        this._stopNavRenderer();
+    }
 
     private _findSkel(n: Node): Skeleton {
         let root = this._root(n);
@@ -2444,4 +2887,16 @@ export class CCSettings {
     public smoothTurnSpeed: number;
     public springback?: boolean;
     public springbackSteps?: number;
+}
+
+
+export interface MoveToOptions {
+    run?: boolean;
+    arrivalDistance?: number;
+    obstructionThreshold?: number;
+}
+
+export interface TurnToOptions {
+    fast?: boolean;
+    angularTolerance?: number;
 }

@@ -29,6 +29,8 @@ It currently supports
 - strafeRight
 - strafeRightFast
 - slideBack
+- moveTo (goal-oriented movement toward a position or TransformNode)
+- turnTo (goal-oriented rotation toward a position, TransformNode, or angle)
 
 It supports two modes or ways of moving the avatar.  
 One suitable for third/first person kind of game
@@ -208,8 +210,10 @@ The package exports the following:
 - `ActionMap` — class holding all action definitions with their defaults
 - `Actions` — constant object with action name strings (e.g., `Actions.WALK`, `Actions.RUN`)
 - `CCSettings` — serializable settings class for saving/restoring controller configuration
+- `MoveToOptions` — interface for `moveTo()` optional parameters (`run`, `arrivalDistance`, `obstructionThreshold`)
+- `TurnToOptions` — interface for `turnTo()` optional parameters (`fast`, `angularTolerance`)
 
-## API ( version 0.4.6 )
+## API ( version 0.4.7 )
 
 #### To Instantiate
 
@@ -724,6 +728,94 @@ If you change the camera's checkCollisions property directly, notify the control
 
 ```
 cc.cameraCollisionChanged();
+```
+
+#### Navigation: moveTo / turnTo
+
+High-level navigation APIs for goal-oriented movement and rotation. These call the existing public command methods (`walk`, `run`, `turnLeft`, `turnRight`, `idle`) each frame via a separate render observer — they work exactly as if controlled by external code.
+
+`moveTo` and `turnTo` are **mutually exclusive** — calling one cancels the other. During navigation, the CC mode is temporarily switched to mode 1 (top-down) to prevent camera rotation interference. The original mode is restored when navigation stops.
+
+For avatars with keyboard input enabled, any keyboard press immediately cancels the active navigation and yields control back to the player.
+
+```
+cc.moveTo(target: Vector3 | TransformNode, options?: MoveToOptions);
+cc.moveToStop();
+cc.turnTo(target: Vector3 | TransformNode | number, options?: TurnToOptions);
+cc.turnToStop();
+```
+
+##### moveTo
+
+Moves the character toward a target position or follows a TransformNode.
+
+```
+cc.moveTo(target);
+cc.moveTo(target, { run: true });
+cc.moveTo(target, { arrivalDistance: 1.0, obstructionThreshold: 0.01 });
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `target` | `Vector3 \| TransformNode` | World-space position to move toward, or a TransformNode to follow continuously |
+| `options.run` | `boolean` | Use run speed instead of walk. **Default: `false`** |
+| `options.arrivalDistance` | `number` | Distance from target at which the character stops (world units). **Default: `0.5`** |
+| `options.obstructionThreshold` | `number` | Minimum distance the character must move per frame to be considered making progress. If movement is below this for 3 consecutive frames, navigation stops. **Default: `0.001`** |
+
+**Behavior:**
+- If target is a `Vector3`: character moves to that position and stops
+- If target is a `TransformNode`: character follows the node continuously — idles when within arrival distance, resumes when node moves away
+- If the TransformNode is disposed during follow, navigation stops automatically
+- If already within arrival distance when called, `idle()` is called immediately
+- Invalid parameter values (≤ 0) are silently replaced with defaults
+
+##### moveToStop
+
+Cancels the active moveTo operation. Calls `idle()` and restores the original CC mode.
+
+```
+cc.moveToStop();  // no-op if no moveTo is active
+```
+
+##### turnTo
+
+Rotates the character toward a target direction.
+
+```
+cc.turnTo(targetPosition);                    // face a world position
+cc.turnTo(targetNode);                        // track a TransformNode
+cc.turnTo(Math.PI / 2);                       // rotate 90° to the right (positive = right)
+cc.turnTo(-Math.PI / 4);                      // rotate 45° to the left (negative = left)
+cc.turnTo(targetPosition, { fast: true });    // use fast turn speed
+cc.turnTo(targetNode, { angularTolerance: 0.1 });
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `target` | `Vector3 \| TransformNode \| number` | A world position to face, a TransformNode to track, or an angle in radians to rotate by (positive = right, negative = left) |
+| `options.fast` | `boolean` | Use fast turn speed instead of normal. **Default: `false`** |
+| `options.angularTolerance` | `number` | Angular threshold (radians) at which rotation is considered complete. **Default: `0.035` (~2°)** |
+
+**Behavior:**
+- If target is a `Vector3`: character rotates to face that position, then stops
+- If target is a `TransformNode`: character continuously tracks the node — holds when facing it, resumes when node moves
+- If target is a `number`: character rotates by that angle relative to current facing (positive = right, negative = left), then stops
+- If target is `null` or `undefined`: the call is ignored
+- If target is `0`: `idle()` is called immediately without rotation
+- If the TransformNode is disposed during tracking, navigation stops automatically
+- If already facing the target within angular tolerance, no rotation is initiated
+- Invalid angular tolerance values (≤ 0) are silently replaced with the default
+
+##### turnToStop
+
+Cancels the active turnTo operation. Calls `idle()` and restores the original CC mode.
+
+```
+cc.turnToStop();  // no-op if no turnTo is active
 ```
 
 #### Settings serialization

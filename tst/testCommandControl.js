@@ -1,9 +1,11 @@
-window.onload = function () {
+window.onload = function ()
+{
   main();
 };
 
 var canvas;
-function main() {
+function main()
+{
   setControls();
   /*
    * The scene
@@ -30,11 +32,11 @@ function main() {
 
   //boxes to check camera elasticity and making obstructions invisibile checks
 
-  var box = BABYLON.Mesh.CreateBox("box1", 2, scene);
+  box = BABYLON.Mesh.CreateBox("box1", 2, scene);
   box.checkCollisions = false;
   box.position = new BABYLON.Vector3(0, 8, 5);
   box.material = myMaterial;
- //  box.isVisible = false;
+  //  box.isVisible = false;
 
   var box2 = BABYLON.Mesh.CreateBox("box2", 2, scene);
   box2.checkCollisions = true;
@@ -45,8 +47,8 @@ function main() {
   box3.checkCollisions = true;
 
   //check for visibility
-  let box4 = BABYLON.Mesh.CreateBox("box4", 2, scene);
-  box4.position = new BABYLON.Vector3(5, 8, 5);
+  box4 = BABYLON.Mesh.CreateBox("box4", 2, scene);
+  box4.position = new BABYLON.Vector3(5, 9, 5);
   box4.checkCollisions = false;
   //box4.visibility = 0;
 
@@ -54,16 +56,20 @@ function main() {
   var ground = createGround(scene, groundMaterial);
   loadPlayer(scene, engine, canvas);
 
-  window.addEventListener("resize", function () {
+  window.addEventListener("resize", function ()
+  {
     engine.resize();
   });
 }
 
 var cc;
+var box, box4;
 
-function loadPlayer(scene, engine, canvas) {
+function loadPlayer(scene, engine, canvas)
+{
   //BABYLON.SceneLoader.ImportMesh("", "player/", "Vincent-frontFacing.babylon", scene, function (meshes, particleSystems, skeletons) {
-  BABYLON.SceneLoader.ImportMesh("", "player/", "starterAvatars.babylon", scene, function (meshes, particleSystems, skeletons) {
+  BABYLON.SceneLoader.ImportMesh("", "player/", "starterAvatars.babylon", scene, function (meshes, particleSystems, skeletons)
+  {
     var player = meshes[0];
     var skeleton = skeletons[0];
     player.skeleton = skeleton;
@@ -73,7 +79,8 @@ function loadPlayer(scene, engine, canvas) {
     // setAnimationRanges(skeleton);
 
     var sm = player.material;
-    if (sm.diffuseTexture != null) {
+    if (sm.diffuseTexture != null)
+    {
       sm.backFaceCulling = true;
       sm.ambientColor = new BABYLON.Color3(1, 1, 1);
     }
@@ -144,7 +151,8 @@ function loadPlayer(scene, engine, canvas) {
       "walk",
       "./sounds/footstep_carpet_000.ogg",
       scene,
-      () => {
+      () =>
+      {
         cc.setSound(walkSound);
       },
       { loop: false }
@@ -152,7 +160,8 @@ function loadPlayer(scene, engine, canvas) {
 
     var ua = window.navigator.userAgent;
     var isIE = /MSIE|Trident/.test(ua);
-    if (isIE) {
+    if (isIE)
+    {
       //IE specific code goes here
       cc.setJumpKey("spacebar");
     }
@@ -161,7 +170,8 @@ function loadPlayer(scene, engine, canvas) {
     cc.makeObstructionInvisible(false);
     cc.start();
 
-    engine.runRenderLoop(function () {
+    engine.runRenderLoop(function ()
+    {
       scene.render();
     });
 
@@ -172,7 +182,8 @@ function loadPlayer(scene, engine, canvas) {
 }
 
 //this is how you might set the animation ranges for a skeleton
-function setAnimationRanges(skel) {
+function setAnimationRanges(skel)
+{
   delAnimRanges(skel);
 
   skel.createAnimationRange("fall", 0, 16);
@@ -192,17 +203,20 @@ function setAnimationRanges(skel) {
  * @param {type} skel
  * @returns {undefined}
  */
-function delAnimRanges(skel) {
+function delAnimRanges(skel)
+{
   let ars = skel.getAnimationRanges();
   let l = ars.length;
-  for (let i = 0; i < l; i++) {
+  for (let i = 0; i < l; i++)
+  {
     let ar = ars[i];
     console.log(ar.name + "," + ar.from + "," + ar.to);
     skel.deleteAnimationRange(ar.name, false);
   }
 }
 
-function createGround(scene, groundMaterial) {
+function createGround(scene, groundMaterial)
+{
   BABYLON.MeshBuilder.CreateGroundFromHeightMap(
     "ground",
     "ground/ground_heightMap.png",
@@ -212,7 +226,8 @@ function createGround(scene, groundMaterial) {
       minHeight: 0,
       maxHeight: 10,
       subdivisions: 32,
-      onReady: function (grnd) {
+      onReady: function (grnd)
+      {
         grnd.material = groundMaterial;
         grnd.checkCollisions = true;
         grnd.isPickable = true;
@@ -223,7 +238,8 @@ function createGround(scene, groundMaterial) {
   );
 }
 
-function createGroundMaterial(scene) {
+function createGroundMaterial(scene)
+{
   let groundMaterial = new BABYLON.StandardMaterial("groundMat", scene);
   groundMaterial.diffuseTexture = new BABYLON.Texture("ground/ground.jpg", scene);
   groundMaterial.diffuseTexture.uScale = 4.0;
@@ -238,14 +254,15 @@ function createGroundMaterial(scene) {
   return groundMaterial;
 }
 
-var showHelp = function () {
-  console.log("show help");
+var showHelp = function ()
+{
   var el = document.getElementById("overlay");
   el.style.visibility = el.style.visibility == "visible" ? "hidden" : "visible";
   canvas.focus();
 };
 
-function showControls() {
+function showControls()
+{
   var el = document.getElementById("controls");
   el.style.visibility = "visible";
 }
@@ -262,99 +279,149 @@ var w,
   sl,
   slf,
   sr,
-  srf = false;
+  srf,
+  mvt,
+  tnt = false;
 
-function toggleClass(e) {
+function toggleClass(e)
+{
   e.target.classList.toggle("w3-pale-red");
   e.target.classList.toggle("w3-pale-green");
   canvas.focus();
 }
-function setControls() {
+function setControls()
+{
   const x = document.getElementsByTagName("button");
 
-  for (i = 0; i < x.length; i++) {
+  for (i = 0; i < x.length; i++)
+  {
     x[i].className = "w3-btn w3-border w3-round w3-pale-red";
   }
 
-  document.getElementById("pl").onclick = function (e) {
+  document.getElementById("pl").onclick = function (e)
+  {
     canvas.requestPointerLock = canvas.requestPointerLock || canvas.msRequestPointerLock || canvas.mozRequestPointerLock || canvas.webkitRequestPointerLock || false;
-    if (canvas.requestPointerLock) {
+    if (canvas.requestPointerLock)
+    {
       canvas.requestPointerLock();
     }
     canvas.focus();
   };
 
-  document.getElementById("w").onclick = function (e) {
+  document.getElementById("w").onclick = function (e)
+  {
     cc.walk((w = !w));
     toggleClass(e);
   };
-  document.getElementById("wb").onclick = function (e) {
+  document.getElementById("wb").onclick = function (e)
+  {
     cc.walkBack((wb = !wb));
     toggleClass(e);
   };
-  document.getElementById("wbf").onclick = function (e) {
+  document.getElementById("wbf").onclick = function (e)
+  {
     cc.walkBackFast((wbf = !wbf));
     toggleClass(e);
   };
-  document.getElementById("r").onclick = function (e) {
+  document.getElementById("r").onclick = function (e)
+  {
     cc.run((r = !r));
     toggleClass(e);
   };
-  document.getElementById("j").onclick = function (e) {
+  document.getElementById("j").onclick = function (e)
+  {
     cc.jump();
     canvas.focus();
   };
-  document.getElementById("tl").onclick = function (e) {
+  document.getElementById("tl").onclick = function (e)
+  {
     cc.turnLeft((tl = !tl));
     toggleClass(e);
   };
-  document.getElementById("tlf").onclick = function (e) {
+  document.getElementById("tlf").onclick = function (e)
+  {
     cc.turnLeftFast((tlf = !tlf));
     toggleClass(e);
   };
-  document.getElementById("tr").onclick = function (e) {
+  document.getElementById("tr").onclick = function (e)
+  {
     cc.turnRight((tr = !tr));
     toggleClass(e);
   };
-  document.getElementById("trf").onclick = function (e) {
+  document.getElementById("trf").onclick = function (e)
+  {
     cc.turnRightFast((trf = !trf));
     toggleClass(e);
   };
-  document.getElementById("sl").onclick = function (e) {
+  document.getElementById("sl").onclick = function (e)
+  {
     cc.strafeLeft((sl = !sl));
     toggleClass(e);
   };
-  document.getElementById("slf").onclick = function (e) {
+  document.getElementById("slf").onclick = function (e)
+  {
     cc.strafeLeftFast((slf = !slf));
     toggleClass(e);
   };
-  document.getElementById("sr").onclick = function (e) {
+  document.getElementById("sr").onclick = function (e)
+  {
     cc.strafeRight((sr = !sr));
     toggleClass(e);
   };
-  document.getElementById("srf").onclick = function (e) {
+  document.getElementById("srf").onclick = function (e)
+  {
     cc.strafeRightFast((srf = !srf));
     toggleClass(e);
   };
+  document.getElementById("mvt").onclick = function (e)
+  {
+    if (mvt)
+    {
+      cc.moveToStop()
+    } else
+    {
+      cc.moveTo(box4);
+    }
+    mvt = !mvt;
+    toggleClass(e);
+  };
 
-  document.getElementById("tp").onclick = function (e) {
+  document.getElementById("tnt").onclick = function (e)
+  {
+    if (tnt)
+    {
+      cc.turnToStop();
+    } else
+    {
+      cc.turnTo(box);
+    }
+    tnt = !tnt;
+    toggleClass(e);
+  };
+
+  document.getElementById("tp").onclick = function (e)
+  {
     cc.setMode(0);
     canvas.focus();
   };
-  document.getElementById("td").onclick = function (e) {
+  document.getElementById("td").onclick = function (e)
+  {
     cc.setMode(1);
     canvas.focus();
   };
-  document.getElementById("toff").onclick = function (e) {
+  document.getElementById("toff").onclick = function (e)
+  {
     cc.setTurningOff(e.target.checked);
     canvas.focus();
   };
-  document.getElementById("kb").onclick = function (e) {
+  document.getElementById("kb").onclick = function (e)
+  {
     cc.enableKeyBoard(e.target.checked);
     canvas.focus();
   };
 
-  document.getElementById("elp").onclick = function (e) {
+  document.getElementById("elp").onclick = function (e)
+  {
     cc.showEllipsoid(e.target.checked);
     canvas.focus();
   };
