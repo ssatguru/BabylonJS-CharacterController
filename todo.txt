@@ -10,3 +10,4 @@ example
 switching between armed set of animations to attack set of animations
 4. explore switching between the current UMD or "monolith" to ES6 or "modular" babylon library
 5 improve testing scene with proper props.
+6. add a moveto api. this would make the av walk to or run to a endpoint.

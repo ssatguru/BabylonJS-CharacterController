@@ -82,8 +82,54 @@ npm install babylonjs-charactercontroller
 
 ## Usage
 
-This has been built as an UMD module which means you can use it as a CommonJS/NodeJS module, AMD module or as a global object
-loaded using the script tag.
+This library supports two module formats:
+
+- **UMD** — for use with the `babylonjs` package (script tags, CommonJS, AMD)
+- **ES module** — for use with `@babylonjs/core` (tree-shakeable, modern bundlers)
+
+Install the package:
+
+```
+npm install babylonjs-charactercontroller
+```
+
+Then install the BabylonJS package that matches your project's module style:
+
+```
+# If using the UMD/global style:
+npm install babylonjs
+
+# If using the ES module style:
+npm install @babylonjs/core
+```
+
+You only need one — the package declares both as optional peer dependencies.
+
+---
+
+### ES Module usage (with `@babylonjs/core`)
+
+If your project uses `@babylonjs/core` with individual sub-path imports, the ES module build is resolved automatically by modern bundlers (webpack, Vite, Rollup, esbuild) via the `module` and `exports` fields in package.json.
+
+```typescript
+import { Engine } from "@babylonjs/core/Engines/engine";
+import { Scene } from "@babylonjs/core/scene";
+import { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera";
+import { CharacterController } from "babylonjs-charactercontroller";
+
+const engine = new Engine(canvas, true);
+const scene = new Scene(engine);
+const camera = new ArcRotateCamera("cam", 0, 1, 10, Vector3.Zero(), scene);
+
+const cc = new CharacterController(player, camera, scene);
+cc.start();
+```
+
+The ES module build imports from `@babylonjs/core` sub-paths internally, so your bundler can tree-shake unused BabylonJS modules.
+
+---
+
+### UMD usage (with `babylonjs`)
 
 Project "BabylonJS-CharacterController-Samples" [https://github.com/ssatguru/BabylonJS-CharacterController-Samples](https://github.com/ssatguru/BabylonJS-CharacterController-Samples) has a
 collection of sample projects to show how to use this from TypeScript, NodeJs, AMD or plain vanilla JavaScript applications.
@@ -716,15 +762,46 @@ Run "npm install", once, to install all the dependencies.
 ### To build
 
 1. Run "npm run build"  
-   This will create a production build.
-   This will both compile, minify and store the build called CharacterController.js in "dist" folder.
+   Production build. Produces **both** UMD and ES module outputs:
+   - `dist/CharacterController.js` — UMD bundle (minified, private `_` properties mangled)
+   - `dist/CharacterController.es.js` — ES module bundle (unminified, tree-shakeable)
+   - `dist/CharacterController.d.ts` — TypeScript declarations (shared by both formats)
+
 2. Run "npm run build-dev"  
-   This will create a development build.
-   This will compile and create a non minified build called CharacterController.max.js in "dist" folder.
+   Development build. Produces only the UMD output:
+   - `dist/CharacterController.max.js` — UMD bundle (unminified, for debugging)
+
+### How the dual build works
+
+The webpack config (`webpack.config.js`) exports an array of two configurations from the same entry point (`src/CharacterController.ts`):
+
+- **UMD config** — externalizes `babylonjs` as a CommonJS/AMD/global (`BABYLON`) dependency. Uses TerserPlugin to minify and mangle `_`-prefixed properties.
+- **ESM config** — uses a bridge module (`src/_babylonjs-esm-bridge.js`) that re-exports each BabylonJS type from its individual `@babylonjs/core` sub-path. Webpack treats each sub-path as an external module, producing individual `import` statements in the output. Not minified (consumers handle that).
+
+The mapping from BabylonJS type names to `@babylonjs/core` sub-paths is defined in `webpack.es-externals.js`.
+
+### Keeping the import map up to date
+
+If you add a new BabylonJS import to `src/CharacterController.ts`, you must update two files:
+
+1. **`webpack.es-externals.js`** — add the type name and its `@babylonjs/core` sub-path to the `BABYLONJS_ES6_MAP` object
+2. **`src/_babylonjs-esm-bridge.js`** — add a re-export line for the new type from its sub-path
+
+If the import map is out of date, the production build will fail with an error like:
+
+```
+Module not found: Error: Can't resolve '@babylonjs/core/...' in '...'
+```
+
+or the ESM output will bundle the BabylonJS code inline instead of externalizing it, resulting in a much larger file size.
+
+Run `npm test` to catch this — the `esm-import-map-completeness` test parses the source file and verifies every `babylonjs` import has a corresponding entry in the map.
 
 ### To test
 
-Two ways to test.
+Run `npm test` to execute all automated tests (vitest).
+
+Two ways to test manually:
 
 1. using the webpack-dev-server.  
    Start the development server  

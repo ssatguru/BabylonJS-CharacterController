@@ -1,111 +1,168 @@
-(function webpackUniversalModuleDefinition(root, factory) {
-	if(typeof exports === 'object' && typeof module === 'object')
-		module.exports = factory(require("babylonjs"));
-	else if(typeof define === 'function' && define.amd)
-		define(["babylonjs"], factory);
-	else {
-		var a = typeof exports === 'object' ? factory(require("babylonjs")) : factory(root["BABYLON"]);
-		for(var i in a) (typeof exports === 'object' ? exports : root)[i] = a[i];
-	}
-})(self, (__WEBPACK_EXTERNAL_MODULE_babylonjs__) => {
-return /******/ (() => { // webpackBootstrap
-/******/ 	"use strict";
-/******/ 	var __webpack_modules__ = ({
-
-/***/ "babylonjs":
-/*!****************************************************************************************************!*\
-  !*** external {"commonjs":"babylonjs","commonjs2":"babylonjs","amd":"babylonjs","root":"BABYLON"} ***!
-  \****************************************************************************************************/
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_MODULE_babylonjs__;
-
-/***/ })
-
-/******/ 	});
+import * as __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Bones_skeleton_a9849001__ from "@babylonjs/core/Bones/skeleton";
+import * as __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Cameras_arcRotateCamera_0781b36c__ from "@babylonjs/core/Cameras/arcRotateCamera";
+import * as __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Maths_math_vector_1ba8de41__ from "@babylonjs/core/Maths/math.vector";
+import * as __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Meshes_mesh_ba75fcb2__ from "@babylonjs/core/Meshes/mesh";
+import * as __WEBPACK_EXTERNAL_MODULE__babylonjs_core_node_e4fda84d__ from "@babylonjs/core/node";
+import * as __WEBPACK_EXTERNAL_MODULE__babylonjs_core_scene_d99a7a29__ from "@babylonjs/core/scene";
+import * as __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Culling_ray_3eadb030__ from "@babylonjs/core/Culling/ray";
+import * as __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Collisions_pickingInfo_361ed131__ from "@babylonjs/core/Collisions/pickingInfo";
+import * as __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Animations_animationGroup_034e4036__ from "@babylonjs/core/Animations/animationGroup";
+import * as __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Meshes_transformNode_3e1c6b2b__ from "@babylonjs/core/Meshes/transformNode";
+import * as __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Meshes_abstractMesh_f1121356__ from "@babylonjs/core/Meshes/abstractMesh";
+import * as __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Actions_directActions_1ad6426a__ from "@babylonjs/core/Actions/directActions";
+import * as __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Meshes_instancedMesh_88581260__ from "@babylonjs/core/Meshes/instancedMesh";
+import * as __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Audio_sound_4f9e4ba7__ from "@babylonjs/core/Audio/sound";
+import * as __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Animations_animationRange_54bf21b2__ from "@babylonjs/core/Animations/animationRange";
+import * as __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Animations_animatable_b5aa3fc3__ from "@babylonjs/core/Animations/animatable";
+import * as __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Animations_animationEvent_a00f62ce__ from "@babylonjs/core/Animations/animationEvent";
+import * as __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Meshes_linesMesh_7d898ddc__ from "@babylonjs/core/Meshes/linesMesh";
+import * as __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Meshes_meshBuilder_ab461561__ from "@babylonjs/core/Meshes/meshBuilder";
+import * as __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Maths_math_color_5b180e7c__ from "@babylonjs/core/Maths/math.color";
+/******/ // The require scope
+/******/ var __webpack_require__ = {};
+/******/ 
 /************************************************************************/
-/******/ 	// The module cache
-/******/ 	var __webpack_module_cache__ = {};
-/******/ 	
-/******/ 	// The require function
-/******/ 	function __webpack_require__(moduleId) {
-/******/ 		// Check if module is in cache
-/******/ 		var cachedModule = __webpack_module_cache__[moduleId];
-/******/ 		if (cachedModule !== undefined) {
-/******/ 			return cachedModule.exports;
+/******/ /* webpack/runtime/define property getters */
+/******/ (() => {
+/******/ 	// define getter functions for harmony exports
+/******/ 	__webpack_require__.d = (exports, definition) => {
+/******/ 		for(var key in definition) {
+/******/ 			if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+/******/ 				Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 			}
 /******/ 		}
-/******/ 		// Create a new module (and put it into the cache)
-/******/ 		var module = __webpack_module_cache__[moduleId] = {
-/******/ 			// no module.id needed
-/******/ 			// no module.loaded needed
-/******/ 			exports: {}
-/******/ 		};
-/******/ 	
-/******/ 		// Execute the module function
-/******/ 		__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
-/******/ 	
-/******/ 		// Return the exports of the module
-/******/ 		return module.exports;
-/******/ 	}
-/******/ 	
-/************************************************************************/
-/******/ 	/* webpack/runtime/compat get default export */
-/******/ 	(() => {
-/******/ 		// getDefaultExport function for compatibility with non-harmony modules
-/******/ 		__webpack_require__.n = (module) => {
-/******/ 			var getter = module && module.__esModule ?
-/******/ 				() => (module['default']) :
-/******/ 				() => (module);
-/******/ 			__webpack_require__.d(getter, { a: getter });
-/******/ 			return getter;
-/******/ 		};
-/******/ 	})();
-/******/ 	
-/******/ 	/* webpack/runtime/define property getters */
-/******/ 	(() => {
-/******/ 		// define getter functions for harmony exports
-/******/ 		__webpack_require__.d = (exports, definition) => {
-/******/ 			for(var key in definition) {
-/******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
-/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-/******/ 				}
-/******/ 			}
-/******/ 		};
-/******/ 	})();
-/******/ 	
-/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
-/******/ 	(() => {
-/******/ 		__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
-/******/ 	})();
-/******/ 	
-/******/ 	/* webpack/runtime/make namespace object */
-/******/ 	(() => {
-/******/ 		// define __esModule on exports
-/******/ 		__webpack_require__.r = (exports) => {
-/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-/******/ 			}
-/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
-/******/ 		};
-/******/ 	})();
-/******/ 	
+/******/ 	};
+/******/ })();
+/******/ 
+/******/ /* webpack/runtime/hasOwnProperty shorthand */
+/******/ (() => {
+/******/ 	__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ })();
+/******/ 
 /************************************************************************/
 var __webpack_exports__ = {};
-// This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
-(() => {
-/*!************************************!*\
-  !*** ./src/CharacterController.ts ***!
-  \************************************/
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "ActionData": () => (/* binding */ ActionData),
-/* harmony export */   "ActionMap": () => (/* binding */ ActionMap),
-/* harmony export */   "Actions": () => (/* binding */ Actions),
-/* harmony export */   "CCSettings": () => (/* binding */ CCSettings),
-/* harmony export */   "CharacterController": () => (/* binding */ CharacterController)
-/* harmony export */ });
-/* harmony import */ var babylonjs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! babylonjs */ "babylonjs");
-/* harmony import */ var babylonjs__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(babylonjs__WEBPACK_IMPORTED_MODULE_0__);
+
+// EXPORTS
+__webpack_require__.d(__webpack_exports__, {
+  "Yf": () => (/* binding */ ActionData),
+  "Cn": () => (/* binding */ ActionMap),
+  "eX": () => (/* binding */ Actions),
+  "ni": () => (/* binding */ CCSettings),
+  "BM": () => (/* binding */ CharacterController)
+});
+
+;// CONCATENATED MODULE: external "@babylonjs/core/Bones/skeleton"
+var x = y => { var x = {}; __webpack_require__.d(x, y); return x; }
+var y = x => () => x
+const skeleton_namespaceObject = x({  });
+;// CONCATENATED MODULE: external "@babylonjs/core/Cameras/arcRotateCamera"
+var arcRotateCamera_x = y => { var x = {}; __webpack_require__.d(x, y); return x; }
+var arcRotateCamera_y = x => () => x
+const arcRotateCamera_namespaceObject = arcRotateCamera_x({  });
+;// CONCATENATED MODULE: external "@babylonjs/core/Maths/math.vector"
+var math_vector_x = y => { var x = {}; __webpack_require__.d(x, y); return x; }
+var math_vector_y = x => () => x
+const math_vector_namespaceObject = math_vector_x({ ["Quaternion"]: () => __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Maths_math_vector_1ba8de41__.Quaternion, ["Vector3"]: () => __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Maths_math_vector_1ba8de41__.Vector3 });
+;// CONCATENATED MODULE: external "@babylonjs/core/Meshes/mesh"
+var mesh_x = y => { var x = {}; __webpack_require__.d(x, y); return x; }
+var mesh_y = x => () => x
+const mesh_namespaceObject = mesh_x({ ["Mesh"]: () => __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Meshes_mesh_ba75fcb2__.Mesh });
+;// CONCATENATED MODULE: external "@babylonjs/core/node"
+var node_x = y => { var x = {}; __webpack_require__.d(x, y); return x; }
+var node_y = x => () => x
+const node_namespaceObject = node_x({  });
+;// CONCATENATED MODULE: external "@babylonjs/core/scene"
+var scene_x = y => { var x = {}; __webpack_require__.d(x, y); return x; }
+var scene_y = x => () => x
+const scene_namespaceObject = scene_x({  });
+;// CONCATENATED MODULE: external "@babylonjs/core/Culling/ray"
+var ray_x = y => { var x = {}; __webpack_require__.d(x, y); return x; }
+var ray_y = x => () => x
+const ray_namespaceObject = ray_x({ ["Ray"]: () => __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Culling_ray_3eadb030__.Ray });
+;// CONCATENATED MODULE: external "@babylonjs/core/Collisions/pickingInfo"
+var pickingInfo_x = y => { var x = {}; __webpack_require__.d(x, y); return x; }
+var pickingInfo_y = x => () => x
+const pickingInfo_namespaceObject = pickingInfo_x({  });
+;// CONCATENATED MODULE: external "@babylonjs/core/Animations/animationGroup"
+var animationGroup_x = y => { var x = {}; __webpack_require__.d(x, y); return x; }
+var animationGroup_y = x => () => x
+const animationGroup_namespaceObject = animationGroup_x({ ["AnimationGroup"]: () => __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Animations_animationGroup_034e4036__.AnimationGroup });
+;// CONCATENATED MODULE: external "@babylonjs/core/Meshes/transformNode"
+var transformNode_x = y => { var x = {}; __webpack_require__.d(x, y); return x; }
+var transformNode_y = x => () => x
+const transformNode_namespaceObject = transformNode_x({ ["TransformNode"]: () => __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Meshes_transformNode_3e1c6b2b__.TransformNode });
+;// CONCATENATED MODULE: external "@babylonjs/core/Meshes/abstractMesh"
+var abstractMesh_x = y => { var x = {}; __webpack_require__.d(x, y); return x; }
+var abstractMesh_y = x => () => x
+const abstractMesh_namespaceObject = abstractMesh_x({ ["AbstractMesh"]: () => __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Meshes_abstractMesh_f1121356__.AbstractMesh });
+;// CONCATENATED MODULE: external "@babylonjs/core/Actions/directActions"
+var directActions_x = y => { var x = {}; __webpack_require__.d(x, y); return x; }
+var directActions_y = x => () => x
+const directActions_namespaceObject = directActions_x({  });
+;// CONCATENATED MODULE: external "@babylonjs/core/Meshes/instancedMesh"
+var instancedMesh_x = y => { var x = {}; __webpack_require__.d(x, y); return x; }
+var instancedMesh_y = x => () => x
+const instancedMesh_namespaceObject = instancedMesh_x({  });
+;// CONCATENATED MODULE: external "@babylonjs/core/Audio/sound"
+var sound_x = y => { var x = {}; __webpack_require__.d(x, y); return x; }
+var sound_y = x => () => x
+const sound_namespaceObject = sound_x({  });
+;// CONCATENATED MODULE: external "@babylonjs/core/Animations/animationRange"
+var animationRange_x = y => { var x = {}; __webpack_require__.d(x, y); return x; }
+var animationRange_y = x => () => x
+const animationRange_namespaceObject = animationRange_x({  });
+;// CONCATENATED MODULE: external "@babylonjs/core/Animations/animatable"
+var animatable_x = y => { var x = {}; __webpack_require__.d(x, y); return x; }
+var animatable_y = x => () => x
+const animatable_namespaceObject = animatable_x({  });
+;// CONCATENATED MODULE: external "@babylonjs/core/Animations/animationEvent"
+var animationEvent_x = y => { var x = {}; __webpack_require__.d(x, y); return x; }
+var animationEvent_y = x => () => x
+const animationEvent_namespaceObject = animationEvent_x({  });
+;// CONCATENATED MODULE: external "@babylonjs/core/Meshes/linesMesh"
+var linesMesh_x = y => { var x = {}; __webpack_require__.d(x, y); return x; }
+var linesMesh_y = x => () => x
+const linesMesh_namespaceObject = linesMesh_x({  });
+;// CONCATENATED MODULE: external "@babylonjs/core/Meshes/meshBuilder"
+var meshBuilder_x = y => { var x = {}; __webpack_require__.d(x, y); return x; }
+var meshBuilder_y = x => () => x
+const meshBuilder_namespaceObject = meshBuilder_x({ ["MeshBuilder"]: () => __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Meshes_meshBuilder_ab461561__.MeshBuilder });
+;// CONCATENATED MODULE: external "@babylonjs/core/Maths/math.color"
+var math_color_x = y => { var x = {}; __webpack_require__.d(x, y); return x; }
+var math_color_y = x => () => x
+const math_color_namespaceObject = math_color_x({ ["Color3"]: () => __WEBPACK_EXTERNAL_MODULE__babylonjs_core_Maths_math_color_5b180e7c__.Color3 });
+;// CONCATENATED MODULE: ./src/_babylonjs-esm-bridge.js
+/**
+ * ESM bridge module for the webpack ESM build.
+ *
+ * This file is used as a resolve alias for "babylonjs" in the ESM webpack config.
+ * It re-exports each BabylonJS type from its individual @babylonjs/core sub-path,
+ * allowing webpack to generate individual import statements in the ESM output.
+ *
+ * This file is NOT included in the UMD build or published to npm.
+ */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+;// CONCATENATED MODULE: ./src/CharacterController.ts
 
 var CharacterController = (function () {
     function CharacterController(avatar, camera, scene, actionMap, faceForward) {
@@ -121,9 +178,9 @@ var CharacterController = (function () {
         this._stepOffset = 0.25;
         this._actionMap = new ActionMap();
         this._cameraElastic = true;
-        this._cameraTarget = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Zero();
+        this._cameraTarget = math_vector_namespaceObject.Vector3.Zero();
         this._noFirstPerson = false;
-        this._down = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.DownReadOnly;
+        this._down = math_vector_namespaceObject.Vector3.DownReadOnly;
         this._mode = 0;
         this._saveMode = 0;
         this._isLHS_RHS = false;
@@ -131,14 +188,14 @@ var CharacterController = (function () {
         this._started = false;
         this._stopAnim = false;
         this._prevActData = null;
-        this._avStartPos = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Zero();
+        this._avStartPos = math_vector_namespaceObject.Vector3.Zero();
         this._prevPickY = 0;
         this._grounded = false;
         this._freeFallDist = 0;
         this._inFreeFall = false;
         this._wasWalking = false;
         this._wasRunning = false;
-        this._moveVector = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Zero();
+        this._moveVector = math_vector_namespaceObject.Vector3.Zero();
         this._soundLoopTime = 700;
         this._sndId = null;
         this._jumpStartPosY = 0;
@@ -158,8 +215,8 @@ var CharacterController = (function () {
         this._savedCameraCollision = true;
         this._inFP = false;
         this._visiblityMap = new Map();
-        this._ray = new babylonjs__WEBPACK_IMPORTED_MODULE_0__.Ray(babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Zero(), babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.One(), 1);
-        this._rayDir = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Zero();
+        this._ray = new ray_namespaceObject.Ray(math_vector_namespaceObject.Vector3.Zero(), math_vector_namespaceObject.Vector3.One(), 1);
+        this._rayDir = math_vector_namespaceObject.Vector3.Zero();
         this._cameraSkin = 0.5;
         this._pickedMeshes = new Array();
         this._makeInvisible = false;
@@ -280,7 +337,7 @@ var CharacterController = (function () {
             ccActData.exist = false;
             inActData = inActMap[ccActData.id];
             if (inActData != null) {
-                if (inActData instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__.AnimationGroup) {
+                if (inActData instanceof animationGroup_namespaceObject.AnimationGroup) {
                     ccActData.ag = inActData;
                     ccActData.name = ccActData.ag.name;
                     ccActData.exist = true;
@@ -398,7 +455,7 @@ var CharacterController = (function () {
             return;
         if (animName != null) {
             if (this._isAG) {
-                if (!(animName instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__.AnimationGroup))
+                if (!(animName instanceof animationGroup_namespaceObject.AnimationGroup))
                     return;
                 anim.ag = animName;
                 anim.exist = true;
@@ -659,7 +716,7 @@ var CharacterController = (function () {
         if (this._avatar.rotationQuaternion) {
             var euler = this._avatar.rotationQuaternion.toEulerAngles();
             euler.y = angle;
-            this._avatar.rotationQuaternion = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Quaternion.RotationYawPitchRoll(euler.y, euler.x, euler.z);
+            this._avatar.rotationQuaternion = math_vector_namespaceObject.Quaternion.RotationYawPitchRoll(euler.y, euler.x, euler.z);
         }
         else {
             this._avatar.rotation.y = angle;
@@ -669,7 +726,7 @@ var CharacterController = (function () {
         if (this._avatar.rotationQuaternion) {
             var euler = this._avatar.rotationQuaternion.toEulerAngles();
             euler.y += angle;
-            this._avatar.rotationQuaternion = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Quaternion.RotationYawPitchRoll(euler.y, euler.x, euler.z);
+            this._avatar.rotationQuaternion = math_vector_namespaceObject.Quaternion.RotationYawPitchRoll(euler.y, euler.x, euler.z);
         }
         else {
             this._avatar.rotation.y += angle;
@@ -677,11 +734,11 @@ var CharacterController = (function () {
     };
     CharacterController.prototype._setRHS = function (mesh) {
         var meshMatrix = mesh.getWorldMatrix();
-        var _localX = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.FromArray(meshMatrix.m, 0);
-        var _localY = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.FromArray(meshMatrix.m, 4);
-        var _localZ = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.FromArray(meshMatrix.m, 8);
-        var actualZ = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Cross(_localX, _localY);
-        if (babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Dot(actualZ, _localZ) < 0) {
+        var _localX = math_vector_namespaceObject.Vector3.FromArray(meshMatrix.m, 0);
+        var _localY = math_vector_namespaceObject.Vector3.FromArray(meshMatrix.m, 4);
+        var _localZ = math_vector_namespaceObject.Vector3.FromArray(meshMatrix.m, 8);
+        var actualZ = math_vector_namespaceObject.Vector3.Cross(_localX, _localY);
+        if (math_vector_namespaceObject.Vector3.Dot(actualZ, _localZ) < 0) {
             this._isLHS_RHS = true;
             this._signLHS_RHS = 1;
         }
@@ -727,7 +784,7 @@ var CharacterController = (function () {
         var ns;
         if (fromRoot) {
             r = this._getRoot(node);
-            ns = r.getChildren(function (n) { return (n instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__.TransformNode); }, false);
+            ns = r.getChildren(function (n) { return (n instanceof transformNode_namespaceObject.TransformNode); }, false);
         }
         else {
             r = node;
@@ -795,7 +852,7 @@ var CharacterController = (function () {
     CharacterController.prototype._isAvFacingCamera = function () {
         if (!this._hasCam)
             return -1;
-        if (babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Dot(this._avatar.forward, this._avatar.position.subtract(this._camera.position)) < 0)
+        if (math_vector_namespaceObject.Vector3.Dot(this._avatar.forward, this._avatar.position.subtract(this._camera.position)) < 0)
             return 1;
         else
             return -1;
@@ -875,7 +932,7 @@ var CharacterController = (function () {
         }
         else {
             jumpDist = this._calcJumpDist(this._actionMap.idleJump.speed, dt);
-            disp = new babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3(0, jumpDist, 0);
+            disp = new math_vector_namespaceObject.Vector3(0, jumpDist, 0);
             actData = this._actionMap.idleJump;
         }
         this._avatar.moveWithCollisions(disp);
@@ -1070,7 +1127,7 @@ var CharacterController = (function () {
             fwd = true;
         }
         else {
-            var cosTheta = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Dot(this._avatar.forward, actDisp.normalize());
+            var cosTheta = math_vector_namespaceObject.Vector3.Dot(this._avatar.forward, actDisp.normalize());
             fwd = (cosTheta >= 0) ? true : false;
         }
         var fact = (up && fwd) || (!up && !fwd) ? 1 : -1;
@@ -1080,7 +1137,7 @@ var CharacterController = (function () {
         this._ray.length = this._avatar.ellipsoid.y * 2;
         this._ray.direction = this._down;
         if (this._ellipsoid != null) {
-            this._drawLines(this._ray.origin, this._ray.origin.add(new babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3(0, -this._ray.length, 0)));
+            this._drawLines(this._ray.origin, this._ray.origin.add(new math_vector_namespaceObject.Vector3(0, -this._ray.length, 0)));
         }
         var pi = this._scene.pickWithRay(this._ray, function (mesh) {
             if (_this._avChildren.includes(mesh))
@@ -1127,13 +1184,13 @@ var CharacterController = (function () {
                 points: myPoints,
                 updatable: true
             };
-            this._rayLine = babylonjs__WEBPACK_IMPORTED_MODULE_0__.MeshBuilder.CreateLines("lines", this._lineOptions);
+            this._rayLine = meshBuilder_namespaceObject.MeshBuilder.CreateLines("lines", this._lineOptions);
         }
         else {
             this._lineOptions.points[0] = pt1;
             this._lineOptions.points[1] = pt2;
             this._lineOptions.instance = this._rayLine;
-            this._rayLine = babylonjs__WEBPACK_IMPORTED_MODULE_0__.MeshBuilder.CreateLines("lines", this._lineOptions);
+            this._rayLine = meshBuilder_namespaceObject.MeshBuilder.CreateLines("lines", this._lineOptions);
         }
     };
     CharacterController.prototype._rotateAV2C = function () {
@@ -1270,7 +1327,7 @@ var CharacterController = (function () {
         }
         if (this._freeFallDist < 0.01)
             return anim;
-        var disp = new babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3(0, -this._freeFallDist, 0);
+        var disp = new math_vector_namespaceObject.Vector3(0, -this._freeFallDist, 0);
         this._avatar.moveWithCollisions(disp);
         if ((this._avatar.position.y > this._avStartPos.y) || (this._avatar.position.y === this._avStartPos.y)) {
             var actDisp = this._avatar.position.subtract(this._avStartPos);
@@ -1327,7 +1384,7 @@ var CharacterController = (function () {
         }
         this._avatar.position.addToRef(this._cameraTarget, this._camera.target);
         if (holdCameraPos !== null) {
-            var newDist = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Distance(holdCameraPos, this._camera.target);
+            var newDist = math_vector_namespaceObject.Vector3.Distance(holdCameraPos, this._camera.target);
             if (newDist >= this._originalRadius) {
                 this._originalRadius = null;
                 this._expectedRadius = this._camera.radius;
@@ -1351,7 +1408,7 @@ var CharacterController = (function () {
                 this._inFP = true;
             }
             if (this._inFP && fpHoldPos !== null) {
-                var distToTarget = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Distance(fpHoldPos, this._camera.target);
+                var distToTarget = math_vector_namespaceObject.Vector3.Distance(fpHoldPos, this._camera.target);
                 if (distToTarget > this._camera.lowerRadiusLimit) {
                     if (distToTarget >= this._originalRadius) {
                         this._originalRadius = null;
@@ -1380,7 +1437,7 @@ var CharacterController = (function () {
         this._visiblityMap.set(mesh, mesh.visibility);
         mesh.visibility = 0;
         mesh.getChildMeshes(false, function (n) {
-            if (n instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__.Mesh) {
+            if (n instanceof mesh_namespaceObject.Mesh) {
                 _this._visiblityMap.set(n, n.visibility);
                 n.visibility = 0;
             }
@@ -1391,7 +1448,7 @@ var CharacterController = (function () {
         var _this = this;
         mesh.visibility = this._visiblityMap.get(mesh);
         mesh.getChildMeshes(false, function (n) {
-            if (n instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__.Mesh)
+            if (n instanceof mesh_namespaceObject.Mesh)
                 n.visibility = _this._visiblityMap.get(n);
             return false;
         });
@@ -1508,11 +1565,11 @@ var CharacterController = (function () {
                             return mesh.isPickable;
                         });
                         var springBlocked = false;
-                        var currentDist = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Distance(this._camera.position, this._camera.target);
+                        var currentDist = math_vector_namespaceObject.Vector3.Distance(this._camera.position, this._camera.target);
                         for (var i = 0; i < springPis.length; i++) {
                             var pm = springPis[i].pickedMesh;
                             if (this._isSeeAble(pm) || pm.checkCollisions) {
-                                var pickDist = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Distance(springPis[i].pickedPoint, this._camera.target);
+                                var pickDist = math_vector_namespaceObject.Vector3.Distance(springPis[i].pickedPoint, this._camera.target);
                                 if (pickDist > currentDist) {
                                     springBlocked = true;
                                     break;
@@ -1740,10 +1797,10 @@ var CharacterController = (function () {
     };
     CharacterController.prototype._findSkel = function (n) {
         var root = this._root(n);
-        if (root instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__.Mesh && root.skeleton)
+        if (root instanceof mesh_namespaceObject.Mesh && root.skeleton)
             return root.skeleton;
         var ms = root.getChildMeshes(false, function (cm) {
-            if (cm instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__.Mesh) {
+            if (cm instanceof mesh_namespaceObject.Mesh) {
                 if (cm.skeleton) {
                     return true;
                 }
@@ -1762,10 +1819,10 @@ var CharacterController = (function () {
     };
     CharacterController.prototype._getAbstractMeshChildren = function (tn) {
         var ms = new Array();
-        if (tn instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__.AbstractMesh)
+        if (tn instanceof abstractMesh_namespaceObject.AbstractMesh)
             ms.push(tn);
         tn.getChildren(function (cm) {
-            if (cm instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__.AbstractMesh)
+            if (cm instanceof abstractMesh_namespaceObject.AbstractMesh)
                 ms.push(cm);
             return false;
         }, false);
@@ -1774,7 +1831,7 @@ var CharacterController = (function () {
     CharacterController.prototype.setAvatar = function (avatar, faceForward) {
         if (faceForward === void 0) { faceForward = false; }
         var rootNode = this._root(avatar);
-        if (rootNode instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__.Mesh) {
+        if (rootNode instanceof mesh_namespaceObject.Mesh) {
             this._avatar = rootNode;
         }
         else {
@@ -1804,7 +1861,7 @@ var CharacterController = (function () {
         }
         if (this._ellipsoid !== null)
             return;
-        var ellipsoid = new babylonjs__WEBPACK_IMPORTED_MODULE_0__.TransformNode("ellipsoid", this._scene);
+        var ellipsoid = new transformNode_namespaceObject.TransformNode("ellipsoid", this._scene);
         var a = this._avatar.ellipsoid.x;
         var b = this._avatar.ellipsoid.y;
         var points = [];
@@ -1812,8 +1869,8 @@ var CharacterController = (function () {
             points.push(new BABYLON.Vector3(0, b * Math.sin(theta), a * Math.cos(theta)));
         }
         var ellipse = [];
-        ellipse[0] = babylonjs__WEBPACK_IMPORTED_MODULE_0__.MeshBuilder.CreateLines("e", { points: points }, this._scene);
-        ellipse[0].color = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Color3.Red();
+        ellipse[0] = meshBuilder_namespaceObject.MeshBuilder.CreateLines("e", { points: points }, this._scene);
+        ellipse[0].color = math_color_namespaceObject.Color3.Red();
         ellipse[0].parent = ellipsoid;
         ellipse[0].isPickable = false;
         var steps = 12;
@@ -1969,7 +2026,7 @@ var CCSettings = (function () {
     function CCSettings() {
         this.cameraElastic = true;
         this.makeInvisble = true;
-        this.cameraTarget = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Zero();
+        this.cameraTarget = math_vector_namespaceObject.Vector3.Zero();
         this.noFirstPerson = false;
         this.topDown = true;
         this.turningOff = true;
@@ -1979,10 +2036,11 @@ var CCSettings = (function () {
 }());
 
 
-})();
+var __webpack_exports__ActionData = __webpack_exports__.Yf;
+var __webpack_exports__ActionMap = __webpack_exports__.Cn;
+var __webpack_exports__Actions = __webpack_exports__.eX;
+var __webpack_exports__CCSettings = __webpack_exports__.ni;
+var __webpack_exports__CharacterController = __webpack_exports__.BM;
+export { __webpack_exports__ActionData as ActionData, __webpack_exports__ActionMap as ActionMap, __webpack_exports__Actions as Actions, __webpack_exports__CCSettings as CCSettings, __webpack_exports__CharacterController as CharacterController };
 
-/******/ 	return __webpack_exports__;
-/******/ })()
-;
-});
-//# sourceMappingURL=CharacterController.max.js.map
+//# sourceMappingURL=CharacterController.es.js.map

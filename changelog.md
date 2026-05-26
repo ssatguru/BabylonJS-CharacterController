@@ -1,3 +1,19 @@
+## 05/26/2026 0.4.7-alpha2
+### dual module format support
+- added ES6 module output (`dist/CharacterController.es.js`) alongside the existing UMD output
+- ESM bundle imports from `@babylonjs/core` sub-paths, enabling tree-shaking for consumers using the ES6 BabylonJS packages
+- webpack config now exports an array of two configurations (UMD + ESM) from the same source
+- added `src/_babylonjs-esm-bridge.js` — bridge module that re-exports BabylonJS types from their individual `@babylonjs/core` sub-paths
+- added `webpack.es-externals.js` — import map defining the type-to-subpath mapping for all 25 BabylonJS types used
+- added `module`, `exports`, `peerDependencies`, and `peerDependenciesMeta` fields to `package.json`
+- both `babylonjs` and `@babylonjs/core` declared as optional peer dependencies at `^8.0.0`
+- no changes to the source file — single `src/CharacterController.ts` still imports from `"babylonjs"`
+- UMD output unchanged (fully backward compatible)
+- added tests: import map completeness, webpack config structure, package entry points, ESM output integration, ESM externals property test
+
+## 05/25/2026 0.4.7-alpha1
+- test command control ui improved
+
 ## 05/23/2026 0.4.6
 ### smooth turning
 - added smooth turning: avatar now rotates gradually toward the target direction when turningOff is enabled in mode 0, instead of snapping instantly

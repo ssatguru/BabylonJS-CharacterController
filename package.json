@@ -1,6 +1,6 @@
 {
   "name": "babylonjs-charactercontroller",
-  "version": "0.4.6",
+  "version": "0.4.7",
   "description": "A CharacterController for BabylonJS",
   "repository": {
     "type": "git",
@@ -14,7 +14,27 @@
   "license": "Apache-2.0",
   "contributors": [],
   "main": "dist/CharacterController.js",
+  "module": "dist/CharacterController.es.js",
   "types": "dist/CharacterController.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/CharacterController.d.ts",
+      "import": "./dist/CharacterController.es.js",
+      "require": "./dist/CharacterController.js"
+    }
+  },
+  "peerDependencies": {
+    "babylonjs": "^8.0.0",
+    "@babylonjs/core": "^8.0.0"
+  },
+  "peerDependenciesMeta": {
+    "babylonjs": {
+      "optional": true
+    },
+    "@babylonjs/core": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "babylonjs": "^8.56.2",
     "babylonjs-inspector": "^8.56.2",

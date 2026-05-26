@@ -22,4 +22,8 @@ Game developers using BabylonJS who need a ready-made character controller for t
 
 ## Distribution
 
-Published to npm as `babylonjs-charactercontroller`. Distributed as a UMD module usable via CommonJS, AMD, ES modules, or script tag.
+Published to npm as `babylonjs-charactercontroller`. Distributed in two module formats:
+- **UMD** (`dist/CharacterController.js`) — usable via CommonJS, AMD, or script tag. Depends on the `babylonjs` package.
+- **ES module** (`dist/CharacterController.es.js`) — tree-shakeable, imports from `@babylonjs/core` sub-paths. For use with modern bundlers (webpack, Vite, Rollup, esbuild).
+
+Both `babylonjs` and `@babylonjs/core` are declared as optional peer dependencies — consumers install whichever matches their project.
