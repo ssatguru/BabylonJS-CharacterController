@@ -1,3 +1,10 @@
+## 05/29/2026 0.4.7-alpha4
+
+### documentation improvement
+### bug fix. 
+- In case of animation groups, set action api (like setIdleAnim) wasn't working
+- es vs umd issues fixed. now consumer has to add /es or/umd to import of charactercontroller
+
 ## 05/26/2026 0.4.7-alpha3
 ### moveTo / turnTo navigation APIs
 - added `moveTo(target, options?)` — move character toward a Vector3 position or follow a TransformNode

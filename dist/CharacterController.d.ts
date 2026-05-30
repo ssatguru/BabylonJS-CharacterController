@@ -1,4 +1,4 @@
-import { Skeleton, ArcRotateCamera, Vector3, Mesh, Scene, AnimationGroup, Sound, LinesMesh } from "babylonjs";
+import { Skeleton, ArcRotateCamera, Vector3, Mesh, Scene, AnimationGroup, TransformNode, Sound, LinesMesh } from "babylonjs";
 export declare class CharacterController {
     private _avatar;
     private _skeleton;
@@ -178,6 +178,8 @@ export declare class CharacterController {
     enableKeyBoard(b: boolean): void;
     private _addkeylistener;
     private _removekeylistener;
+    private _cancelMoveTo;
+    private _cancelTurnTo;
     walk(b: boolean): void;
     walkBack(b: boolean): void;
     walkBackFast(b: boolean): void;
@@ -193,12 +195,39 @@ export declare class CharacterController {
     jump(): void;
     fall(): void;
     idle(): void;
+    turnTo(target: Vector3 | TransformNode | number | null | undefined, options?: TurnToOptions): void;
+    turnToStop(): void;
     private _act;
     private _renderer;
     private _handleKeyUp;
     private _handleKeyDown;
     private _isAG;
     isAg(): boolean;
+    private _moveToTarget;
+    private _moveToNode;
+    private _moveToRun;
+    private _moveToArrivalDist;
+    private _moveToObstructionThreshold;
+    private _moveToObstructionCount;
+    private _moveToActive;
+    private _moveToLastPos;
+    private _moveToSaveMode;
+    private _turnToTarget;
+    private _turnToNode;
+    private _turnToAngle;
+    private _turnToTargetAngle;
+    private _turnToFast;
+    private _turnToAngularTolerance;
+    private _turnToActive;
+    private _turnToSaveMode;
+    private _navRenderer;
+    private _startNavRenderer;
+    private _stopNavRenderer;
+    private _navUpdate;
+    private _navUpdateMoveTo;
+    private _navUpdateTurnTo;
+    moveTo(target: Vector3 | TransformNode, options?: MoveToOptions): void;
+    moveToStop(): void;
     private _findSkel;
     private _root;
     private _getAbstractMeshChildren;
@@ -291,4 +320,13 @@ export declare class CCSettings {
     smoothTurnSpeed: number;
     springback?: boolean;
     springbackSteps?: number;
+}
+export interface MoveToOptions {
+    run?: boolean;
+    arrivalDistance?: number;
+    obstructionThreshold?: number;
+}
+export interface TurnToOptions {
+    fast?: boolean;
+    angularTolerance?: number;
 }

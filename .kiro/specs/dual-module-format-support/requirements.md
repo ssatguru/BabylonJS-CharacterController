@@ -53,14 +53,18 @@ This feature adds ES6 module format support to the BabylonJS-CharacterController
 
 ### Requirement 4: Package Entry Points
 
-**User Story:** As a consumer, I want the package.json to correctly route my import to the right bundle based on my module system, so that I do not need manual configuration.
+**User Story:** As a consumer, I want the package.json to correctly route my import to the right bundle based on my chosen subpath, so that I do not need manual configuration.
 
 #### Acceptance Criteria
 
 1. THE Package_Manifest SHALL define a `main` field with a relative path pointing to the UMD bundle file located in the `dist/` directory
-2. THE Package_Manifest SHALL define a `module` field with a relative path pointing to the ES module bundle file located in the `dist/` directory
+2. THE Package_Manifest SHALL define a `module` field with a relative path pointing to the UMD bundle file located in the `dist/` directory, so that ESM-first bundlers (Vite, Rollup) default to the UMD build for the bare import
 3. THE Package_Manifest SHALL define a `types` field with a relative path pointing to the TypeScript declaration file located in the `dist/` directory
-4. IF the Package_Manifest defines an `exports` field, THEN THE Package_Manifest SHALL provide a `"."` entry containing an `import` condition resolving to the ES module bundle path, a `require` condition resolving to the UMD bundle path, and a `types` condition resolving to the TypeScript declaration file path
+4. THE Package_Manifest SHALL define an `exports` field with the following subpath entries:
+   - `"."` — bare import resolving to the UMD bundle (both `import` and `require` conditions), ensuring backward compatibility with existing UMD consumers
+   - `"./es"` — ES module subpath resolving to the ES6 bundle via the `import` condition, for consumers using `@babylonjs/core`
+   - `"./umd"` — explicit UMD subpath resolving to the UMD bundle (both `import` and `require` conditions)
+   - Each subpath entry SHALL include a `types` condition resolving to the TypeScript declaration file
 5. THE Package_Manifest SHALL reference only files that exist in the built `dist/` directory at the paths specified in the `main`, `module`, `types`, and `exports` fields
 
 ### Requirement 5: Single Source File Maintenance

@@ -311,10 +311,12 @@ export class CharacterController {
                     this._hasAnims = true;
                     ccActData.exist = true;
                     if (inActData instanceof Object) {
+                        //if animation group
                         if (inActData.ag) {
                             ccActData.ag = inActData.ag;
                             agMap = true;
                         }
+                        //if animation range
                         if (inActData.name) {
                             ccActData.name = inActData.name;
                         }
@@ -435,6 +437,8 @@ export class CharacterController {
 
         if (loop != null) anim.loop = loop;
         if (rate != null) anim.rate = rate;
+        
+        this._hasAnims = true;
     }
 
     public enableBlending(n: number) {
@@ -2685,8 +2689,8 @@ export class CharacterController {
 
         this._camera = camera;
 
-        //if camera is null assume this would be used to control an NPC
-        //we cannot use mode 0 as that is dependent on camera being present. so force mode 1 (TODO revist this)
+        //if camera is null assume this character controller will be used to control an NPC
+        //also we cannot use mode 0 as that is dependent on camera being present. so force mode 1 (TODO revist this)
         if (this._camera == null) {
             this._hasCam = false;
             this.setMode(1);

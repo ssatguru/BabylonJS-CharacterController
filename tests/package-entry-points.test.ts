@@ -54,9 +54,9 @@ describe("Property 2: Package entry point consistency", () => {
     expect(pkg.main).toMatch(/\.js$/);
   });
 
-  it("`module` points to an .es.js or .mjs file", () => {
+  it("`module` points to a .js file", () => {
     expect(pkg.module).toBeDefined();
-    expect(pkg.module).toMatch(/\.(es\.js|mjs)$/);
+    expect(pkg.module).toMatch(/\.js$/);
   });
 
   it("`types` points to a .d.ts file", () => {

@@ -14,18 +14,27 @@
   "license": "Apache-2.0",
   "contributors": [],
   "main": "dist/CharacterController.js",
-  "module": "dist/CharacterController.es.js",
+  "module": "dist/CharacterController.js",
   "types": "dist/CharacterController.d.ts",
   "exports": {
     ".": {
       "types": "./dist/CharacterController.d.ts",
-      "import": "./dist/CharacterController.es.js",
+      "import": "./dist/CharacterController.js",
+      "require": "./dist/CharacterController.js"
+    },
+    "./es": {
+      "types": "./dist/CharacterController.d.ts",
+      "import": "./dist/CharacterController.es.js"
+    },
+    "./umd": {
+      "types": "./dist/CharacterController.d.ts",
+      "import": "./dist/CharacterController.js",
       "require": "./dist/CharacterController.js"
     }
   },
   "peerDependencies": {
-    "babylonjs": "^8.0.0",
-    "@babylonjs/core": "^8.0.0"
+    "@babylonjs/core": "^8.0.0",
+    "babylonjs": "^8.0.0"
   },
   "peerDependenciesMeta": {
     "babylonjs": {

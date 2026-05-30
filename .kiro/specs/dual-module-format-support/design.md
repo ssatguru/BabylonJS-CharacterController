@@ -103,12 +103,21 @@ Updated fields:
 ```json
 {
   "main": "dist/CharacterController.js",
-  "module": "dist/CharacterController.es.js",
+  "module": "dist/CharacterController.js",
   "types": "dist/CharacterController.d.ts",
   "exports": {
     ".": {
       "types": "./dist/CharacterController.d.ts",
-      "import": "./dist/CharacterController.es.js",
+      "import": "./dist/CharacterController.js",
+      "require": "./dist/CharacterController.js"
+    },
+    "./es": {
+      "types": "./dist/CharacterController.d.ts",
+      "import": "./dist/CharacterController.es.js"
+    },
+    "./umd": {
+      "types": "./dist/CharacterController.d.ts",
+      "import": "./dist/CharacterController.js",
       "require": "./dist/CharacterController.js"
     }
   },
@@ -122,6 +131,16 @@ Updated fields:
   }
 }
 ```
+
+**Design Decision — Bare import defaults to UMD:**
+
+ESM-first bundlers (Vite, Rollup) prioritize the `module` field and the `"import"` condition in `exports` over `main`. If the bare import resolved to the ES build, UMD consumers using these bundlers would get unresolvable `@babylonjs/core` imports at runtime. Since the library's existing consumer base is entirely UMD, the bare import defaults to the UMD build for backward compatibility. ES module consumers use the explicit `"babylonjs-charactercontroller/es"` subpath.
+
+| Import path | Resolves to | Requires |
+|---|---|---|
+| `"babylonjs-charactercontroller"` | UMD build | `babylonjs` |
+| `"babylonjs-charactercontroller/es"` | ES module build | `@babylonjs/core` |
+| `"babylonjs-charactercontroller/umd"` | UMD build | `babylonjs` |
 
 ### 4. TypeScript Configuration
 

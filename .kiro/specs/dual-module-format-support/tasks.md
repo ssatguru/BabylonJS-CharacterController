@@ -45,8 +45,12 @@ Add ES6 module output to the build pipeline alongside the existing UMD output. T
 
 - [x] 3. Update package.json entry points and peer dependencies
   - [x] 3.1 Add `module`, `exports`, `peerDependencies`, and `peerDependenciesMeta` fields to `package.json`
-    - Add `"module": "dist/CharacterController.es.js"`
-    - Add `"exports"` field with `"."` entry containing `types`, `import`, and `require` conditions
+    - Set `"module": "dist/CharacterController.js"` (points to UMD build so ESM-first bundlers default to UMD for bare imports)
+    - Add `"exports"` field with three subpath entries:
+      - `"."` — bare import resolving to UMD build (both `import` and `require` conditions)
+      - `"./es"` — ES module subpath resolving to `CharacterController.es.js` via `import` condition
+      - `"./umd"` — explicit UMD subpath resolving to UMD build (both `import` and `require` conditions)
+      - Each entry includes a `types` condition pointing to `CharacterController.d.ts`
     - Add `"peerDependencies"` declaring both `babylonjs` and `@babylonjs/core` at `^8.0.0`
     - Add `"peerDependenciesMeta"` marking both as optional
     - Ensure `"main"` and `"types"` fields remain unchanged

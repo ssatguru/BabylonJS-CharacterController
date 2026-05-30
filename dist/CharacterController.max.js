@@ -107,6 +107,48 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var babylonjs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! babylonjs */ "babylonjs");
 /* harmony import */ var babylonjs__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(babylonjs__WEBPACK_IMPORTED_MODULE_0__);
 
+function horizontalDistance(a, b) {
+    var dx = a.x - b.x;
+    var dz = a.z - b.z;
+    return Math.sqrt(dx * dx + dz * dz);
+}
+function directionAngle(source, target, faceForward, isLHS_RHS) {
+    var dx = target.x - source.x;
+    var dz = target.z - source.z;
+    var angle = Math.atan2(dx, dz);
+    if (!faceForward) {
+        angle += Math.PI;
+    }
+    while (angle > Math.PI)
+        angle -= 2 * Math.PI;
+    while (angle < -Math.PI)
+        angle += 2 * Math.PI;
+    return angle;
+}
+function shortestArcDelta(current, target) {
+    var delta = target - current;
+    while (delta > Math.PI)
+        delta -= 2 * Math.PI;
+    while (delta < -Math.PI)
+        delta += 2 * Math.PI;
+    return delta;
+}
+function turnDirection(current, target) {
+    var delta = shortestArcDelta(current, target);
+    return delta >= 0 ? 'left' : 'right';
+}
+function isWithinArrival(distance, arrivalDistance) {
+    return distance <= arrivalDistance;
+}
+function isWithinAngularTolerance(delta, tolerance) {
+    return Math.abs(delta) <= tolerance;
+}
+function updateObstructionCount(frameDistance, threshold, currentCount) {
+    return frameDistance < threshold ? currentCount + 1 : 0;
+}
+function clampPositive(value, defaultValue) {
+    return value > 0 ? value : defaultValue;
+}
 var CharacterController = (function () {
     function CharacterController(avatar, camera, scene, actionMap, faceForward) {
         if (faceForward === void 0) { faceForward = false; }
@@ -171,6 +213,22 @@ var CharacterController = (function () {
         this._move = false;
         this._ekb = true;
         this._isAG = false;
+        this._moveToTarget = null;
+        this._moveToNode = null;
+        this._moveToRun = false;
+        this._moveToArrivalDist = 0.5;
+        this._moveToObstructionThreshold = 0.001;
+        this._moveToObstructionCount = 0;
+        this._moveToActive = false;
+        this._moveToLastPos = null;
+        this._turnToTarget = null;
+        this._turnToNode = null;
+        this._turnToAngle = null;
+        this._turnToTargetAngle = null;
+        this._turnToFast = false;
+        this._turnToAngularTolerance = 0.035;
+        this._turnToActive = false;
+        this._navRenderer = null;
         this._ellipsoid = null;
         this._hasAnims = false;
         this._hasCam = true;
@@ -418,6 +476,7 @@ var CharacterController = (function () {
             anim.loop = loop;
         if (rate != null)
             anim.rate = rate;
+        this._hasAnims = true;
     };
     CharacterController.prototype.enableBlending = function (n) {
         if (this._isAG) {
@@ -1563,6 +1622,10 @@ var CharacterController = (function () {
             return;
         if (e.repeat)
             return;
+        if (this._ekb) {
+            this._cancelMoveTo();
+            this._cancelTurnTo();
+        }
         switch (e.key.toLowerCase()) {
             case this._actionMap.idleJump.key:
                 this._act._jump = true;
@@ -1662,6 +1725,26 @@ var CharacterController = (function () {
         canvas.removeEventListener("keyup", this._handleKeyUp, false);
         canvas.removeEventListener("keydown", this._handleKeyDown, false);
     };
+    CharacterController.prototype._cancelMoveTo = function () {
+        if (!this._moveToActive)
+            return;
+        this._moveToTarget = null;
+        this._moveToNode = null;
+        this._moveToActive = false;
+        this._moveToObstructionCount = 0;
+        this._moveToLastPos = null;
+        this._stopNavRenderer();
+    };
+    CharacterController.prototype._cancelTurnTo = function () {
+        if (!this._turnToActive)
+            return;
+        this._turnToTarget = null;
+        this._turnToNode = null;
+        this._turnToAngle = null;
+        this._turnToTargetAngle = null;
+        this._turnToActive = false;
+        this._stopNavRenderer();
+    };
     CharacterController.prototype.walk = function (b) {
         this._act.reset();
         this._act._walk = b;
@@ -1735,8 +1818,233 @@ var CharacterController = (function () {
     CharacterController.prototype.idle = function () {
         this._act.reset();
     };
+    CharacterController.prototype.turnTo = function (target, options) {
+        var _a, _b;
+        if (target == null)
+            return;
+        var fast = (_a = options === null || options === void 0 ? void 0 : options.fast) !== null && _a !== void 0 ? _a : false;
+        var angularTolerance = clampPositive((_b = options === null || options === void 0 ? void 0 : options.angularTolerance) !== null && _b !== void 0 ? _b : 0.035, 0.035);
+        this._turnToTarget = null;
+        this._turnToNode = null;
+        this._turnToAngle = null;
+        this._turnToTargetAngle = null;
+        this._turnToActive = false;
+        if (typeof target === 'number') {
+            if (target === 0) {
+                this.idle();
+                return;
+            }
+            var currentY = this._avatar.rotation.y;
+            this._turnToTargetAngle = currentY + target;
+            this._turnToAngle = target;
+        }
+        else if (target instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__.TransformNode) {
+            if (target.isDisposed()) {
+                this.idle();
+                return;
+            }
+            this._turnToNode = target;
+            var charPos = this._avatar.position;
+            var targetPos = target.getAbsolutePosition();
+            this._turnToTargetAngle = directionAngle(charPos, targetPos, this.isFaceForward(), false);
+        }
+        else {
+            this._turnToTarget = target;
+            var charPos = this._avatar.position;
+            this._turnToTargetAngle = directionAngle(charPos, target, this.isFaceForward(), false);
+        }
+        if (this._turnToTargetAngle != null) {
+            var currentY = this._avatar.rotation.y;
+            var delta = shortestArcDelta(currentY, this._turnToTargetAngle);
+            if (isWithinAngularTolerance(delta, angularTolerance)) {
+                this._turnToTargetAngle = null;
+                this._turnToTarget = null;
+                this._turnToNode = null;
+                this._turnToAngle = null;
+                return;
+            }
+        }
+        this._turnToFast = fast;
+        this._turnToAngularTolerance = angularTolerance;
+        this._turnToActive = true;
+        this.moveToStop();
+        this._turnToSaveMode = this.getMode();
+        this.setMode(1);
+        this._startNavRenderer();
+    };
+    CharacterController.prototype.turnToStop = function () {
+        if (!this._turnToActive)
+            return;
+        this.idle();
+        this._turnToTarget = null;
+        this._turnToNode = null;
+        this._turnToAngle = null;
+        this._turnToTargetAngle = null;
+        this._turnToActive = false;
+        this.setMode(this._turnToSaveMode);
+        this._stopNavRenderer();
+    };
     CharacterController.prototype.isAg = function () {
         return this._isAG;
+    };
+    CharacterController.prototype._startNavRenderer = function () {
+        var _this = this;
+        if (this._navRenderer != null)
+            return;
+        this._navRenderer = function () { _this._navUpdate(); };
+        this._scene.registerBeforeRender(this._navRenderer);
+    };
+    CharacterController.prototype._stopNavRenderer = function () {
+        if (this._moveToActive || this._turnToActive)
+            return;
+        if (this._navRenderer == null)
+            return;
+        this._scene.unregisterBeforeRender(this._navRenderer);
+        this._navRenderer = null;
+    };
+    CharacterController.prototype._navUpdate = function () {
+        if (this._moveToActive) {
+            this._navUpdateMoveTo();
+        }
+        if (this._turnToActive) {
+            this._navUpdateTurnTo();
+        }
+    };
+    CharacterController.prototype._navUpdateMoveTo = function () {
+        if (this._moveToNode != null) {
+            if (this._moveToNode.isDisposed()) {
+                this.moveToStop();
+                return;
+            }
+            if (!this._moveToTarget.equals(this._moveToNode.getAbsolutePosition())) {
+                this._moveToTarget = this._moveToNode.getAbsolutePosition().clone();
+            }
+        }
+        if (this._moveToTarget == null)
+            return;
+        var charPos = this._avatar.position;
+        var dist = horizontalDistance(charPos, this._moveToTarget);
+        if (isWithinArrival(dist, this._moveToArrivalDist)) {
+            if (this._moveToNode != null) {
+                this.idle();
+                this._moveToLastPos = null;
+                this._moveToObstructionCount = 0;
+            }
+            else {
+                this.moveToStop();
+            }
+            return;
+        }
+        if (!this._turnToActive) {
+            var targetAngle = directionAngle(charPos, this._moveToTarget, this.isFaceForward(), false);
+            this._avatar.rotation.y = targetAngle;
+        }
+        if (this._moveToRun) {
+            this.run(true);
+        }
+        else {
+            this.walk(true);
+        }
+        if (this._moveToLastPos != null) {
+            var frameDistance = horizontalDistance(this._moveToLastPos, charPos);
+            this._moveToObstructionCount = updateObstructionCount(frameDistance, this._moveToObstructionThreshold, this._moveToObstructionCount);
+            if (this._moveToObstructionCount >= 3) {
+                this.moveToStop();
+                return;
+            }
+        }
+        this._moveToLastPos = charPos.clone();
+    };
+    CharacterController.prototype._navUpdateTurnTo = function () {
+        if (this._turnToNode != null) {
+            if (this._turnToNode.isDisposed()) {
+                this.turnToStop();
+                return;
+            }
+            var charPos = this._avatar.position;
+            var nodePos = this._turnToNode.getAbsolutePosition();
+            this._turnToTargetAngle = directionAngle(charPos, nodePos, this.isFaceForward(), false);
+        }
+        else if (this._turnToTarget != null) {
+            var charPos = this._avatar.position;
+            this._turnToTargetAngle = directionAngle(charPos, this._turnToTarget, this.isFaceForward(), false);
+        }
+        if (this._turnToTargetAngle == null)
+            return;
+        var currentY = this._avatar.rotation.y;
+        var delta = shortestArcDelta(currentY, this._turnToTargetAngle);
+        if (isWithinAngularTolerance(delta, this._turnToAngularTolerance)) {
+            if (this._turnToNode != null) {
+                this.idle();
+            }
+            else {
+                this.turnToStop();
+            }
+            return;
+        }
+        if (delta > 0) {
+            if (this._turnToFast) {
+                this.turnLeftFast(true);
+            }
+            else {
+                this.turnLeft(true);
+            }
+        }
+        else {
+            if (this._turnToFast) {
+                this.turnRightFast(true);
+            }
+            else {
+                this.turnRight(true);
+            }
+        }
+    };
+    CharacterController.prototype.moveTo = function (target, options) {
+        var _a, _b, _c;
+        var run = (_a = options === null || options === void 0 ? void 0 : options.run) !== null && _a !== void 0 ? _a : false;
+        var arrivalDist = clampPositive((_b = options === null || options === void 0 ? void 0 : options.arrivalDistance) !== null && _b !== void 0 ? _b : 0.5, 0.5);
+        var obstructionThreshold = clampPositive((_c = options === null || options === void 0 ? void 0 : options.obstructionThreshold) !== null && _c !== void 0 ? _c : 0.001, 0.001);
+        var targetPos;
+        var targetNode = null;
+        if (target instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__.TransformNode) {
+            if (target.isDisposed()) {
+                this.idle();
+                return;
+            }
+            targetNode = target;
+            targetPos = target.getAbsolutePosition().clone();
+        }
+        else {
+            targetPos = target;
+        }
+        var charPos = this._avatar.position;
+        if (isWithinArrival(horizontalDistance(charPos, targetPos), arrivalDist)) {
+            this.idle();
+            return;
+        }
+        this._moveToTarget = targetPos;
+        this._moveToNode = targetNode;
+        this._moveToRun = run;
+        this._moveToArrivalDist = arrivalDist;
+        this._moveToObstructionThreshold = obstructionThreshold;
+        this._moveToObstructionCount = 0;
+        this._moveToActive = true;
+        this.turnToStop();
+        this._moveToSaveMode = this.getMode();
+        this.setMode(1);
+        this._startNavRenderer();
+    };
+    CharacterController.prototype.moveToStop = function () {
+        if (!this._moveToActive)
+            return;
+        this.idle();
+        this._moveToTarget = null;
+        this._moveToNode = null;
+        this._moveToActive = false;
+        this._moveToObstructionCount = 0;
+        this._moveToLastPos = null;
+        this.setMode(this._moveToSaveMode);
+        this._stopNavRenderer();
     };
     CharacterController.prototype._findSkel = function (n) {
         var root = this._root(n);

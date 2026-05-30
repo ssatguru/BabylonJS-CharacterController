@@ -1,3 +1,6 @@
+add comment to https://globalitjira.us.aegon.com/browse/TTAP-25648
+
+
 1. make sure when elastic camera springs forward its final position clears the obstructions by a distance equal to its ellipsoid radius.
 this is in case camera collision is on. if not done the camera will snap forward at the end to avoid collision and might come out of spring back mode.
 2. improve test cases ui
