@@ -23,26 +23,52 @@
   <div id="controls" style="opacity: 0.9;" class="w3-round w3-card-4 w3-grey">
     <div style="display:grid;grid-template-columns:auto auto;background-color: grey;margin:1em;gap:1em;padding: 1em;align-items: center;">
 
+      <div style="grid-column: span 2;">
+        choose : 
+        <label><input type="radio" name="cc" class="w3-radio" id="pc" checked /> player</label>
+        <label><input type="radio" name="cc" class="w3-radio" id="npc" /> npc</label>
+      </div>
+      
+
       <div style="grid-column: span 2;text-align: center;">Command</div>
+
       <button id="w">walk</button><button id="wb">walkBack</button>
       <button id="r">run</button><button id="wbf">walkBackFast</button>
+
       <button id="tl">turnLeft</button><button id="tr">turnRight</button>
       <button id="tlf">turnLeftFast</button><button id="trf">turnRightFast</button>
+
       <button id="sl">strafeLeft</button><button id="sr">strafeRight</button>
       <button id="slf">strafeLeftFast</button><button id="srf">strafeRightFast</button>
-      <button id="j">jump</button><div></div>
-      <button id="mvt">moveto blue box</button><div><button id="tnt">turn to red box</button></div>
+
+      <button id="j">jump</button>
+      <div></div>
+
+      <button id="mvt">moveto blue box</button><div>
+      <button id="tnt">turn to red box</button></div>
+
       <div style="grid-column: span 2;text-align: center;">Config</div>
-      <button id="pl">pointer lock</button><div></div>
-      <label><input type="radio" name="mode" class="w3-radio" id="td"> top down</label> <div></div>
+
+      <button id="pl">pointer lock</button>
+      <div></div>
+
+      <label><input type="radio" name="mode" class="w3-radio" id="td"> top down</label> 
+      <div></div>
+
       <div style="grid-column: span 2;">
         <label><input type="radio" checked name="mode" class="w3-radio aw3-orange" id="tp" /> third person</label>
         <label><input type="checkbox" id="toff" class="w3-check" /> turning off</label>
       </div>
-      <label><input type="checkbox" id="kb" checked class="w3-check" /> enable keyboard</label><div></div>
-      <label><input type="checkbox" id="elp" class="w3-check" /> show ellipsoid</label><div></div>
 
-      <div></div><button id="help">help</button>
+      <label><input type="checkbox" id="kb" checked class="w3-check" /> enable keyboard</label>
+      <div></div>
+
+      <label><input type="checkbox" id="elp" class="w3-check" /> show ellipsoid</label>
+      <div></div>
+
+      <div></div>
+      <button id="help">help</button>
+
     </div>
   </div>
 

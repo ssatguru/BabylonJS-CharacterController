@@ -154,15 +154,15 @@ function loadPlayer(scene, engine, canvas) {
     //use this if name, rate or looping is different from default
     //set a parm to null if you donot want to change that
 
-    cc.setIdleAnim(null, 1, true);
-    cc.setTurnLeftAnim(null, 0.5, true);
-    cc.setTurnRightAnim(null, 0.5, true);
-    cc.setWalkAnim(agMap["walk2"], 1, true);
-    cc.setWalkBackAnim(null, 0.5, true);
-    cc.setIdleJumpAnim(null, 0.5, false);
-    cc.setRunJumpAnim(null, 0.6, false);
-    cc.setFallAnim(null, 2, false);
-    cc.setSlideBackAnim(null, 1, false);
+    // cc.setIdleAnim(null, 1, true);
+    // cc.setTurnLeftAnim(null, 0.5, true);
+    // cc.setTurnRightAnim(null, 0.5, true);
+    // cc.setWalkAnim(agMap["walk2"], 1, true);
+    // cc.setWalkBackAnim(null, 0.5, true);
+    // cc.setIdleJumpAnim(null, 0.5, false);
+    // cc.setRunJumpAnim(null, 0.6, false);
+    // cc.setFallAnim(null, 2, false);
+    // cc.setSlideBackAnim(null, 1, false);
 
     //let's set footstep sound
     //this sound will be played for all actions except idle.

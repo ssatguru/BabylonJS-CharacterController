@@ -1,3 +1,15 @@
+## 05/31/2026 0.4.7-alpha6
+
+### turn direction & animation fix
+- fixed NPC turn direction: `turnLeft`/`turnRight` now rotate relative to the character itself, independent of camera position and face-forward setting
+- fixed NPC turn animation in right-handed scenes: animation selection accounts for `_rhsSign` so the correct animation plays in both LHS and RHS
+- fixed mode 0 avatar turn animation in right-handed scenes: animation now flips with `_rhsSign` to match the reversed visual direction
+- fixed navigation mode (turnTo) animation: `turnLeft` command plays `turnRight` animation (and vice versa) to match the actual visual rotation direction
+- added `tests/turn-direction-animation.test.ts` with 35 tests covering all four turn branches (NPC, mode 0, mode 1 avatar, navigation)
+
+### test page improvements 
+added npc to tst/testCommandControl. deleted the separate test page for npc.
+
 ## 05/30/2026 0.4.7-alpha5
 
 ### camera elastic springback — alpha/beta angle restoration

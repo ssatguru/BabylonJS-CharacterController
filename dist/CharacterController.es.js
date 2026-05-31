@@ -1352,7 +1352,20 @@ var CharacterController = (function () {
                 if (this._turnToActive) {
                     a = this._act._turnLeft ? 1 : -1;
                     if (!moving) {
-                        anim = this._act._turnLeft ? this._actionMap.turnLeft : this._actionMap.turnRight;
+                        anim = this._act._turnLeft ? this._actionMap.turnRight : this._actionMap.turnLeft;
+                    }
+                }
+                else if (!this._hasCam) {
+                    a = -this._rhsSign;
+                    if (this._act._turnRight)
+                        a = -a;
+                    if (!moving) {
+                        if (this._rhsSign > 0) {
+                            anim = this._act._turnLeft ? this._actionMap.turnLeft : this._actionMap.turnRight;
+                        }
+                        else {
+                            anim = this._act._turnLeft ? this._actionMap.turnRight : this._actionMap.turnLeft;
+                        }
                     }
                 }
                 else {
@@ -1388,14 +1401,14 @@ var CharacterController = (function () {
                     if (this._act._walkback)
                         a = -1;
                     if (!moving)
-                        anim = this._actionMap.turnLeft;
+                        anim = (this._rhsSign > 0) ? this._actionMap.turnLeft : this._actionMap.turnRight;
                 }
                 else {
                     if (this._act._walk)
                         a = -1;
                     if (!moving) {
                         a = -1;
-                        anim = this._actionMap.turnRight;
+                        anim = (this._rhsSign > 0) ? this._actionMap.turnRight : this._actionMap.turnLeft;
                     }
                 }
                 if (this._hasCam)
@@ -2122,7 +2135,6 @@ var CharacterController = (function () {
     CharacterController.prototype.turnToStop = function () {
         if (!this._turnToActive)
             return;
-        var cb = this._turnToOnComplete;
         this.idle();
         this._turnToTarget = null;
         this._turnToNode = null;
@@ -2133,8 +2145,6 @@ var CharacterController = (function () {
         this._turnToCompleteFired = false;
         this.setMode(this._turnToSaveMode);
         this._stopNavRenderer();
-        if (cb)
-            cb();
     };
     CharacterController.prototype.isAg = function () {
         return this._isAG;
@@ -2187,7 +2197,10 @@ var CharacterController = (function () {
                 }
             }
             else {
+                var cb = this._moveToOnComplete;
                 this.moveToStop();
+                if (cb)
+                    cb();
             }
             return;
         }
@@ -2243,7 +2256,10 @@ var CharacterController = (function () {
                 }
             }
             else {
+                var cb = this._turnToOnComplete;
                 this.turnToStop();
+                if (cb)
+                    cb();
             }
             return;
         }
@@ -2306,7 +2322,6 @@ var CharacterController = (function () {
     CharacterController.prototype.moveToStop = function () {
         if (!this._moveToActive)
             return;
-        var cb = this._moveToOnComplete;
         this.idle();
         this._moveToTarget = null;
         this._moveToNode = null;
@@ -2317,8 +2332,6 @@ var CharacterController = (function () {
         this._moveToCompleteFired = false;
         this.setMode(this._moveToSaveMode);
         this._stopNavRenderer();
-        if (cb)
-            cb();
     };
     CharacterController.prototype._findSkel = function (n) {
         var root = this._root(n);

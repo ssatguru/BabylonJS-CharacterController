@@ -112,11 +112,11 @@ function loadPlayer(scene, engine, canvas) {
     //if the skeleton does not have any animation ranges then set them as below
     // setAnimationRanges(skeleton);
 
-    var sm = player.material;
-    if (sm.diffuseTexture != null) {
-      sm.backFaceCulling = true;
-      sm.ambientColor = new BABYLON.Color3(1, 1, 1);
-    }
+    // var sm = player.material;
+    // if (sm.diffuseTexture != null) {
+    //   sm.backFaceCulling = true;
+    //   sm.ambientColor = new BABYLON.Color3(1, 1, 1);
+    // }
 
     //player position point is the feet
     // player.position = new BABYLON.Vector3(0, 12, 0);

@@ -210,6 +210,12 @@ var CharacterController = (function () {
         this._springbackSteps = 50;
         this._originalRadius = null;
         this._expectedRadius = null;
+        this._originalAlpha = null;
+        this._originalBeta = null;
+        this._springbackAngleRestore = true;
+        this._expectedAlpha = null;
+        this._expectedBeta = null;
+        this._angleRestorationActive = false;
         this._move = false;
         this._ekb = true;
         this._isAG = false;
@@ -221,6 +227,8 @@ var CharacterController = (function () {
         this._moveToObstructionCount = 0;
         this._moveToActive = false;
         this._moveToLastPos = null;
+        this._moveToOnComplete = null;
+        this._moveToCompleteFired = false;
         this._turnToTarget = null;
         this._turnToNode = null;
         this._turnToAngle = null;
@@ -228,6 +236,8 @@ var CharacterController = (function () {
         this._turnToFast = false;
         this._turnToAngularTolerance = 0.035;
         this._turnToActive = false;
+        this._turnToOnComplete = null;
+        this._turnToCompleteFired = false;
         this._navRenderer = null;
         this._ellipsoid = null;
         this._hasAnims = false;
@@ -424,6 +434,7 @@ var CharacterController = (function () {
         ccs.smoothTurnSpeed = this.getSmoothTurnSpeed();
         ccs.springback = this._springback;
         ccs.springbackSteps = Math.floor(Math.min(1000, Math.max(1, this._springbackSteps)));
+        ccs.springbackAngleRestore = this._springbackAngleRestore;
         return ccs;
     };
     CharacterController.prototype.setSettings = function (ccs) {
@@ -449,6 +460,9 @@ var CharacterController = (function () {
         }
         if (ccs.springbackSteps !== undefined) {
             this._springbackSteps = Math.floor(Math.min(1000, Math.max(1, ccs.springbackSteps)));
+        }
+        if (ccs.springbackAngleRestore !== undefined) {
+            this.setSpringbackAngleRestore(ccs.springbackAngleRestore);
         }
     };
     CharacterController.prototype._setAnim = function (anim, animName, rate, loop) {
@@ -621,6 +635,11 @@ var CharacterController = (function () {
         this._cameraElastic = b;
         if (!b) {
             this._originalRadius = null;
+            this._originalAlpha = null;
+            this._originalBeta = null;
+            this._expectedAlpha = null;
+            this._expectedBeta = null;
+            this._angleRestorationActive = false;
         }
     };
     CharacterController.prototype.setElasticiSteps = function (n) {
@@ -639,6 +658,20 @@ var CharacterController = (function () {
         if (n > 1000)
             n = 1000;
         this._springbackSteps = n;
+    };
+    CharacterController.prototype.setSpringbackAngleRestore = function (b) {
+        this._springbackAngleRestore = b;
+        if (b) {
+            if (this._originalAlpha !== null) {
+                this._angleRestorationActive = true;
+            }
+        }
+        else {
+            this._angleRestorationActive = false;
+        }
+    };
+    CharacterController.prototype.isSpringbackAngleRestore = function () {
+        return this._springbackAngleRestore;
     };
     CharacterController.prototype.makeObstructionInvisible = function (b) {
         this._makeInvisible = b;
@@ -1259,28 +1292,49 @@ var CharacterController = (function () {
             }
             var a = void 0;
             if (this._mode == 1) {
-                if (!this._isTurning) {
-                    this._sign = -this._ffSign * this._isAvFacingCamera();
-                    if (this._isLHS_RHS)
-                        this._sign = -this._sign;
-                    this._isTurning = true;
+                if (this._turnToActive) {
+                    a = this._act._turnLeft ? 1 : -1;
+                    if (!moving) {
+                        anim = this._act._turnLeft ? this._actionMap.turnRight : this._actionMap.turnLeft;
+                    }
                 }
-                a = this._sign;
-                if (this._act._turnLeft) {
-                    if (this._act._walk) { }
-                    else if (this._act._walkback)
-                        a = -this._sign;
-                    else {
-                        anim = (this._sign > 0) ? this._actionMap.turnRight : this._actionMap.turnLeft;
+                else if (!this._hasCam) {
+                    a = -this._rhsSign;
+                    if (this._act._turnRight)
+                        a = -a;
+                    if (!moving) {
+                        if (this._rhsSign > 0) {
+                            anim = this._act._turnLeft ? this._actionMap.turnLeft : this._actionMap.turnRight;
+                        }
+                        else {
+                            anim = this._act._turnLeft ? this._actionMap.turnRight : this._actionMap.turnLeft;
+                        }
                     }
                 }
                 else {
-                    if (this._act._walk)
-                        a = -this._sign;
-                    else if (this._act._walkback) { }
+                    if (!this._isTurning) {
+                        this._sign = -this._ffSign * this._isAvFacingCamera();
+                        if (this._isLHS_RHS)
+                            this._sign = -this._sign;
+                        this._isTurning = true;
+                    }
+                    a = this._sign;
+                    if (this._act._turnLeft) {
+                        if (this._act._walk) { }
+                        else if (this._act._walkback)
+                            a = -this._sign;
+                        else {
+                            anim = (this._sign > 0) ? this._actionMap.turnRight : this._actionMap.turnLeft;
+                        }
+                    }
                     else {
-                        a = -this._sign;
-                        anim = (this._sign > 0) ? this._actionMap.turnLeft : this._actionMap.turnRight;
+                        if (this._act._walk)
+                            a = -this._sign;
+                        else if (this._act._walkback) { }
+                        else {
+                            a = -this._sign;
+                            anim = (this._sign > 0) ? this._actionMap.turnLeft : this._actionMap.turnRight;
+                        }
                     }
                 }
             }
@@ -1290,14 +1344,14 @@ var CharacterController = (function () {
                     if (this._act._walkback)
                         a = -1;
                     if (!moving)
-                        anim = this._actionMap.turnLeft;
+                        anim = (this._rhsSign > 0) ? this._actionMap.turnLeft : this._actionMap.turnRight;
                 }
                 else {
                     if (this._act._walk)
                         a = -1;
                     if (!moving) {
                         a = -1;
-                        anim = this._actionMap.turnRight;
+                        anim = (this._rhsSign > 0) ? this._actionMap.turnRight : this._actionMap.turnLeft;
                     }
                 }
                 if (this._hasCam)
@@ -1374,6 +1428,7 @@ var CharacterController = (function () {
         this._groundFrameCount = 0;
     };
     CharacterController.prototype._updateTargetValue = function () {
+        var _this = this;
         if (!this._hasCam)
             return;
         var holdCameraPos = null;
@@ -1389,11 +1444,66 @@ var CharacterController = (function () {
             var newDist = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Distance(holdCameraPos, this._camera.target);
             if (newDist >= this._originalRadius) {
                 this._originalRadius = null;
+                this._originalAlpha = null;
+                this._originalBeta = null;
+                this._expectedAlpha = null;
+                this._expectedBeta = null;
+                this._angleRestorationActive = false;
                 this._expectedRadius = this._camera.radius;
             }
             else if (newDist > this._camera.radius) {
                 this._camera.position.copyFrom(holdCameraPos);
                 this._camera.rebuildAnglesAndRadius();
+                if (this._originalAlpha !== null && this._springbackAngleRestore && this._springback) {
+                    var alphaDiff = this._originalAlpha - this._camera.alpha;
+                    var betaDiff = this._originalBeta - this._camera.beta;
+                    if (Math.abs(alphaDiff) <= 0.005 && Math.abs(betaDiff) <= 0.005) {
+                        this._camera.alpha = this._originalAlpha;
+                        this._camera.beta = this._originalBeta;
+                        var restoredDir = new babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3(Math.sin(this._originalBeta) * Math.sin(this._originalAlpha), Math.cos(this._originalBeta), Math.sin(this._originalBeta) * Math.cos(this._originalAlpha));
+                        this._ray.origin = this._camera.target;
+                        this._ray.direction = restoredDir;
+                        this._ray.length = this._originalRadius;
+                        var verifyPis = this._scene.multiPickWithRay(this._ray, function (mesh) {
+                            if (_this._avChildren.includes(mesh))
+                                return false;
+                            return mesh.isPickable;
+                        });
+                        var _ellipsoid = this._camera.ellipsoid || this._camera.collisionRadius;
+                        var ellipsoidRadius = _ellipsoid ? Math.max(_ellipsoid.x, _ellipsoid.z) : 0;
+                        var currentDist = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Distance(this._camera.position, this._camera.target);
+                        var pathBlocked = false;
+                        for (var i = 0; i < verifyPis.length; i++) {
+                            var pm = verifyPis[i].pickedMesh;
+                            if (this._isSeeAble(pm) || pm.checkCollisions) {
+                                var pickDist = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Distance(verifyPis[i].pickedPoint, this._camera.target);
+                                if ((pickDist - ellipsoidRadius) < this._originalRadius && (pickDist - ellipsoidRadius) > currentDist) {
+                                    pathBlocked = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!pathBlocked) {
+                            this._angleRestorationActive = false;
+                        }
+                        else {
+                            this._originalAlpha = null;
+                            this._originalBeta = null;
+                            this._expectedAlpha = null;
+                            this._expectedBeta = null;
+                            this._angleRestorationActive = false;
+                        }
+                    }
+                    else {
+                        this._angleRestorationActive = true;
+                        var alphaStep = alphaDiff / this._springbackSteps;
+                        var betaStep = betaDiff / this._springbackSteps;
+                        this._camera.alpha += alphaStep;
+                        this._camera.beta += betaStep;
+                    }
+                    this._expectedAlpha = this._camera.alpha;
+                    this._expectedBeta = this._camera.beta;
+                }
                 this._expectedRadius = this._camera.radius;
             }
         }
@@ -1414,6 +1524,11 @@ var CharacterController = (function () {
                 if (distToTarget > this._camera.lowerRadiusLimit) {
                     if (distToTarget >= this._originalRadius) {
                         this._originalRadius = null;
+                        this._originalAlpha = null;
+                        this._originalBeta = null;
+                        this._expectedAlpha = null;
+                        this._expectedBeta = null;
+                        this._angleRestorationActive = false;
                         this._expectedRadius = this._camera.radius;
                     }
                     else {
@@ -1465,6 +1580,11 @@ var CharacterController = (function () {
             if (radiusDelta < -0.01 && this._originalRadius !== null) {
                 userScrolled = true;
                 this._originalRadius = null;
+                this._originalAlpha = null;
+                this._originalBeta = null;
+                this._expectedAlpha = null;
+                this._expectedBeta = null;
+                this._angleRestorationActive = false;
                 this._expectedRadius = this._camera.radius;
             }
             else {
@@ -1475,6 +1595,11 @@ var CharacterController = (function () {
                 if (absDelta > maxExpectedStep) {
                     userScrolled = true;
                     this._originalRadius = null;
+                    this._originalAlpha = null;
+                    this._originalBeta = null;
+                    this._expectedAlpha = null;
+                    this._expectedBeta = null;
+                    this._angleRestorationActive = false;
                     this._expectedRadius = this._camera.radius;
                 }
             }
@@ -1520,6 +1645,8 @@ var CharacterController = (function () {
             }
         }
         if (this._cameraElastic) {
+            var _ellipsoid = this._camera.ellipsoid || this._camera.collisionRadius;
+            var ellipsoidRadius = _ellipsoid ? Math.max(_ellipsoid.x, _ellipsoid.z) : 0;
             if (pis.length > 0) {
                 if ((pis.length == 1 && !this._isSeeAble(pis[0].pickedMesh)) && (!pis[0].pickedMesh.checkCollisions || !this._camera.checkCollisions))
                     return;
@@ -1540,16 +1667,25 @@ var CharacterController = (function () {
                 if (this._originalRadius === null) {
                     this._originalRadius = this._camera.radius;
                 }
+                if (this._springbackAngleRestore && this._originalAlpha === null) {
+                    this._originalAlpha = this._camera.alpha;
+                    this._originalBeta = this._camera.beta;
+                }
+                if (this._angleRestorationActive) {
+                    this._angleRestorationActive = false;
+                }
                 var c2p = this._camera.position.subtract(pp);
                 var l = c2p.length();
-                if (l <= 0.1) {
+                if (l <= Math.max(ellipsoidRadius, 0.1)) {
                 }
                 else if (this._camera.checkCollisions) {
-                    var step = c2p.normalize().scaleInPlace(l / this._elasticSteps);
+                    var targetDist = Math.max(l - ellipsoidRadius, 0);
+                    var step = c2p.normalize().scaleInPlace(targetDist / this._elasticSteps);
                     this._camera.position = this._camera.position.subtract(step);
                 }
                 else {
-                    var step = l / this._elasticSteps;
+                    var targetDist = Math.max(l - ellipsoidRadius, 0);
+                    var step = targetDist / this._elasticSteps;
                     this._camera.radius = this._camera.radius - step;
                 }
             }
@@ -1572,15 +1708,38 @@ var CharacterController = (function () {
                             var pm = springPis[i].pickedMesh;
                             if (this._isSeeAble(pm) || pm.checkCollisions) {
                                 var pickDist = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Distance(springPis[i].pickedPoint, this._camera.target);
-                                if (pickDist > currentDist) {
+                                if ((pickDist - ellipsoidRadius) > currentDist) {
                                     springBlocked = true;
                                     break;
                                 }
                             }
                         }
                         if (!springBlocked) {
+                            if (this._expectedAlpha !== null && this._expectedBeta !== null && !this._angleRestorationActive) {
+                                var actualAlpha = this._camera.alpha;
+                                var actualBeta = this._camera.beta;
+                                var alphaDelta = Math.abs(actualAlpha - this._expectedAlpha);
+                                var betaDelta = Math.abs(actualBeta - this._expectedBeta);
+                                var alphaThreshold = this._originalAlpha !== null
+                                    ? Math.max(Math.abs(this._originalAlpha - actualAlpha) / this._springbackSteps, 0.001)
+                                    : 0.001;
+                                var betaThreshold = this._originalBeta !== null
+                                    ? Math.max(Math.abs(this._originalBeta - actualBeta) / this._springbackSteps, 0.001)
+                                    : 0.001;
+                                if (alphaDelta > alphaThreshold || betaDelta > betaThreshold) {
+                                    if (this._originalAlpha !== null) {
+                                        this._originalAlpha = this._camera.alpha;
+                                        this._originalBeta = this._camera.beta;
+                                    }
+                                }
+                            }
                             if (remainingDistance <= 0.1) {
                                 this._originalRadius = null;
+                                this._originalAlpha = null;
+                                this._originalBeta = null;
+                                this._expectedAlpha = null;
+                                this._expectedBeta = null;
+                                this._angleRestorationActive = false;
                             }
                             else if (this._camera.checkCollisions) {
                                 var dir = this._camera.position.subtract(this._camera.target).normalize();
@@ -1592,18 +1751,50 @@ var CharacterController = (function () {
                                 var step = remainingDistance / this._springbackSteps;
                                 this._camera.radius = this._camera.radius + step;
                             }
+                            if (this._springbackAngleRestore && this._originalAlpha !== null && this._springback) {
+                                var alphaStep = (this._originalAlpha - this._camera.alpha) / this._springbackSteps;
+                                var betaStep = (this._originalBeta - this._camera.beta) / this._springbackSteps;
+                                if (Math.abs(this._originalAlpha - this._camera.alpha) <= 0.005 && Math.abs(this._originalBeta - this._camera.beta) <= 0.005) {
+                                    this._camera.alpha = this._originalAlpha;
+                                    this._camera.beta = this._originalBeta;
+                                    this._originalAlpha = null;
+                                    this._originalBeta = null;
+                                    this._angleRestorationActive = false;
+                                }
+                                else {
+                                    this._camera.alpha += alphaStep;
+                                    this._camera.beta += betaStep;
+                                    this._angleRestorationActive = true;
+                                }
+                                this._expectedAlpha = this._camera.alpha;
+                                this._expectedBeta = this._camera.beta;
+                            }
                             if (this._originalRadius !== null && Math.abs(this._camera.radius - this._originalRadius) <= 0.01) {
                                 this._originalRadius = null;
+                                this._originalAlpha = null;
+                                this._originalBeta = null;
+                                this._expectedAlpha = null;
+                                this._expectedBeta = null;
+                                this._angleRestorationActive = false;
                             }
                         }
                     }
                     else {
                         this._originalRadius = null;
+                        this._originalAlpha = null;
+                        this._originalBeta = null;
+                        this._expectedAlpha = null;
+                        this._expectedBeta = null;
+                        this._angleRestorationActive = false;
                     }
                 }
             }
         }
         this._expectedRadius = this._camera.radius;
+        if (this._originalAlpha !== null && this._expectedAlpha === null) {
+            this._expectedAlpha = this._camera.alpha;
+            this._expectedBeta = this._camera.beta;
+        }
     };
     CharacterController.prototype._isSeeAble = function (mesh) {
         if (!mesh.isVisible)
@@ -1623,8 +1814,11 @@ var CharacterController = (function () {
         if (e.repeat)
             return;
         if (this._ekb) {
-            this._cancelMoveTo();
-            this._cancelTurnTo();
+            if (this._moveToActive || this._turnToActive) {
+                this._cancelMoveTo();
+                this._cancelTurnTo();
+                this._act.reset();
+            }
         }
         switch (e.key.toLowerCase()) {
             case this._actionMap.idleJump.key:
@@ -1733,6 +1927,9 @@ var CharacterController = (function () {
         this._moveToActive = false;
         this._moveToObstructionCount = 0;
         this._moveToLastPos = null;
+        this._moveToOnComplete = null;
+        this._moveToCompleteFired = false;
+        this.setMode(this._moveToSaveMode);
         this._stopNavRenderer();
     };
     CharacterController.prototype._cancelTurnTo = function () {
@@ -1743,6 +1940,9 @@ var CharacterController = (function () {
         this._turnToAngle = null;
         this._turnToTargetAngle = null;
         this._turnToActive = false;
+        this._turnToOnComplete = null;
+        this._turnToCompleteFired = false;
+        this.setMode(this._turnToSaveMode);
         this._stopNavRenderer();
     };
     CharacterController.prototype.walk = function (b) {
@@ -1819,11 +2019,12 @@ var CharacterController = (function () {
         this._act.reset();
     };
     CharacterController.prototype.turnTo = function (target, options) {
-        var _a, _b;
+        var _a, _b, _c;
         if (target == null)
             return;
         var fast = (_a = options === null || options === void 0 ? void 0 : options.fast) !== null && _a !== void 0 ? _a : false;
         var angularTolerance = clampPositive((_b = options === null || options === void 0 ? void 0 : options.angularTolerance) !== null && _b !== void 0 ? _b : 0.035, 0.035);
+        var onComplete = (_c = options === null || options === void 0 ? void 0 : options.onComplete) !== null && _c !== void 0 ? _c : null;
         this._turnToTarget = null;
         this._turnToNode = null;
         this._turnToAngle = null;
@@ -1867,6 +2068,8 @@ var CharacterController = (function () {
         this._turnToFast = fast;
         this._turnToAngularTolerance = angularTolerance;
         this._turnToActive = true;
+        this._turnToOnComplete = onComplete;
+        this._turnToCompleteFired = false;
         this.moveToStop();
         this._turnToSaveMode = this.getMode();
         this.setMode(1);
@@ -1881,6 +2084,8 @@ var CharacterController = (function () {
         this._turnToAngle = null;
         this._turnToTargetAngle = null;
         this._turnToActive = false;
+        this._turnToOnComplete = null;
+        this._turnToCompleteFired = false;
         this.setMode(this._turnToSaveMode);
         this._stopNavRenderer();
     };
@@ -1929,12 +2134,20 @@ var CharacterController = (function () {
                 this.idle();
                 this._moveToLastPos = null;
                 this._moveToObstructionCount = 0;
+                if (this._moveToOnComplete && !this._moveToCompleteFired) {
+                    this._moveToCompleteFired = true;
+                    this._moveToOnComplete();
+                }
             }
             else {
+                var cb = this._moveToOnComplete;
                 this.moveToStop();
+                if (cb)
+                    cb();
             }
             return;
         }
+        this._moveToCompleteFired = false;
         if (!this._turnToActive) {
             var targetAngle = directionAngle(charPos, this._moveToTarget, this.isFaceForward(), false);
             this._avatar.rotation.y = targetAngle;
@@ -1971,17 +2184,29 @@ var CharacterController = (function () {
         }
         if (this._turnToTargetAngle == null)
             return;
+        while (this._avatar.rotation.y > Math.PI)
+            this._avatar.rotation.y -= 2 * Math.PI;
+        while (this._avatar.rotation.y < -Math.PI)
+            this._avatar.rotation.y += 2 * Math.PI;
         var currentY = this._avatar.rotation.y;
         var delta = shortestArcDelta(currentY, this._turnToTargetAngle);
         if (isWithinAngularTolerance(delta, this._turnToAngularTolerance)) {
             if (this._turnToNode != null) {
                 this.idle();
+                if (this._turnToOnComplete && !this._turnToCompleteFired) {
+                    this._turnToCompleteFired = true;
+                    this._turnToOnComplete();
+                }
             }
             else {
+                var cb = this._turnToOnComplete;
                 this.turnToStop();
+                if (cb)
+                    cb();
             }
             return;
         }
+        this._turnToCompleteFired = false;
         if (delta > 0) {
             if (this._turnToFast) {
                 this.turnLeftFast(true);
@@ -2000,10 +2225,11 @@ var CharacterController = (function () {
         }
     };
     CharacterController.prototype.moveTo = function (target, options) {
-        var _a, _b, _c;
+        var _a, _b, _c, _d;
         var run = (_a = options === null || options === void 0 ? void 0 : options.run) !== null && _a !== void 0 ? _a : false;
         var arrivalDist = clampPositive((_b = options === null || options === void 0 ? void 0 : options.arrivalDistance) !== null && _b !== void 0 ? _b : 0.5, 0.5);
         var obstructionThreshold = clampPositive((_c = options === null || options === void 0 ? void 0 : options.obstructionThreshold) !== null && _c !== void 0 ? _c : 0.001, 0.001);
+        var onComplete = (_d = options === null || options === void 0 ? void 0 : options.onComplete) !== null && _d !== void 0 ? _d : null;
         var targetPos;
         var targetNode = null;
         if (target instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__.TransformNode) {
@@ -2029,6 +2255,8 @@ var CharacterController = (function () {
         this._moveToObstructionThreshold = obstructionThreshold;
         this._moveToObstructionCount = 0;
         this._moveToActive = true;
+        this._moveToOnComplete = onComplete;
+        this._moveToCompleteFired = false;
         this.turnToStop();
         this._moveToSaveMode = this.getMode();
         this.setMode(1);
@@ -2043,6 +2271,8 @@ var CharacterController = (function () {
         this._moveToActive = false;
         this._moveToObstructionCount = 0;
         this._moveToLastPos = null;
+        this._moveToOnComplete = null;
+        this._moveToCompleteFired = false;
         this.setMode(this._moveToSaveMode);
         this._stopNavRenderer();
     };

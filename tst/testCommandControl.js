@@ -4,7 +4,11 @@ window.onload = function ()
 };
 
 var canvas;
-function main()
+var cc, cc1, cc2;
+var box, box4;
+var player;
+
+async function main()
 {
   setControls();
   /*
@@ -12,10 +16,8 @@ function main()
    */
   canvas = document.querySelector("#renderCanvas");
   var engine = new BABYLON.Engine(canvas, true, { audioEngine: true });
-  //var engine = new BABYLON.Engine(canvas, true);
   var scene = new BABYLON.Scene(engine);
-  //scene.useRightHandedSystem = true;
-
+  scene.useRightHandedSystem = true;
   scene.clearColor = new BABYLON.Color3(0.75, 0.75, 0.75);
   scene.ambientColor = new BABYLON.Color3(1, 1, 1);
 
@@ -28,63 +30,184 @@ function main()
   light2.position = new BABYLON.Vector3(0, 128, 0);
   light2.intensity = 0.7;
 
-  var myMaterial = new BABYLON.StandardMaterial("myMaterial", scene);
-
-  myMaterial.diffuseColor = new BABYLON.Color3(1, 0, 0); // red
   //boxes to check camera elasticity and making obstructions invisibile checks
-
-  box = BABYLON.Mesh.CreateBox("red-box", 2, scene);
-  box.checkCollisions = false;
-  box.position = new BABYLON.Vector3(0, 8, 5);
-  box.material = myMaterial;
-  //  box.isVisible = false;
-
-  var box2 = BABYLON.Mesh.CreateBox("green-box", 2, scene);
-  box2.checkCollisions = true;
-  box2.position = new BABYLON.Vector3(-5, 8, 7);
-  box2.material = myMaterial.clone("green");
-  box2.material.diffuseColor = new BABYLON.Color3(0, 1, 0); 
-
-  let box3 = BABYLON.Mesh.CreateBox("yellow-box",2,scene);
-  box3.position = new BABYLON.Vector3(0, 8, -7);
-  box3.checkCollisions = true;
-  box3.material = myMaterial.clone("yellow");
-  box3.material.diffuseColor = new BABYLON.Color3(1, 1, 0); 
-
-  //check for visibility
-  box4 = BABYLON.Mesh.CreateBox("blue-box", 2, scene);
-  box4.position = new BABYLON.Vector3(15, 11, 26);
-  box4.checkCollisions = false;
-  box4.material = myMaterial.clone("blue");
-  box4.material.diffuseColor = new BABYLON.Color3(0, 0, 1); 
-  //box4.visibility = 0;
+  createBoxes(scene);
 
   let groundMaterial = createGroundMaterial(scene);
   var ground = createGround(scene, groundMaterial);
-  loadPlayer(scene, engine, canvas);
+
+  //load and set the player
+  const result = await BABYLON.ImportMeshAsync("player/Vincent-frontFacing.babylon", scene);
+  let player = result.meshes[0];
+
+  setPlayer(player);
+
+  //create and set the camera
+  let arcRotateCamera = createCamera(player, scene);
+  arcRotateCamera.attachControl(canvas, false);
+
+  //create a CharacterController and set it
+  cc1 = new CharacterController(player, arcRotateCamera, scene);
+  setCharacterController(cc1, scene);
+  cc1.start();
+  cc = cc1;
+
+  loadNPC(scene, engine, canvas);
 
   window.addEventListener("resize", function ()
   {
     engine.resize();
   });
+
+  engine.runRenderLoop(() => { scene.render(); });
+
+  showControls();
+  canvas.focus();
+
 }
 
-var cc;
-var box, box4;
-var player;
 
-function loadPlayer(scene, engine, canvas)
+//boxes to check camera elasticity and making obstructions invisibile checks
+function createBoxes(scene)
 {
-  //BABYLON.SceneLoader.ImportMesh("", "player/", "Vincent-frontFacing.babylon", scene, function (meshes, particleSystems, skeletons) {
-  BABYLON.SceneLoader.ImportMesh("", "player/", "starterAvatars.babylon", scene, function (meshes, particleSystems, skeletons)
-  {
-    player = meshes[0];
-    var skeleton = skeletons[0];
-    player.skeleton = skeleton;
+  var myMaterial = new BABYLON.StandardMaterial("myMaterial", scene);
+  myMaterial.diffuseColor = new BABYLON.Color3(1, 0, 0); // red
 
-    skeleton.enableBlending(0.1);
-    //if the skeleton does not have any animation ranges then set them as below
-    // setAnimationRanges(skeleton);
+  box = BABYLON.Mesh.CreateBox("red-box", 2, scene);
+  box.checkCollisions = true;
+  box.position = new BABYLON.Vector3(0, 8, 5);
+  box.material = myMaterial;
+
+  var box2 = BABYLON.Mesh.CreateBox("green-box", 2, scene);
+  box2.checkCollisions = true;
+  box2.position = new BABYLON.Vector3(-5, 8, 7);
+  box2.material = myMaterial.clone("green");
+  box2.material.diffuseColor = new BABYLON.Color3(0, 1, 0);
+
+  let box3 = BABYLON.Mesh.CreateBox("yellow-box", 2, scene);
+  box3.position = new BABYLON.Vector3(0, 8, -7);
+  box3.checkCollisions = true;
+  box3.material = myMaterial.clone("yellow");
+  box3.material.diffuseColor = new BABYLON.Color3(1, 1, 0);
+
+  box4 = BABYLON.Mesh.CreateBox("blue-box", 2, scene);
+  box4.position = new BABYLON.Vector3(15, 11, 26);
+  box4.checkCollisions = false;
+  box4.material = myMaterial.clone("blue");
+  box4.material.diffuseColor = new BABYLON.Color3(0, 0, 1);
+}
+
+
+function setPlayer(player)
+{
+  var sm = player.material;
+  if (sm.diffuseTexture != null)
+  {
+    sm.backFaceCulling = true;
+    sm.ambientColor = new BABYLON.Color3(1, 1, 1);
+  }
+
+  player.position = new BABYLON.Vector3(0, 12, 0);
+  player.checkCollisions = true;
+  player.ellipsoid = new BABYLON.Vector3(0.5, 1, 0.5);
+  player.ellipsoidOffset = new BABYLON.Vector3(0, 1, 0);
+
+  player.skeleton.enableBlending(0.1);
+}
+
+function createCamera(player, scene)
+{
+  //rotate the camera behind the player
+  //player.rotation.y = Math.PI / 4;
+  //var alpha = -(Math.PI / 2 + player.rotation.y);
+  var alpha = -2.5;
+  var beta = 1.25;
+  var target = new BABYLON.Vector3(player.position.x, player.position.y + 1.5, player.position.z);
+
+  var camera = new BABYLON.ArcRotateCamera("ArcRotateCamera", alpha, beta, 12, target, scene);
+
+  //standard camera setting
+  camera.wheelPrecision = 15;
+  camera.checkCollisions = false;
+  //make sure the keyboard keys controlling camera are different from those controlling player
+  //here we will not use any keyboard keys to control camera
+  camera.keysLeft = [];
+  camera.keysRight = [];
+  camera.keysUp = [];
+  camera.keysDown = [];
+  //how close can the camera come to player
+  camera.lowerRadiusLimit = 2;
+  //how far can the camera go from the player
+  camera.upperRadiusLimit = 200;
+
+  return camera;
+}
+
+function setCharacterController(c, scene)
+{
+
+  c.setFaceForward(true);
+  c.setMode(0);
+  c.setTurnSpeed(45);
+  //below makes the controller point the camera at the player head which is approx
+  //1.5m above the player origin
+  c.setCameraTarget(new BABYLON.Vector3(0, 1.5, 0));
+
+  //if the camera comes close to the player we want to enter first person mode.
+  c.setNoFirstPerson(false);
+  //the height of steps which the player can climb
+  c.setStepOffset(0.4);
+  //the minimum and maximum slope the player can go up
+  //between the two the player will start sliding down if it stops
+  c.setSlopeLimit(30, 60);
+
+  //tell controller
+  // - which animation range should be played for which player action
+  // - rate at which to play that animation range
+  // - wether the animation range should be looped
+  //use this if name, rate or looping is different from default
+  c.setIdleAnim("idle", 1, true);
+  c.setTurnLeftAnim("turnLeft", 0.5, true);
+  c.setTurnRightAnim("turnRight", 0.5, true);
+  c.setWalkBackAnim("walkBack", 0.5, true);
+  c.setIdleJumpAnim("idleJump", 0.5, false);
+  c.setRunJumpAnim("runJump", 0.6, false);
+  c.setFallAnim("fall", 2, false);
+  c.setSlideBackAnim("slideBack", 1, false);
+
+  // to make player trun instantly
+  // cc.setSmoothTurnSpeed(0);
+
+  let walkSound = new BABYLON.Sound(
+    "walk",
+    "./sounds/footstep_carpet_000.ogg",
+    scene,
+    () =>
+    {
+      c.setSound(walkSound);
+    },
+    { loop: false }
+  );
+
+  var ua = window.navigator.userAgent;
+  var isIE = /MSIE|Trident/.test(ua);
+  if (isIE)
+  {
+    //IE specific code goes here
+    c.setJumpKey("spacebar");
+  }
+
+  c.setCameraElasticity(true);
+  c.makeObstructionInvisible(false);
+
+}
+
+async function loadNPC(scene, engine, canvas)
+{
+    const result = await BABYLON.ImportMeshAsync("player/starterAvatars.babylon", scene);
+
+    var player = result.meshes[0];
+    player.skeleton.enableBlending(0.1);
 
     var sm = player.material;
     if (sm.diffuseTexture != null)
@@ -93,67 +216,28 @@ function loadPlayer(scene, engine, canvas)
       sm.ambientColor = new BABYLON.Color3(1, 1, 1);
     }
 
-    player.position = new BABYLON.Vector3(0, 12, 0);
+    player.position = new BABYLON.Vector3(3, 12, 1);
     player.checkCollisions = true;
     player.ellipsoid = new BABYLON.Vector3(0.5, 1, 0.5);
     player.ellipsoidOffset = new BABYLON.Vector3(0, 1, 0);
 
-    //rotate the camera behind the player
-    //player.rotation.y = Math.PI / 4;
-    //var alpha = -(Math.PI / 2 + player.rotation.y);
-    var alpha = -2.5;
-    var beta = 1.25;
-    var target = new BABYLON.Vector3(player.position.x, player.position.y + 1.5, player.position.z);
+    //camera null for npc
+    cc2 = new CharacterController(player, null, scene);
+    cc2.setFaceForward(false);
+    cc2.setMode(0);
+    cc2.setTurnSpeed(45);
 
-    var camera = new BABYLON.ArcRotateCamera("ArcRotateCamera", alpha, beta, 12, target, scene);
+    cc2.setStepOffset(0.4);
+    cc2.setSlopeLimit(30, 60);
 
-    //standard camera setting
-    camera.wheelPrecision = 15;
-    camera.checkCollisions = false;
-    //make sure the keyboard keys controlling camera are different from those controlling player
-    //here we will not use any keyboard keys to control camera
-    camera.keysLeft = [];
-    camera.keysRight = [];
-    camera.keysUp = [];
-    camera.keysDown = [];
-    //how close can the camera come to player
-    camera.lowerRadiusLimit = 2;
-    //how far can the camera go from the player
-    camera.upperRadiusLimit = 200;
-
-    camera.attachControl();
-
-    cc = new CharacterController(player, camera, scene);
-    cc.setFaceForward(false);
-    cc.setMode(0);
-    cc.setTurnSpeed(45);
-    //below makes the controller point the camera at the player head which is approx
-    //1.5m above the player origin
-    cc.setCameraTarget(new BABYLON.Vector3(0, 1.5, 0));
-
-    //if the camera comes close to the player we want to enter first person mode.
-    cc.setNoFirstPerson(false);
-    //the height of steps which the player can climb
-    cc.setStepOffset(0.4);
-    //the minimum and maximum slope the player can go up
-    //between the two the player will start sliding down if it stops
-    cc.setSlopeLimit(30, 60);
-
-    //tell controller
-    // - which animation range should be used for which player animation
-    // - rate at which to play that animation range
-    // - wether the animation range should be looped
-    //use this if name, rate or looping is different from default
-    cc.setIdleAnim("idle", 1, true);
-    cc.setTurnLeftAnim("turnLeft", 0.5, true);
-    cc.setTurnRightAnim("turnRight", 0.5, true);
-    cc.setWalkBackAnim("walkBack", 0.5, true);
-    cc.setIdleJumpAnim("idleJump", 0.5, false);
-    cc.setRunJumpAnim("runJump", 0.6, false);
-    cc.setFallAnim("fall", 2, false);
-    cc.setSlideBackAnim("slideBack", 1, false);
-
-    // cc.setSmoothTurnSpeed(0);
+    cc2.setIdleAnim("idle", 1, true);
+    cc2.setTurnLeftAnim("turnLeft", 0.5, true);
+    cc2.setTurnRightAnim("turnRight", 0.5, true);
+    cc2.setWalkBackAnim("walkBack", 0.5, true);
+    cc2.setIdleJumpAnim("idleJump", 0.5, false);
+    cc2.setRunJumpAnim("runJump", 0.6, false);
+    cc2.setFallAnim("fall", 2, false);
+    cc2.setSlideBackAnim("slideBack", 1, false);
 
     let walkSound = new BABYLON.Sound(
       "walk",
@@ -161,7 +245,7 @@ function loadPlayer(scene, engine, canvas)
       scene,
       () =>
       {
-        cc.setSound(walkSound);
+        cc2.setSound(walkSound);
       },
       { loop: false }
     );
@@ -171,56 +255,11 @@ function loadPlayer(scene, engine, canvas)
     if (isIE)
     {
       //IE specific code goes here
-      cc.setJumpKey("spacebar");
+      cc2.setJumpKey("spacebar");
     }
 
-    cc.setCameraElasticity(true);
-    cc.makeObstructionInvisible(false);
-    cc.start();
-
-    engine.runRenderLoop(function ()
-    {
-      scene.render();
-    });
-
-    cmds = [cc.walk, cc.walkBack, cc.run, cc.jump, cc.turnLeft, cc.turnRight, cc.strafeLeft, cc.strafeRight];
-    showControls();
-    canvas.focus();
-  });
-}
-
-//this is how you might set the animation ranges for a skeleton
-function setAnimationRanges(skel)
-{
-  delAnimRanges(skel);
-
-  skel.createAnimationRange("fall", 0, 16);
-  skel.createAnimationRange("idle", 21, 65);
-  skel.createAnimationRange("jump", 70, 94);
-  skel.createAnimationRange("run", 100, 121);
-  skel.createAnimationRange("slideBack", 125, 129);
-  skel.createAnimationRange("strafeLeft", 135, 179);
-  skel.createAnimationRange("strafeRight", 185, 229);
-  skel.createAnimationRange("turnLeft", 240, 262);
-  skel.createAnimationRange("turnRight", 270, 292);
-  skel.createAnimationRange("walk", 300, 335);
-  skel.createAnimationRange("walkBack", 340, 366);
-}
-/*
- * delete all existing ranges
- * @param {type} skel
- * @returns {undefined}
- */
-function delAnimRanges(skel)
-{
-  let ars = skel.getAnimationRanges();
-  let l = ars.length;
-  for (let i = 0; i < l; i++)
-  {
-    let ar = ars[i];
-    console.log(ar.name + "," + ar.from + "," + ar.to);
-    skel.deleteAnimationRange(ar.name, false);
-  }
+    cc2.enableKeyBoard(false);
+    cc2.start();
 }
 
 function createGround(scene, groundMaterial)
@@ -275,43 +314,48 @@ function showControls()
   el.style.visibility = "visible";
 }
 
-var w,
-  wb,
-  wbf,
-  r,
-  j,
-  tl,
-  tlf,
-  tr,
-  trf,
-  sl,
-  slf,
-  sr,
-  srf,
-  mvt,
-  tnt = false;
+var mvt,tnt = false;
 
 let activeElement = null;
 let activeClass = "w3-pale-green";
 let inActiveClass = "w3-pale-red";
 
-function toggleClass(e,action)
+function toggleClass(e, action)
 {
   e.target.classList.toggle(inActiveClass);
   e.target.classList.toggle(activeClass);
-  if (e.target.classList.contains(activeClass)){
-    if (activeElement != null){
+  if (e.target.classList.contains(activeClass))
+  {
+    if (activeElement != null)
+    {
       activeElement.classList.toggle(inActiveClass);
       activeElement.classList.toggle(activeClass)
     }
     if (action) cc[action](true);
     activeElement = e.target;
-  }else{
+  } else
+  {
     if (action) cc[action](false);
     activeElement = null;
   }
   canvas.focus();
 }
+
+function setUIValues()
+{
+
+  document.getElementById("tp").checked = cc.getMode() == 0 ? true : false;
+  document.getElementById("td").checked = cc.getMode() == 1 ? true : false;
+  document.getElementById("toff").checked = cc.isTurningOff();
+  document.getElementById("kb").checked = cc.isKeyBoardEnabled();
+
+  //for npc third person mode is always disabled.
+  document.getElementById("tp").disabled = (cc == cc2);
+  document.getElementById("toff").disabled = (cc == cc2);
+}
+
+
+
 function setControls()
 {
   const x = document.getElementsByTagName("button");
@@ -320,6 +364,20 @@ function setControls()
   {
     x[i].className = "w3-btn w3-border w3-round w3-pale-red";
   }
+
+  document.getElementById("pc").onclick = function (e)
+  {
+    cc = cc1;
+    setUIValues();
+    canvas.focus();
+  };
+
+  document.getElementById("npc").onclick = function (e)
+  {
+    cc = cc2;
+    setUIValues();
+    canvas.focus();
+  };
 
   document.getElementById("pl").onclick = function (e)
   {
@@ -333,23 +391,19 @@ function setControls()
 
   document.getElementById("w").onclick = function (e)
   {
-    // cc.walk((w = !w));
-    toggleClass(e,"walk");
+    toggleClass(e, "walk");
   };
   document.getElementById("wb").onclick = function (e)
   {
-    // cc.walkBack((wb = !wb));
-    toggleClass(e,"walkBack");
+    toggleClass(e, "walkBack");
   };
   document.getElementById("wbf").onclick = function (e)
   {
-    //cc.walkBackFast((wbf = !wbf));
-    toggleClass(e,"walkBackFast");
+    toggleClass(e, "walkBackFast");
   };
   document.getElementById("r").onclick = function (e)
   {
-    //cc.run((r = !r));
-    toggleClass(e,"run");
+    toggleClass(e, "run");
   };
   document.getElementById("j").onclick = function (e)
   {
@@ -358,43 +412,35 @@ function setControls()
   };
   document.getElementById("tl").onclick = function (e)
   {
-    // cc.turnLeft((tl = !tl));
-    toggleClass(e,"turnLeft");
+    toggleClass(e, "turnLeft");
   };
   document.getElementById("tlf").onclick = function (e)
   {
-    // cc.turnLeftFast((tlf = !tlf));
-    toggleClass(e,"turnLeftFast");
+    toggleClass(e, "turnLeftFast");
   };
   document.getElementById("tr").onclick = function (e)
   {
-    // cc.turnRight((tr = !tr));
-    toggleClass(e,"turnRight");
+    toggleClass(e, "turnRight");
   };
   document.getElementById("trf").onclick = function (e)
   {
-    // cc.turnRightFast((trf = !trf));
-    toggleClass(e,"turnRightFast");
+    toggleClass(e, "turnRightFast");
   };
   document.getElementById("sl").onclick = function (e)
   {
-    // cc.strafeLeft((sl = !sl));
-    toggleClass(e,"strafeLeft");
+    toggleClass(e, "strafeLeft");
   };
   document.getElementById("slf").onclick = function (e)
   {
-    // cc.strafeLeftFast((slf = !slf));
-    toggleClass(e,"strafeLeftFast");
+    toggleClass(e, "strafeLeftFast");
   };
   document.getElementById("sr").onclick = function (e)
   {
-    // cc.strafeRight((sr = !sr));
-    toggleClass(e,"strafeRight");
+    toggleClass(e, "strafeRight");
   };
   document.getElementById("srf").onclick = function (e)
   {
-    // cc.strafeRightFast((srf = !srf));
-    toggleClass(e,"strafeRightFast");
+    toggleClass(e, "strafeRightFast");
   };
   document.getElementById("mvt").onclick = function (e)
   {
@@ -403,10 +449,10 @@ function setControls()
       cc.moveToStop()
     } else
     {
-      cc.moveTo(box4);
+      cc.moveTo(box4, { onComplete: () => { cc.moveToStop(); toggleClass(e, null); console.log("moveTo complete"); mvt = !mvt; } });
     }
     mvt = !mvt;
-    toggleClass(e,null);
+    toggleClass(e, null);
   };
 
   document.getElementById("tnt").onclick = function (e)
@@ -418,10 +464,10 @@ function setControls()
     } else
     {
       console.log("turning");
-      cc.turnTo(box,{onComplete:()=>console.log(player.rotation.y)});
+      cc.turnTo(box, { onComplete: () => { cc.turnToStop(); toggleClass(e, null); console.log("turning complete"); tnt = !tnt; } });
     }
     tnt = !tnt;
-    toggleClass(e,null);
+    toggleClass(e, null);
   };
 
   document.getElementById("tp").onclick = function (e)
