@@ -25,8 +25,6 @@ function main() {
         // light2.position = new BABYLON.Vector3(0, 128, 0);
         // light2.intensity = 0.7;
 
-        var myMaterial = new BABYLON.StandardMaterial("myMaterial", scene);
-
 
         let groundMaterial = createGroundMaterial(scene);
         var ground = createGround(scene, groundMaterial);

@@ -225,8 +225,8 @@ The package exports the following:
 - `ActionMap` — class holding all action definitions with their defaults
 - `Actions` — constant object with action name strings (e.g., `Actions.WALK`, `Actions.RUN`)
 - `CCSettings` — serializable settings class for saving/restoring controller configuration
-- `MoveToOptions` — interface for `moveTo()` optional parameters (`run`, `arrivalDistance`, `obstructionThreshold`)
-- `TurnToOptions` — interface for `turnTo()` optional parameters (`fast`, `angularTolerance`)
+- `MoveToOptions` — interface for `moveTo()` optional parameters (`run`, `arrivalDistance`, `obstructionThreshold`, `onComplete`)
+- `TurnToOptions` — interface for `turnTo()` optional parameters (`fast`, `angularTolerance`, `onComplete`)
 
 ## API ( version 0.4.7 )
 
@@ -767,6 +767,7 @@ Moves the character toward a target position or follows a TransformNode.
 cc.moveTo(target);
 cc.moveTo(target, { run: true });
 cc.moveTo(target, { arrivalDistance: 1.0, obstructionThreshold: 0.01 });
+cc.moveTo(target, { onComplete: () => console.log("Arrived!") });
 ```
 
 **Parameters:**
@@ -777,6 +778,7 @@ cc.moveTo(target, { arrivalDistance: 1.0, obstructionThreshold: 0.01 });
 | `options.run` | `boolean` | Use run speed instead of walk. **Default: `false`** |
 | `options.arrivalDistance` | `number` | Distance from target at which the character stops (world units). **Default: `0.5`** |
 | `options.obstructionThreshold` | `number` | Minimum distance the character must move per frame to be considered making progress. If movement is below this for 3 consecutive frames, navigation stops. **Default: `0.001`** |
+| `options.onComplete` | `() => void` | Callback invoked when the character arrives at the target. For node-follow mode, fires each time the character reaches the node. Not called on cancellation (keyboard, manual command, or explicit stop). **Default: `undefined`** |
 
 **Behavior:**
 - If target is a `Vector3`: character moves to that position and stops
@@ -804,6 +806,7 @@ cc.turnTo(Math.PI / 2);                       // rotate 90° to the right (posit
 cc.turnTo(-Math.PI / 4);                      // rotate 45° to the left (negative = left)
 cc.turnTo(targetPosition, { fast: true });    // use fast turn speed
 cc.turnTo(targetNode, { angularTolerance: 0.1 });
+cc.turnTo(Math.PI, { onComplete: () => console.log("Turn complete") });
 ```
 
 **Parameters:**
@@ -813,6 +816,7 @@ cc.turnTo(targetNode, { angularTolerance: 0.1 });
 | `target` | `Vector3 \| TransformNode \| number` | A world position to face, a TransformNode to track, or an angle in radians to rotate by (positive = right, negative = left) |
 | `options.fast` | `boolean` | Use fast turn speed instead of normal. **Default: `false`** |
 | `options.angularTolerance` | `number` | Angular threshold (radians) at which rotation is considered complete. **Default: `0.035` (~2°)** |
+| `options.onComplete` | `() => void` | Callback invoked when the character finishes rotating to the target. For node-tracking mode, fires each time the character faces the node. Not called on cancellation (keyboard, manual command, or explicit stop). **Default: `undefined`** |
 
 **Behavior:**
 - If target is a `Vector3`: character rotates to face that position, then stops

@@ -1,11 +1,65 @@
+## 05/30/2026 0.4.7-alpha5
+
+### camera elastic springback — alpha/beta angle restoration
+- springback now restores camera alpha (horizontal) and beta (vertical) angles after an obstruction clears, not just radius
+- angles are captured on first obstruction push-in and restored using the same step-based deceleration formula (`remaining / steps`)
+- concurrent mode: when avatar is stationary and obstruction clears, angles and radius restore simultaneously
+- angle-priority mode: when avatar moves forward while camera is displaced, angles restore first; radius restoration begins only after a ray cast confirms the restored angle position is clear
+- if the restored angle position is blocked, angle targets are cleared and radius-only springback continues
+- new obstruction during angle restoration pauses angle steps, applies push-in, and resumes restoration when clear
+- user angle changes during springback are detected and update the restoration target to the user's new preferred angles
+- new API: `setSpringbackAngleRestore(b)` / `isSpringbackAngleRestore()` — independent toggle for angle restoration (default: enabled)
+- toggling off during active recovery stops angle steps immediately; toggling on resumes toward stored targets
+- angle restoration requires radius springback (`_springback`) to also be enabled
+- `springbackAngleRestore` added to CCSettings for save/restore via getSettings()/setSettings()
+
+
+### onComplete callbacks for moveTo / turnTo
+- added `onComplete` option to `MoveToOptions` — callback fires when character arrives at target
+- added `onComplete` option to `TurnToOptions` — callback fires when character finishes rotating
+- in node-follow/track mode, callback fires each time the character reaches the node (re-arms when movement resumes)
+- callbacks are NOT invoked on cancellation (keyboard, manual command, or explicit stop)
+- `moveToStop()` and `turnToStop()` now invoke the onComplete callback before clearing state
+
+### turnTo mode 1 fix
+- fixed turnTo direction in mode 1: navigation now bypasses camera-relative sign logic so turnLeft/turnRight commands produce correct rotation direction
+
+### keyboard cancel improvement
+- keyboard press now only cancels navigation if moveTo or turnTo is actually active (avoids unnecessary action resets)
+- added `_act.reset()` call after cancellation to clear stale action state
+
+### cancel state cleanup
+- `_cancelMoveTo()` and `_cancelTurnTo()` now fully reset state: clear onComplete callback, completeFired flag, and restore saved mode
+
+### turnTo rotation normalization
+- avatar rotation.y is now normalized to [-π, π] before computing shortest-arc delta, preventing unbounded drift from repeated turn commands
+
+### camera elastic springback — ellipsoid-based clearance
+- elastic camera movement now accounts for camera ellipsoid size (uses `Math.max(ellipsoid.x, ellipsoid.z)` as clearance radius)
+- camera stops moving when within ellipsoidRadius of target (instead of hardcoded 0.1)
+- elastic step distance subtracts ellipsoidRadius to prevent camera from clipping into obstructions
+- springback obstruction check subtracts ellipsoidRadius from pick distance for accurate clearance comparison
+
+### test page improvements (tst/testCommandControl)
+- boxes renamed with colors (red-box, green-box, yellow-box, blue-box) and given colored materials
+- button toggle logic refactored: only one movement action active at a time (mutual exclusion)
+- camera radius increased from 5 to 12 for better visibility
+- lighting adjusted for better scene visibility
+- `turnTo` button now demonstrates `onComplete` callback (logs rotation.y)
+
+### README updates
+- documented `onComplete` option for both `moveTo()` and `turnTo()` with examples and parameter tables
+
 ## 05/29/2026 0.4.7-alpha4
 
 ### documentation improvement
+
 ### bug fix. 
 - In case of animation groups, set action api (like setIdleAnim) wasn't working
 - es vs umd issues fixed. now consumer has to add /es or/umd to import of charactercontroller
 
 ## 05/26/2026 0.4.7-alpha3
+
 ### moveTo / turnTo navigation APIs
 - added `moveTo(target, options?)` — move character toward a Vector3 position or follow a TransformNode
 - added `moveToStop()` — cancel active moveTo operation

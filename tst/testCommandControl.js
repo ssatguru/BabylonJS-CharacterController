@@ -22,34 +22,41 @@ function main()
   scene.debugLayer.show({ showExplorer: true, embedMode: true });
 
   var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
-  light.intensity = 0.3;
+  light.intensity = 0.5;
 
-  var light2 = new BABYLON.DirectionalLight("light2", new BABYLON.Vector3(-1, -1, -1), scene);
+  var light2 = new BABYLON.DirectionalLight("light2", new BABYLON.Vector3(1, -1, 1), scene);
   light2.position = new BABYLON.Vector3(0, 128, 0);
   light2.intensity = 0.7;
 
   var myMaterial = new BABYLON.StandardMaterial("myMaterial", scene);
 
+  myMaterial.diffuseColor = new BABYLON.Color3(1, 0, 0); // red
   //boxes to check camera elasticity and making obstructions invisibile checks
 
-  box = BABYLON.Mesh.CreateBox("box1", 2, scene);
+  box = BABYLON.Mesh.CreateBox("red-box", 2, scene);
   box.checkCollisions = false;
   box.position = new BABYLON.Vector3(0, 8, 5);
   box.material = myMaterial;
   //  box.isVisible = false;
 
-  var box2 = BABYLON.Mesh.CreateBox("box2", 2, scene);
+  var box2 = BABYLON.Mesh.CreateBox("green-box", 2, scene);
   box2.checkCollisions = true;
-  box2.position = new BABYLON.Vector3(0, 8, 7);
+  box2.position = new BABYLON.Vector3(-5, 8, 7);
+  box2.material = myMaterial.clone("green");
+  box2.material.diffuseColor = new BABYLON.Color3(0, 1, 0); 
 
-  let box3 = box.createInstance("box3");
+  let box3 = BABYLON.Mesh.CreateBox("yellow-box",2,scene);
   box3.position = new BABYLON.Vector3(0, 8, -7);
   box3.checkCollisions = true;
+  box3.material = myMaterial.clone("yellow");
+  box3.material.diffuseColor = new BABYLON.Color3(1, 1, 0); 
 
   //check for visibility
-  box4 = BABYLON.Mesh.CreateBox("box4", 2, scene);
-  box4.position = new BABYLON.Vector3(5, 9, 5);
+  box4 = BABYLON.Mesh.CreateBox("blue-box", 2, scene);
+  box4.position = new BABYLON.Vector3(15, 11, 26);
   box4.checkCollisions = false;
+  box4.material = myMaterial.clone("blue");
+  box4.material.diffuseColor = new BABYLON.Color3(0, 0, 1); 
   //box4.visibility = 0;
 
   let groundMaterial = createGroundMaterial(scene);
@@ -64,13 +71,14 @@ function main()
 
 var cc;
 var box, box4;
+var player;
 
 function loadPlayer(scene, engine, canvas)
 {
   //BABYLON.SceneLoader.ImportMesh("", "player/", "Vincent-frontFacing.babylon", scene, function (meshes, particleSystems, skeletons) {
   BABYLON.SceneLoader.ImportMesh("", "player/", "starterAvatars.babylon", scene, function (meshes, particleSystems, skeletons)
   {
-    var player = meshes[0];
+    player = meshes[0];
     var skeleton = skeletons[0];
     player.skeleton = skeleton;
 
@@ -93,11 +101,11 @@ function loadPlayer(scene, engine, canvas)
     //rotate the camera behind the player
     //player.rotation.y = Math.PI / 4;
     //var alpha = -(Math.PI / 2 + player.rotation.y);
-    var alpha = 0;
-    var beta = Math.PI / 2.5;
+    var alpha = -2.5;
+    var beta = 1.25;
     var target = new BABYLON.Vector3(player.position.x, player.position.y + 1.5, player.position.z);
 
-    var camera = new BABYLON.ArcRotateCamera("ArcRotateCamera", alpha, beta, 5, target, scene);
+    var camera = new BABYLON.ArcRotateCamera("ArcRotateCamera", alpha, beta, 12, target, scene);
 
     //standard camera setting
     camera.wheelPrecision = 15;
@@ -283,10 +291,25 @@ var w,
   mvt,
   tnt = false;
 
-function toggleClass(e)
+let activeElement = null;
+let activeClass = "w3-pale-green";
+let inActiveClass = "w3-pale-red";
+
+function toggleClass(e,action)
 {
-  e.target.classList.toggle("w3-pale-red");
-  e.target.classList.toggle("w3-pale-green");
+  e.target.classList.toggle(inActiveClass);
+  e.target.classList.toggle(activeClass);
+  if (e.target.classList.contains(activeClass)){
+    if (activeElement != null){
+      activeElement.classList.toggle(inActiveClass);
+      activeElement.classList.toggle(activeClass)
+    }
+    if (action) cc[action](true);
+    activeElement = e.target;
+  }else{
+    if (action) cc[action](false);
+    activeElement = null;
+  }
   canvas.focus();
 }
 function setControls()
@@ -310,23 +333,23 @@ function setControls()
 
   document.getElementById("w").onclick = function (e)
   {
-    cc.walk((w = !w));
-    toggleClass(e);
+    // cc.walk((w = !w));
+    toggleClass(e,"walk");
   };
   document.getElementById("wb").onclick = function (e)
   {
-    cc.walkBack((wb = !wb));
-    toggleClass(e);
+    // cc.walkBack((wb = !wb));
+    toggleClass(e,"walkBack");
   };
   document.getElementById("wbf").onclick = function (e)
   {
-    cc.walkBackFast((wbf = !wbf));
-    toggleClass(e);
+    //cc.walkBackFast((wbf = !wbf));
+    toggleClass(e,"walkBackFast");
   };
   document.getElementById("r").onclick = function (e)
   {
-    cc.run((r = !r));
-    toggleClass(e);
+    //cc.run((r = !r));
+    toggleClass(e,"run");
   };
   document.getElementById("j").onclick = function (e)
   {
@@ -335,43 +358,43 @@ function setControls()
   };
   document.getElementById("tl").onclick = function (e)
   {
-    cc.turnLeft((tl = !tl));
-    toggleClass(e);
+    // cc.turnLeft((tl = !tl));
+    toggleClass(e,"turnLeft");
   };
   document.getElementById("tlf").onclick = function (e)
   {
-    cc.turnLeftFast((tlf = !tlf));
-    toggleClass(e);
+    // cc.turnLeftFast((tlf = !tlf));
+    toggleClass(e,"turnLeftFast");
   };
   document.getElementById("tr").onclick = function (e)
   {
-    cc.turnRight((tr = !tr));
-    toggleClass(e);
+    // cc.turnRight((tr = !tr));
+    toggleClass(e,"turnRight");
   };
   document.getElementById("trf").onclick = function (e)
   {
-    cc.turnRightFast((trf = !trf));
-    toggleClass(e);
+    // cc.turnRightFast((trf = !trf));
+    toggleClass(e,"turnRightFast");
   };
   document.getElementById("sl").onclick = function (e)
   {
-    cc.strafeLeft((sl = !sl));
-    toggleClass(e);
+    // cc.strafeLeft((sl = !sl));
+    toggleClass(e,"strafeLeft");
   };
   document.getElementById("slf").onclick = function (e)
   {
-    cc.strafeLeftFast((slf = !slf));
-    toggleClass(e);
+    // cc.strafeLeftFast((slf = !slf));
+    toggleClass(e,"strafeLeftFast");
   };
   document.getElementById("sr").onclick = function (e)
   {
-    cc.strafeRight((sr = !sr));
-    toggleClass(e);
+    // cc.strafeRight((sr = !sr));
+    toggleClass(e,"strafeRight");
   };
   document.getElementById("srf").onclick = function (e)
   {
-    cc.strafeRightFast((srf = !srf));
-    toggleClass(e);
+    // cc.strafeRightFast((srf = !srf));
+    toggleClass(e,"strafeRightFast");
   };
   document.getElementById("mvt").onclick = function (e)
   {
@@ -383,20 +406,22 @@ function setControls()
       cc.moveTo(box4);
     }
     mvt = !mvt;
-    toggleClass(e);
+    toggleClass(e,null);
   };
 
   document.getElementById("tnt").onclick = function (e)
   {
     if (tnt)
     {
+      console.log("turning stop");
       cc.turnToStop();
     } else
     {
-      cc.turnTo(box);
+      console.log("turning");
+      cc.turnTo(box,{onComplete:()=>console.log(player.rotation.y)});
     }
     tnt = !tnt;
-    toggleClass(e);
+    toggleClass(e,null);
   };
 
   document.getElementById("tp").onclick = function (e)

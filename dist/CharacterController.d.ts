@@ -73,6 +73,8 @@ export declare class CharacterController {
     setCameraElasticSpringback(b: boolean): void;
     isCameraElasticSpringback(): boolean;
     setSpringbackSteps(n: number): void;
+    setSpringbackAngleRestore(b: boolean): void;
+    isSpringbackAngleRestore(): boolean;
     makeObstructionInvisible(b: boolean): void;
     setCameraTarget(v: Vector3): void;
     cameraCollisionChanged(): void;
@@ -166,6 +168,12 @@ export declare class CharacterController {
     private _springbackSteps;
     private _originalRadius;
     private _expectedRadius;
+    private _originalAlpha;
+    private _originalBeta;
+    private _springbackAngleRestore;
+    private _expectedAlpha;
+    private _expectedBeta;
+    private _angleRestorationActive;
     private _alreadyInvisible;
     private _handleObstruction;
     private _isSeeAble;
@@ -212,6 +220,8 @@ export declare class CharacterController {
     private _moveToActive;
     private _moveToLastPos;
     private _moveToSaveMode;
+    private _moveToOnComplete;
+    private _moveToCompleteFired;
     private _turnToTarget;
     private _turnToNode;
     private _turnToAngle;
@@ -220,6 +230,8 @@ export declare class CharacterController {
     private _turnToAngularTolerance;
     private _turnToActive;
     private _turnToSaveMode;
+    private _turnToOnComplete;
+    private _turnToCompleteFired;
     private _navRenderer;
     private _startNavRenderer;
     private _stopNavRenderer;
@@ -320,13 +332,16 @@ export declare class CCSettings {
     smoothTurnSpeed: number;
     springback?: boolean;
     springbackSteps?: number;
+    springbackAngleRestore?: boolean;
 }
 export interface MoveToOptions {
     run?: boolean;
     arrivalDistance?: number;
     obstructionThreshold?: number;
+    onComplete?: () => void;
 }
 export interface TurnToOptions {
     fast?: boolean;
     angularTolerance?: number;
+    onComplete?: () => void;
 }

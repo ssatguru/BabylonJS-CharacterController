@@ -383,6 +383,7 @@ export class CharacterController {
         ccs.smoothTurnSpeed = this.getSmoothTurnSpeed();
         ccs.springback = this._springback;
         ccs.springbackSteps = Math.floor(Math.min(1000, Math.max(1, this._springbackSteps)));
+        ccs.springbackAngleRestore = this._springbackAngleRestore;
 
         return ccs;
     }
@@ -410,6 +411,9 @@ export class CharacterController {
         }
         if (ccs.springbackSteps !== undefined) {
             this._springbackSteps = Math.floor(Math.min(1000, Math.max(1, ccs.springbackSteps)));
+        }
+        if (ccs.springbackAngleRestore !== undefined) {
+            this.setSpringbackAngleRestore(ccs.springbackAngleRestore);
         }
 
     }
@@ -586,6 +590,11 @@ export class CharacterController {
         this._cameraElastic = b;
         if (!b) {
             this._originalRadius = null;
+            this._originalAlpha = null;
+            this._originalBeta = null;
+            this._expectedAlpha = null;
+            this._expectedBeta = null;
+            this._angleRestorationActive = false;
         }
     }
 
@@ -606,6 +615,21 @@ export class CharacterController {
         if (n < 1) n = 1;
         if (n > 1000) n = 1000;
         this._springbackSteps = n;
+    }
+
+    public setSpringbackAngleRestore(b: boolean): void {
+        this._springbackAngleRestore = b;
+        if (b) {
+            if (this._originalAlpha !== null) {
+                this._angleRestorationActive = true;
+            }
+        } else {
+            this._angleRestorationActive = false;
+        }
+    }
+
+    public isSpringbackAngleRestore(): boolean {
+        return this._springbackAngleRestore;
     }
 
     public makeObstructionInvisible(b: boolean) {
@@ -1520,6 +1544,14 @@ export class CharacterController {
             }
             let a;
             if (this._mode == 1) {
+                if (this._turnToActive) {
+                    // Navigation mode: bypass camera-relative sign logic.
+                    // turnLeft = increase rotation.y (positive), turnRight = decrease (negative)
+                    a = this._act._turnLeft ? 1 : -1;
+                    if (!moving) {
+                        anim = this._act._turnLeft ? this._actionMap.turnLeft : this._actionMap.turnRight;
+                    }
+                } else {
                 // while turining, the avatar could start facing away from camera and end up facing camera.
                 // we should not switch turning direction during this transition
                 if (!this._isTurning) {
@@ -1543,6 +1575,7 @@ export class CharacterController {
                         a = -this._sign;
                         anim = (this._sign > 0) ? this._actionMap.turnLeft : this._actionMap.turnRight;
                     }
+                }
                 }
             } else {
                 a = 1;
@@ -1677,11 +1710,81 @@ export class CharacterController {
             if (newDist >= this._originalRadius) {
                 // Avatar moved far enough — distance restored. Resume normal following.
                 this._originalRadius = null;
+                this._originalAlpha = null;
+                this._originalBeta = null;
+                this._expectedAlpha = null;
+                this._expectedBeta = null;
+                this._angleRestorationActive = false;
                 this._expectedRadius = this._camera.radius;
             } else if (newDist > this._camera.radius) {
                 // Avatar moved away — hold camera at saved position
                 this._camera.position.copyFrom(holdCameraPos);
                 this._camera.rebuildAnglesAndRadius();
+
+                // Angle-priority restoration: restore alpha/beta first, suppress radius restoration
+                if (this._originalAlpha !== null && this._springbackAngleRestore && this._springback) {
+                    const alphaDiff: number = this._originalAlpha - this._camera.alpha;
+                    const betaDiff: number = this._originalBeta - this._camera.beta;
+
+                    if (Math.abs(alphaDiff) <= 0.005 && Math.abs(betaDiff) <= 0.005) {
+                        // Angles within snap threshold — snap to targets
+                        this._camera.alpha = this._originalAlpha;
+                        this._camera.beta = this._originalBeta;
+
+                        // Ray cast verification: check if the path is clear at restored angles
+                        // before allowing radius restoration.
+                        const restoredDir: Vector3 = new Vector3(
+                            Math.sin(this._originalBeta) * Math.sin(this._originalAlpha),
+                            Math.cos(this._originalBeta),
+                            Math.sin(this._originalBeta) * Math.cos(this._originalAlpha)
+                        );
+                        this._ray.origin = this._camera.target;
+                        this._ray.direction = restoredDir;
+                        this._ray.length = this._originalRadius;
+                        const verifyPis: PickingInfo[] = this._scene.multiPickWithRay(this._ray, (mesh) => {
+                            if (this._avChildren.includes(mesh)) return false;
+                            return mesh.isPickable;
+                        });
+
+                        const _ellipsoid = (this._camera as any).ellipsoid || (this._camera as any).collisionRadius;
+                        const ellipsoidRadius: number = _ellipsoid ? Math.max(_ellipsoid.x, _ellipsoid.z) : 0;
+                        const currentDist: number = Vector3.Distance(this._camera.position, this._camera.target);
+                        let pathBlocked: boolean = false;
+                        for (let i = 0; i < verifyPis.length; i++) {
+                            const pm = verifyPis[i].pickedMesh;
+                            if (this._isSeeAble(pm) || pm.checkCollisions) {
+                                const pickDist: number = Vector3.Distance(verifyPis[i].pickedPoint, this._camera.target);
+                                if ((pickDist - ellipsoidRadius) < this._originalRadius && (pickDist - ellipsoidRadius) > currentDist) {
+                                    pathBlocked = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!pathBlocked) {
+                            // Path clear — allow radius restoration to proceed
+                            this._angleRestorationActive = false;
+                        } else {
+                            // Path blocked — hold current radius, clear angle state, retain _originalRadius
+                            this._originalAlpha = null;
+                            this._originalBeta = null;
+                            this._expectedAlpha = null;
+                            this._expectedBeta = null;
+                            this._angleRestorationActive = false;
+                        }
+                    } else {
+                        // Apply angle restoration steps (suppress radius restoration)
+                        this._angleRestorationActive = true;
+                        const alphaStep: number = alphaDiff / this._springbackSteps;
+                        const betaStep: number = betaDiff / this._springbackSteps;
+                        this._camera.alpha += alphaStep;
+                        this._camera.beta += betaStep;
+                    }
+                    // Store expected values for user-change detection
+                    this._expectedAlpha = this._camera.alpha;
+                    this._expectedBeta = this._camera.beta;
+                }
+
                 // Update expectedRadius so user-change detection doesn't misfire
                 this._expectedRadius = this._camera.radius;
             }
@@ -1707,6 +1810,11 @@ export class CharacterController {
                     // Avatar moved away enough to exit first-person
                     if (distToTarget >= this._originalRadius) {
                         this._originalRadius = null;
+                        this._originalAlpha = null;
+                        this._originalBeta = null;
+                        this._expectedAlpha = null;
+                        this._expectedBeta = null;
+                        this._angleRestorationActive = false;
                         this._expectedRadius = this._camera.radius;
                     } else {
                         this._camera.position.copyFrom(fpHoldPos);
@@ -1757,8 +1865,8 @@ export class CharacterController {
 
     private _ray: Ray = new Ray(Vector3.Zero(), Vector3.One(), 1);
     private _rayDir: Vector3 = Vector3.Zero();
-    //camera seems to get stuck into things
-    //should move camera away from things by a value of cameraSkin
+    // Superseded by ellipsoid-based clearance (ellipsoidRadius = Math.max(camera.ellipsoid.x, camera.ellipsoid.z)).
+    // For default ellipsoid (0.5, 1, 0.5), ellipsoidRadius = 0.5 matches this value.
     private _cameraSkin: number = 0.5;
     private _prevPickedMeshes: AbstractMesh[];
     private _pickedMeshes: AbstractMesh[] = new Array();;
@@ -1768,6 +1876,12 @@ export class CharacterController {
     private _springbackSteps: number = 50;
     private _originalRadius: number | null = null;
     private _expectedRadius: number | null = null;
+    private _originalAlpha: number | null = null;
+    private _originalBeta: number | null = null;
+    private _springbackAngleRestore: boolean = true;
+    private _expectedAlpha: number | null = null;
+    private _expectedBeta: number | null = null;
+    private _angleRestorationActive: boolean = false;
     private _alreadyInvisible: AbstractMesh[];
 
     /**
@@ -1795,6 +1909,11 @@ export class CharacterController {
             if (radiusDelta < -0.01 && this._originalRadius !== null) {
                 userScrolled = true;
                 this._originalRadius = null;
+                this._originalAlpha = null;
+                this._originalBeta = null;
+                this._expectedAlpha = null;
+                this._expectedBeta = null;
+                this._angleRestorationActive = false;
                 this._expectedRadius = this._camera.radius;
             } else {
                 // For other changes, use the step-based threshold
@@ -1806,6 +1925,11 @@ export class CharacterController {
                 if (absDelta > maxExpectedStep) {
                     userScrolled = true;
                     this._originalRadius = null;
+                    this._originalAlpha = null;
+                    this._originalBeta = null;
+                    this._expectedAlpha = null;
+                    this._expectedBeta = null;
+                    this._angleRestorationActive = false;
                     this._expectedRadius = this._camera.radius;
                 }
             }
@@ -1854,6 +1978,8 @@ export class CharacterController {
         }
 
         if (this._cameraElastic) {
+            const _ellipsoid = (this._camera as any).ellipsoid || (this._camera as any).collisionRadius;
+            const ellipsoidRadius: number = _ellipsoid ? Math.max(_ellipsoid.x, _ellipsoid.z) : 0;
             if (pis.length > 0) {
                 // postion the camera in front of the mesh that is obstructing camera
 
@@ -1882,6 +2008,19 @@ export class CharacterController {
                     this._originalRadius = this._camera.radius;
                 }
 
+                // Store original alpha/beta on first push-in for angle restoration
+                if (this._springbackAngleRestore && this._originalAlpha === null) {
+                    this._originalAlpha = this._camera.alpha;
+                    this._originalBeta = this._camera.beta;
+                }
+
+                // If angle restoration was active, pause it during obstruction push-in.
+                // The stored _originalAlpha/_originalBeta are retained so restoration
+                // resumes when the obstruction clears.
+                if (this._angleRestorationActive) {
+                    this._angleRestorationActive = false;
+                }
+
                 const c2p: Vector3 = this._camera.position.subtract(pp);
                 //note that when camera is collidable, changing the orbital camera radius may not work.
                 //changing the radius moves the camera forward (with collision?) and collision can interfere with movement
@@ -1893,13 +2032,15 @@ export class CharacterController {
                 //if collision is on
 
                 const l: number = c2p.length();
-                if (l <= 0.1) {
+                if (l <= Math.max(ellipsoidRadius, 0.1)) {
                     // Close enough — stop moving. The deceleration has brought us near the target.
                 } else if (this._camera.checkCollisions) {
-                    let step: Vector3 = c2p.normalize().scaleInPlace(l / this._elasticSteps);
+                    const targetDist: number = Math.max(l - ellipsoidRadius, 0);
+                    let step: Vector3 = c2p.normalize().scaleInPlace(targetDist / this._elasticSteps);
                     this._camera.position = this._camera.position.subtract(step);
                 } else {
-                    let step: number = l / this._elasticSteps;
+                    const targetDist: number = Math.max(l - ellipsoidRadius, 0);
+                    let step: number = targetDist / this._elasticSteps;
                     this._camera.radius = this._camera.radius - step;
                 }
             } else {
@@ -1925,7 +2066,7 @@ export class CharacterController {
                             const pm = springPis[i].pickedMesh;
                             if (this._isSeeAble(pm) || pm.checkCollisions) {
                                 const pickDist: number = Vector3.Distance(springPis[i].pickedPoint, this._camera.target);
-                                if (pickDist > currentDist) {
+                                if ((pickDist - ellipsoidRadius) > currentDist) {
                                     // Obstruction exists between camera and original radius — don't spring back
                                     springBlocked = true;
                                     break;
@@ -1934,9 +2075,41 @@ export class CharacterController {
                         }
 
                         if (!springBlocked) {
+                            // Detect user-initiated angle changes BEFORE applying angle restoration steps.
+                            // This mirrors the radius user-change detection at the top of the method.
+                            if (this._expectedAlpha !== null && this._expectedBeta !== null && !this._angleRestorationActive) {
+                                const actualAlpha: number = this._camera.alpha;
+                                const actualBeta: number = this._camera.beta;
+                                const alphaDelta: number = Math.abs(actualAlpha - this._expectedAlpha);
+                                const betaDelta: number = Math.abs(actualBeta - this._expectedBeta);
+
+                                // Compute threshold: max(|_originalAlpha - camera.alpha| / _springbackSteps, 0.001)
+                                const alphaThreshold: number = this._originalAlpha !== null
+                                    ? Math.max(Math.abs(this._originalAlpha - actualAlpha) / this._springbackSteps, 0.001)
+                                    : 0.001;
+                                const betaThreshold: number = this._originalBeta !== null
+                                    ? Math.max(Math.abs(this._originalBeta - actualBeta) / this._springbackSteps, 0.001)
+                                    : 0.001;
+
+                                if (alphaDelta > alphaThreshold || betaDelta > betaThreshold) {
+                                    // User-initiated angle change detected
+                                    if (this._originalAlpha !== null) {
+                                        // Update springback targets to user's new preferred angles
+                                        this._originalAlpha = this._camera.alpha;
+                                        this._originalBeta = this._camera.beta;
+                                    }
+                                    // If _originalAlpha === null: no-op (no angle springback in progress)
+                                }
+                            }
+
                             if (remainingDistance <= 0.1) {
                                 // Close enough — stop. Clear displacement.
                                 this._originalRadius = null;
+                                this._originalAlpha = null;
+                                this._originalBeta = null;
+                                this._expectedAlpha = null;
+                                this._expectedBeta = null;
+                                this._angleRestorationActive = false;
                             } else if (this._camera.checkCollisions) {
                                 // Collision mode: move camera position along the avatar-to-camera vector
                                 const dir: Vector3 = this._camera.position.subtract(this._camera.target).normalize();
@@ -1948,14 +2121,48 @@ export class CharacterController {
                                 const step: number = remainingDistance / this._springbackSteps;
                                 this._camera.radius = this._camera.radius + step;
                             }
+
+                            // Concurrent angle restoration: restore alpha/beta alongside radius
+                            if (this._springbackAngleRestore && this._originalAlpha !== null && this._springback) {
+                                const alphaStep: number = (this._originalAlpha - this._camera.alpha) / this._springbackSteps;
+                                const betaStep: number = (this._originalBeta - this._camera.beta) / this._springbackSteps;
+
+                                if (Math.abs(this._originalAlpha - this._camera.alpha) <= 0.005 && Math.abs(this._originalBeta - this._camera.beta) <= 0.005) {
+                                    // Snap both angles to targets
+                                    this._camera.alpha = this._originalAlpha;
+                                    this._camera.beta = this._originalBeta;
+                                    this._originalAlpha = null;
+                                    this._originalBeta = null;
+                                    this._angleRestorationActive = false;
+                                } else {
+                                    // Apply deceleration steps
+                                    this._camera.alpha += alphaStep;
+                                    this._camera.beta += betaStep;
+                                    this._angleRestorationActive = true;
+                                }
+                                // Store expected values for user-change detection
+                                this._expectedAlpha = this._camera.alpha;
+                                this._expectedBeta = this._camera.beta;
+                            }
+
                             // Clear _originalRadius when camera reaches target (within 0.01 tolerance)
                             if (this._originalRadius !== null && Math.abs(this._camera.radius - this._originalRadius) <= 0.01) {
                                 this._originalRadius = null;
+                                this._originalAlpha = null;
+                                this._originalBeta = null;
+                                this._expectedAlpha = null;
+                                this._expectedBeta = null;
+                                this._angleRestorationActive = false;
                             }
                         }
                     } else {
                         // Camera is at or beyond original radius — clear recovery target
                         this._originalRadius = null;
+                        this._originalAlpha = null;
+                        this._originalBeta = null;
+                        this._expectedAlpha = null;
+                        this._expectedBeta = null;
+                        this._angleRestorationActive = false;
                     }
                 }
             }
@@ -1963,6 +2170,13 @@ export class CharacterController {
 
         // Store current radius as expected for next frame's user-change detection
         this._expectedRadius = this._camera.radius;
+
+        // Store current angles as expected for next frame's user-change detection
+        // (only when angle tracking is active but not already set by angle restoration above)
+        if (this._originalAlpha !== null && this._expectedAlpha === null) {
+            this._expectedAlpha = this._camera.alpha;
+            this._expectedBeta = this._camera.beta;
+        }
     }
 
     //how many ways can a mesh be invisible?
@@ -1985,8 +2199,11 @@ export class CharacterController {
         if (e.repeat) return;
         // Cancel navigation on keyboard press (only if keyboard is enabled)
         if (this._ekb) {
-            this._cancelMoveTo();
-            this._cancelTurnTo();
+            if (this._moveToActive || this._turnToActive) {
+                this._cancelMoveTo();
+                this._cancelTurnTo();
+                this._act.reset();
+            }
         }
         switch (e.key.toLowerCase()) {
             case this._actionMap.idleJump.key:
@@ -2107,6 +2324,9 @@ export class CharacterController {
         this._moveToActive = false;
         this._moveToObstructionCount = 0;
         this._moveToLastPos = null;
+        this._moveToOnComplete = null;
+        this._moveToCompleteFired = false;
+        this.setMode(this._moveToSaveMode);
         this._stopNavRenderer();
     }
 
@@ -2120,6 +2340,9 @@ export class CharacterController {
         this._turnToAngle = null;
         this._turnToTargetAngle = null;
         this._turnToActive = false;
+        this._turnToOnComplete = null;
+        this._turnToCompleteFired = false;
+        this.setMode(this._turnToSaveMode);
         this._stopNavRenderer();
     }
 
@@ -2203,6 +2426,7 @@ export class CharacterController {
         // 2. Extract and clamp options
         const fast = options?.fast ?? false;
         const angularTolerance = clampPositive(options?.angularTolerance ?? 0.035, 0.035);
+        const onComplete = options?.onComplete ?? null;
 
         // 3. Cancel previous turnTo (clear state without calling idle)
         this._turnToTarget = null;
@@ -2260,6 +2484,8 @@ export class CharacterController {
         this._turnToFast = fast;
         this._turnToAngularTolerance = angularTolerance;
         this._turnToActive = true;
+        this._turnToOnComplete = onComplete;
+        this._turnToCompleteFired = false;
         this.moveToStop();
         this._turnToSaveMode = this.getMode();
         this.setMode(1);
@@ -2268,14 +2494,18 @@ export class CharacterController {
 
     public turnToStop(): void {
         if (!this._turnToActive) return;
+        const cb = this._turnToOnComplete;
         this.idle();
         this._turnToTarget = null;
         this._turnToNode = null;
         this._turnToAngle = null;
         this._turnToTargetAngle = null;
         this._turnToActive = false;
+        this._turnToOnComplete = null;
+        this._turnToCompleteFired = false;
         this.setMode(this._turnToSaveMode);
         this._stopNavRenderer();
+        if (cb) cb();
     }
 
     private _act: _Action;
@@ -2297,6 +2527,8 @@ export class CharacterController {
     private _moveToActive: boolean = false;
     private _moveToLastPos: Vector3 | null = null;
     private _moveToSaveMode:number;
+    private _moveToOnComplete: (() => void) | null = null;
+    private _moveToCompleteFired: boolean = false;
 
     // turnTo navigation state
     private _turnToTarget: Vector3 | null = null;
@@ -2307,6 +2539,8 @@ export class CharacterController {
     private _turnToAngularTolerance: number = 0.035;
     private _turnToActive: boolean = false;
     private _turnToSaveMode:number;
+    private _turnToOnComplete: (() => void) | null = null;
+    private _turnToCompleteFired: boolean = false;
 
     // Navigation renderer (separate from CC's main renderer)
     private _navRenderer: (() => void) | null = null;
@@ -2372,12 +2606,19 @@ export class CharacterController {
                 this.idle();
                 this._moveToLastPos = null;
                 this._moveToObstructionCount = 0;
+                if (this._moveToOnComplete && !this._moveToCompleteFired) {
+                    this._moveToCompleteFired = true;
+                    this._moveToOnComplete();
+                }
             } else {
                 // Static target: stop completely
                 this.moveToStop();
             }
             return;
         }
+
+        // Reset the complete-fired flag when character leaves arrival zone (movement resumes)
+        this._moveToCompleteFired = false;
 
         // 4. Orient character toward target (only if turnTo is not active)
         if (!this._turnToActive) {
@@ -2430,6 +2671,9 @@ export class CharacterController {
 
         // 3. Compute shortest-arc delta
         if (this._turnToTargetAngle == null) return;
+        // Normalize rotation.y to [-PI, PI] to prevent unbounded drift from turn commands
+        while (this._avatar.rotation.y > Math.PI) this._avatar.rotation.y -= 2 * Math.PI;
+        while (this._avatar.rotation.y < -Math.PI) this._avatar.rotation.y += 2 * Math.PI;
         const currentY = this._avatar.rotation.y;
         const delta = shortestArcDelta(currentY, this._turnToTargetAngle);
 
@@ -2438,12 +2682,19 @@ export class CharacterController {
             if (this._turnToNode != null) {
                 // Node tracking: stop turning, remain active (will resume when node moves)
                 this.idle();
+                if (this._turnToOnComplete && !this._turnToCompleteFired) {
+                    this._turnToCompleteFired = true;
+                    this._turnToOnComplete();
+                }
             } else {
                 // Static target or angle: operation complete
                 this.turnToStop();
             }
             return;
         }
+
+        // Reset the complete-fired flag when character leaves angular tolerance (rotation resumes)
+        this._turnToCompleteFired = false;
 
         // 5. Issue turn command based on direction
         // Positive delta = need to increase rotation.y = turnLeft
@@ -2475,6 +2726,7 @@ export class CharacterController {
         const run = options?.run ?? false;
         const arrivalDist = clampPositive(options?.arrivalDistance ?? 0.5, 0.5);
         const obstructionThreshold = clampPositive(options?.obstructionThreshold ?? 0.001, 0.001);
+        const onComplete = options?.onComplete ?? null;
 
         // 2. Determine target position
         let targetPos: Vector3;
@@ -2510,6 +2762,8 @@ export class CharacterController {
         this._moveToObstructionThreshold = obstructionThreshold;
         this._moveToObstructionCount = 0;
         this._moveToActive = true;
+        this._moveToOnComplete = onComplete;
+        this._moveToCompleteFired = false;
         this.turnToStop();
         this._moveToSaveMode = this.getMode();
         this.setMode(1);
@@ -2523,14 +2777,18 @@ export class CharacterController {
      */
     public moveToStop(): void {
         if (!this._moveToActive) return;
+        const cb = this._moveToOnComplete;
         this.idle();
         this._moveToTarget = null;
         this._moveToNode = null;
         this._moveToActive = false;
         this._moveToObstructionCount = 0;
         this._moveToLastPos = null;
+        this._moveToOnComplete = null;
+        this._moveToCompleteFired = false;
         this.setMode(this._moveToSaveMode);
         this._stopNavRenderer();
+        if (cb) cb();
     }
 
     private _findSkel(n: Node): Skeleton {
@@ -2891,6 +3149,7 @@ export class CCSettings {
     public smoothTurnSpeed: number;
     public springback?: boolean;
     public springbackSteps?: number;
+    public springbackAngleRestore?: boolean;
 }
 
 
@@ -2898,9 +3157,11 @@ export interface MoveToOptions {
     run?: boolean;
     arrivalDistance?: number;
     obstructionThreshold?: number;
+    onComplete?: () => void;
 }
 
 export interface TurnToOptions {
     fast?: boolean;
     angularTolerance?: number;
+    onComplete?: () => void;
 }

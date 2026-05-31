@@ -73,11 +73,14 @@ interface MoveToOptions {
   run?: boolean;              // default: false
   arrivalDistance?: number;   // default: 0.5 (world units)
   obstructionThreshold?: number; // default: 0.001 (world units per frame)
+  onComplete?: () => void;    // callback invoked on arrival (not on cancellation)
 }
 
 interface TurnToOptions {
   fast?: boolean;             // default: false
   angularTolerance?: number;  // default: 0.035 (radians, ~2°)
+  onComplete?: () => void;    // callback invoked when rotation completes (not on cancellation)
+}
 }
 ```
 
@@ -92,6 +95,7 @@ private _moveToArrivalDist: number = 0.5;
 private _moveToObstructionThreshold: number = 0.001;
 private _moveToObstructionCount: number = 0;
 private _moveToActive: boolean = false;
+private _moveToOnComplete: (() => void) | null = null;
 
 // turnTo state
 private _turnToTarget: Vector3 | null = null;
@@ -101,6 +105,7 @@ private _turnToTargetAngle: number | null = null;  // absolute target Y rotation
 private _turnToFast: boolean = false;
 private _turnToAngularTolerance: number = 0.035;
 private _turnToActive: boolean = false;
+private _turnToOnComplete: (() => void) | null = null;
 ```
 
 ### Integration Points
@@ -169,7 +174,7 @@ stateDiagram-v2
    b. Update _moveToTarget from node.getAbsolutePosition()
 2. Compute horizontal distance from character to _moveToTarget
 3. If distance <= _moveToArrivalDist:
-   a. Call idle(), clear moveTo state
+   a. Call idle(), clear moveTo state, invoke _moveToOnComplete if set
    b. If following a node, remain in active state (will resume when node moves)
    c. Return
 4. Compute direction angle from character position to _moveToTarget
@@ -178,7 +183,7 @@ stateDiagram-v2
 7. Compute frame movement distance (XZ plane)
 8. If frameDistance < _moveToObstructionThreshold:
    a. Increment _moveToObstructionCount
-   b. If count >= 3 → call moveToStop()
+   b. If count >= 3 → call moveToStop() (onComplete is invoked)
 9. Else: reset _moveToObstructionCount to 0
 ```
 
@@ -195,8 +200,8 @@ stateDiagram-v2
 3. If _turnToTargetAngle is set:
    a. Compute shortest-arc delta from current Y rotation to _turnToTargetAngle
    b. If |delta| <= _turnToAngularTolerance:
-      - If tracking a node: hold (remain active, stop turning)
-      - Else: call idle(), clear turnTo state, return
+      - If tracking a node: hold (remain active, stop turning), invoke _turnToOnComplete if set
+      - Else: call idle(), clear turnTo state, invoke _turnToOnComplete if set, return
    c. If delta > 0: call turnRight(true) or turnRightFast(true)
    d. If delta < 0: call turnLeft(true) or turnLeftFast(true)
 ```
@@ -310,6 +315,8 @@ All optional numeric parameters are validated at call time:
 | Invalid parameter values (`<= 0`) | Silently use default values |
 | `moveTo()` called when already at target | Call idle, do not initiate movement |
 | TransformNode disposed during active follow | Detect on next frame, stop and idle |
+| `onComplete` not provided | No callback invoked on completion |
+| Navigation cancelled (keyboard, manual, mutual exclusivity) | `onComplete` is NOT invoked |
 
 ## Testing Strategy
 

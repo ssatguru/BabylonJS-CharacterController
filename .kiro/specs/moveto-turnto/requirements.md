@@ -160,3 +160,18 @@ This feature adds high-level navigation APIs (`moveTo()` and `turnTo()`) to the 
 4. WHILE Keyboard_Input is disabled on the Character_Controller, WHEN a keyboard key is pressed during an active `moveTo()` or `turnTo()` operation, THE Character_Controller SHALL not cancel the operation and SHALL ignore the keyboard input
 5. WHEN `moveTo()` or `turnTo()` is called on a Character that has Keyboard_Input enabled, THE Character_Controller SHALL accept the call and begin the operation normally, overriding any current keyboard-driven movement
 6. WHILE both a `moveTo()` and a `turnTo()` operation are active on an Avatar, WHEN a keyboard key is pressed, THE Character_Controller SHALL cancel both operations simultaneously and yield control to the keyboard input handler
+
+### Requirement 12: Completion Callback
+
+**User Story:** As a game developer, I want to provide a callback that executes when a moveTo or turnTo operation completes, so that I can chain actions or trigger events upon arrival.
+
+#### Acceptance Criteria
+
+1. THE `MoveToOptions` interface SHALL accept an optional `onComplete` property of type `() => void`
+2. THE `TurnToOptions` interface SHALL accept an optional `onComplete` property of type `() => void`
+3. WHEN a `moveTo()` operation reaches the Target_Position within the Arrival_Distance, THE Character_Controller SHALL invoke the `onComplete` callback if one was provided
+4. WHEN a `moveTo()` operation is following a Target_Node and the Character reaches within the Arrival_Distance, THE Character_Controller SHALL invoke the `onComplete` callback each time arrival occurs
+5. WHEN a `turnTo()` operation completes rotation within the Angular_Tolerance, THE Character_Controller SHALL invoke the `onComplete` callback if one was provided
+6. WHEN a `turnTo()` operation is tracking a Target_Node and the Character faces the node within the Angular_Tolerance, THE Character_Controller SHALL invoke the `onComplete` callback each time the facing goal is reached
+7. WHEN a `moveTo()` or `turnTo()` operation is cancelled (by keyboard input, manual command, mutual exclusivity, or explicit stop), THE Character_Controller SHALL NOT invoke the `onComplete` callback
+8. IF `onComplete` is not provided or is `undefined`, THEN THE Character_Controller SHALL not attempt to invoke any callback upon completion
