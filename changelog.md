@@ -1,3 +1,8 @@
+## 06/01/2026 0.4.7-alpha7
+
+### test page improvements 
+combine testAnimationRange.html and testAnimationGroup.html into one page namely testArAg.html
+
 ## 05/31/2026 0.4.7-alpha6
 
 ### turn direction & animation fix
