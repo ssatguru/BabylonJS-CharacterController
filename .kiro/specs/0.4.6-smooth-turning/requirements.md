@@ -38,14 +38,15 @@ This feature replaces the instant avatar rotation behavior in mode 0 with `turni
 1. WHILE Turning_Off is true and Mode_0 is active and a directional key is pressed, THE Character_Controller SHALL recalculate the Target_Angle based on the current camera-relative forward direction each frame and rotate the Avatar toward it incrementally using the formula: `rotation_step = Smooth_Turn_Speed * Delta_Time`.
 2. WHEN the absolute angular difference along the shortest arc between the Avatar's current rotation and the Target_Angle is less than or equal to the rotation step for the current frame, THE Character_Controller SHALL set the Avatar's rotation directly to the Target_Angle to prevent overshooting.
 3. WHILE Turning_Off is true and Mode_0 is active, THE Character_Controller SHALL rotate the Avatar along the shortest arc (clockwise or counter-clockwise) toward the Target_Angle.
-4. WHEN the forward key is pressed alone, THE Character_Controller SHALL set the Target_Angle to 0 degrees from the camera-relative forward direction (i.e., facing the same direction the camera is looking along the ground plane).
-5. WHEN the left key is pressed alone, THE Character_Controller SHALL set the Target_Angle to 90 degrees left of the camera-relative forward direction.
-6. WHEN the right key is pressed alone, THE Character_Controller SHALL set the Target_Angle to 90 degrees right of the camera-relative forward direction.
-7. WHEN the back key is pressed alone, THE Character_Controller SHALL set the Target_Angle to 180 degrees from the camera-relative forward direction.
-8. WHEN the forward key and left key are pressed together, THE Character_Controller SHALL set the Target_Angle to 45 degrees left of the camera-relative forward direction.
-9. WHEN the forward key and right key are pressed together, THE Character_Controller SHALL set the Target_Angle to 45 degrees right of the camera-relative forward direction.
-10. WHEN the back key and left key are pressed together, THE Character_Controller SHALL set the Target_Angle to 135 degrees left of the camera-relative forward direction.
-11. WHEN the back key and right key are pressed together, THE Character_Controller SHALL set the Target_Angle to 135 degrees right of the camera-relative forward direction.
+4. WHEN the shortest-arc angular difference between the Avatar's current rotation and the Target_Angle is exactly 180 degrees (±π radians), THE Character_Controller SHALL always rotate clockwise (viewed from above) regardless of avatar facing direction or coordinate system handedness, to prevent positional drift from alternating rotation directions.
+5. WHEN the forward key is pressed alone, THE Character_Controller SHALL set the Target_Angle to 0 degrees from the camera-relative forward direction (i.e., facing the same direction the camera is looking along the ground plane).
+6. WHEN the left key is pressed alone, THE Character_Controller SHALL set the Target_Angle to 90 degrees left of the camera-relative forward direction.
+7. WHEN the right key is pressed alone, THE Character_Controller SHALL set the Target_Angle to 90 degrees right of the camera-relative forward direction.
+8. WHEN the back key is pressed alone, THE Character_Controller SHALL set the Target_Angle to 180 degrees from the camera-relative forward direction.
+9. WHEN the forward key and left key are pressed together, THE Character_Controller SHALL set the Target_Angle to 45 degrees left of the camera-relative forward direction.
+10. WHEN the forward key and right key are pressed together, THE Character_Controller SHALL set the Target_Angle to 45 degrees right of the camera-relative forward direction.
+11. WHEN the back key and left key are pressed together, THE Character_Controller SHALL set the Target_Angle to 135 degrees left of the camera-relative forward direction.
+12. WHEN the back key and right key are pressed together, THE Character_Controller SHALL set the Target_Angle to 135 degrees right of the camera-relative forward direction.
 
 ### Requirement 3: Movement During Smooth Turning
 

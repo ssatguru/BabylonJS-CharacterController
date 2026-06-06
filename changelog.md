@@ -1,3 +1,50 @@
+## 06/06/2026 0.4.7-alpha9
+
+### TypeScript upgrade (4.9 → 6.0)
+- upgraded TypeScript from ^4.9 to ~6.0.3 (aligns with BabylonJS 9.x which uses ~6.0.2)
+- tsconfig changes required by TS 6.0:
+  - added `"ignoreDeprecations": "6.0"` — suppresses deprecation warnings for `target: "es5"` and `moduleResolution: "node"` (these will be removed in TS 7.0)
+  - added `"strict": false` — TS 6.0 defaults strict to true; explicitly disabling preserves existing behavior
+  - added `"skipLibCheck": true` — avoids type conflicts between BabylonJS 8.x WebGPU declarations and TS 6.0's updated lib.dom.d.ts
+  - added `"rootDir": "src"` — TS 6.0 requires explicit rootDir when outDir is set
+  - moved `lib` into `compilerOptions` and expanded to `["dom", "es2017"]` — needed for `Array.includes()` and `Object.values()` which were previously resolved implicitly
+- no source code changes required
+- all builds (UMD production, UMD dev, ESM) and all 272 tests pass
+
+### BabylonJS 9.x upgrade risk analysis
+- documented upgrade risks for eventual migration from BabylonJS 8.x to 9.x:
+  - HIGH: Audio engine overhaul (Sound/PlaySoundAction deprecated in favor of V2 audio)
+  - HIGH: UMD `babylonjs` package instability (namespace loading-order regressions in 9.5.0, since patched)
+  - HIGH: `@babylonjs/core` sub-path restructuring (new "pure barrel" in 9.8+ may affect ESM externals map)
+  - MEDIUM: ArcRotateCamera right-handed scene fix (8.10.1+)
+  - MEDIUM: TypeScript version gap (now resolved by this upgrade)
+  - MEDIUM: moveWithCollisions multi-call per frame (existing limitation, not new)
+  - LOW: Ray/PickingInfo/mesh/animation APIs unchanged
+
+## 06/06/2026 0.4.7-alpha8
+
+### smooth turning fix
+- 180° tiebreaker: when the target angle is exactly 180° from current, rotation always goes clockwise (viewed from above) regardless of avatar facing or coordinate system handedness — prevents positional drift from alternating left↔right or forward↔back key presses
+
+### three-stage jump
+- added three-stage jump sequence: pre-jump → jump → post-jump, implemented as a state machine layered on existing jump logic
+- each stage is gated by animation existence — if no pre/post animation is registered, that stage is skipped (fully backward compatible)
+- new `const enum JumpStage { NONE, PRE_JUMP, JUMP, POST_JUMP }` drives the state machine
+- `_doJump(dt)` refactored into a dispatcher: routes to `_beginJump`, `_doPreJump`, `_doJumpAirborne`, or `_doPostJump` based on stage
+- new API: `setPreIdleJumpAnim()`, `setPostIdleJumpAnim()`, `setPreRunJumpAnim()`, `setPostRunJumpAnim()` for registering pre/post jump animations
+- new ActionMap entries: `preIdleJump`, `postIdleJump`, `preRunJump`, `postRunJump` (auto-detected from skeleton/AnimationGroups)
+- auto-detection guard: manually registered animations are preserved (not overwritten by auto-detection)
+- input gating: jump key ignored during PRE_JUMP and JUMP stages; buffered during POST_JUMP (at most 1); movement keys ignored during PRE_JUMP and POST_JUMP
+- programmatic `jump()` method respects three-stage sequence (ignored if jump already in progress or in free-fall)
+- `_endJump()` now transitions to POST_JUMP when post-animation exists; new `_endJumpFull()` handles full state cleanup
+- `_getAnimDuration(actData)` helper computes animation duration from frame count, fps, and rate (with graceful degradation for missing data)
+- added 16 property-based test files (vitest + fast-check) covering all 15 correctness properties plus animation duration
+
+### jump sound fix
+- fixed: jump sound no longer fires during pre-jump and post-jump stage transitions
+- sound now plays exactly once at liftoff (first airborne frame) and once at landing (`_endJump`)
+- `setSound()` now nulls out `idleJump`, `runJump`, `preIdleJump`, `postIdleJump`, `preRunJump`, `postRunJump` sound entries (jump sound is played explicitly, not via animation-change detection)
+
 ## 06/01/2026 0.4.7-alpha7
 
 ### test page improvements 

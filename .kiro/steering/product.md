@@ -5,6 +5,7 @@ BabylonJS-CharacterController is a third-person character controller library for
 ## Core Capabilities
 
 - Avatar movement: walk, run, strafe, turn, jump, fall, slide
+- Three-stage jump: optional pre-jump (anticipation) and post-jump (recovery) animations with automatic stage skipping when animations are absent
 - Goal-oriented navigation: moveTo (move toward a position or follow a node) and turnTo (face a position, track a node, or rotate by angle)
 - Two camera modes: third-person/first-person (mode 0) and top-down/isometric (mode 1)
 - Animation support via both AnimationRanges (skeleton) and AnimationGroups (.glb files)

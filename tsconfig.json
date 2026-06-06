@@ -1,7 +1,9 @@
 {
   "compilerOptions": {
-    "declaration":true,
+    "ignoreDeprecations": "6.0",
+    "declaration": true,
     "target": "es5",
+    "lib": ["dom", "es2017"],
     "module": "es2015",
     "moduleResolution": "node",
     "sourceMap": true,
@@ -9,9 +11,10 @@
     "experimentalDecorators": true,
     "removeComments": true,
     "noImplicitAny": false,
-    "outDir":"dist"
+    "strict": false,
+    "skipLibCheck": true,
+    "rootDir": "src",
+    "outDir": "dist"
   },
-  "include": ["src/**/*.ts"],
-  "lib":["dom"]
+  "include": ["src/**/*.ts"]
 }
-

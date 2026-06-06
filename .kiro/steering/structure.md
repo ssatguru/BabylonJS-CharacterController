@@ -17,10 +17,13 @@
 │   ├── mode0-instant-rotation.test.ts
 │   ├── mode-turningoff-mid-rotation.test.ts
 │   ├── movement-direction-during-turn.test.ts
+│   ├── turn-direction-animation.test.ts
 │   ├── elastic-springback-step-formula.test.ts
 │   ├── elastic-springback-state-tracking.test.ts
 │   ├── elastic-springback-modes.test.ts
 │   ├── elastic-springback-settings.test.ts
+│   ├── elastic-springback-ellipsoid-clearance-bug.test.ts
+│   ├── elastic-springback-ellipsoid-preservation.test.ts
 │   ├── moveto-distance-reduction.test.ts
 │   ├── moveto-arrival-detection.test.ts
 │   ├── moveto-obstruction-detection.test.ts
@@ -35,6 +38,22 @@
 │   ├── navigation-keyboard-cancel.test.ts
 │   ├── navigation-keyboard-disabled.test.ts
 │   ├── navigation-stop-noop.test.ts
+│   ├── three-stage-jump-anim-duration.test.ts
+│   ├── three-stage-jump-pre-jump-grounded.test.ts
+│   ├── three-stage-jump-pre-jump-completion.test.ts
+│   ├── three-stage-jump-pre-jump-skip.test.ts
+│   ├── three-stage-jump-backward-compat.test.ts
+│   ├── three-stage-jump-displacement-formula.test.ts
+│   ├── three-stage-jump-speed-components.test.ts
+│   ├── three-stage-jump-landing-detection.test.ts
+│   ├── three-stage-jump-post-jump-entry.test.ts
+│   ├── three-stage-jump-post-jump-skip.test.ts
+│   ├── three-stage-jump-input-ignored.test.ts
+│   ├── three-stage-jump-movement-ignored.test.ts
+│   ├── three-stage-jump-buffering.test.ts
+│   ├── three-stage-jump-post-jump-completion.test.ts
+│   ├── three-stage-jump-programmatic-jump.test.ts
+│   ├── three-stage-jump-jump-ignored.test.ts
 │   ├── esm-import-map-completeness.test.ts
 │   ├── esm-output-externals.test.ts
 │   ├── esm-output-integration.test.ts
@@ -42,10 +61,8 @@
 │   └── webpack-config-structure.test.ts
 ├── tst/                           # Manual test pages
 │   ├── test.html                  # Default dev server page
-│   ├── testAnimationGroup.html/js # Tests with AnimationGroup (.glb)
-│   ├── testAnimationRange.html/js # Tests with AnimationRange (.babylon)
+│   ├── testArAg.html/js           # Tests with AnimationRange + AnimationGroup
 │   ├── testCommandControl.html/js # Tests for programmatic control
-│   ├── testNPC.html/js            # Tests for NPC (no camera) mode
 │   ├── player/                    # Avatar models (.babylon, .glb, .blend)
 │   ├── ground/                    # Terrain textures and heightmaps
 │   └── sounds/                    # Footstep audio files

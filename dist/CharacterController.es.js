@@ -237,6 +237,11 @@ var CharacterController = (function () {
         this._inFreeFall = false;
         this._wasWalking = false;
         this._wasRunning = false;
+        this._jumpStage = 0;
+        this._jumpStageTime = 0;
+        this._jumpStageDuration = 0;
+        this._jumpBuffered = false;
+        this._wasIdleJump = false;
         this._moveVector = math_vector_namespaceObject.Vector3.Zero();
         this._soundLoopTime = 700;
         this._sndId = null;
@@ -646,6 +651,18 @@ var CharacterController = (function () {
     CharacterController.prototype.setRunJumpAnim = function (rangeName, rate, loop) {
         this._setAnim(this._actionMap.runJump, rangeName, rate, loop);
     };
+    CharacterController.prototype.setPreIdleJumpAnim = function (rangeName, rate, loop) {
+        this._setAnim(this._actionMap.preIdleJump, rangeName, rate, loop);
+    };
+    CharacterController.prototype.setPostIdleJumpAnim = function (rangeName, rate, loop) {
+        this._setAnim(this._actionMap.postIdleJump, rangeName, rate, loop);
+    };
+    CharacterController.prototype.setPreRunJumpAnim = function (rangeName, rate, loop) {
+        this._setAnim(this._actionMap.preRunJump, rangeName, rate, loop);
+    };
+    CharacterController.prototype.setPostRunJumpAnim = function (rangeName, rate, loop) {
+        this._setAnim(this._actionMap.postRunJump, rangeName, rate, loop);
+    };
     CharacterController.prototype.setFallAnim = function (rangeName, rate, loop) {
         this._setAnim(this._actionMap.fall, rangeName, rate, loop);
     };
@@ -666,6 +683,12 @@ var CharacterController = (function () {
         this._actionMap.idle.sound = null;
         this._actionMap.fall.sound = null;
         this._actionMap.slideBack.sound = null;
+        this._actionMap.preIdleJump.sound = null;
+        this._actionMap.postIdleJump.sound = null;
+        this._actionMap.preRunJump.sound = null;
+        this._actionMap.postRunJump.sound = null;
+        this._actionMap.idleJump.sound = null;
+        this._actionMap.runJump.sound = null;
     };
     CharacterController.prototype.setWalkKey = function (key) {
         this._actionMap.walk.key = key.toLowerCase();
@@ -748,6 +771,8 @@ var CharacterController = (function () {
             var key = keys_4[_i];
             var anim = this._actionMap[key];
             if (!(anim instanceof ActionData))
+                continue;
+            if (anim.exist)
                 continue;
             if (skel != null) {
                 if (skel.getAnimationRange(anim.id) != null) {
@@ -864,6 +889,8 @@ var CharacterController = (function () {
             var key = keys_5[_i];
             var anim = this._actionMap[key];
             if (!(anim instanceof ActionData))
+                continue;
+            if (anim.exist)
                 continue;
             if (agMap[anim.name] != null) {
                 anim.ag = agMap[anim.name];
@@ -999,10 +1026,25 @@ var CharacterController = (function () {
         return;
     };
     CharacterController.prototype._doJump = function (dt) {
+        switch (this._jumpStage) {
+            case 0:
+                return this._beginJump(dt);
+            case 1:
+                return this._doPreJump(dt);
+            case 2:
+                return this._doJumpAirborne(dt);
+            case 3:
+                return this._doPostJump(dt);
+        }
+    };
+    CharacterController.prototype._doJumpAirborne = function (dt) {
         var actData = null;
         actData = this._actionMap.runJump;
         if (this._jumpTime === 0) {
             this._jumpStartPosY = this._avatar.position.y;
+            if (this._stepSound != null) {
+                this._stepSound.play();
+            }
         }
         this._jumpTime = this._jumpTime + dt;
         var forwardDist = 0;
@@ -1052,11 +1094,101 @@ var CharacterController = (function () {
         var jumpDist = js * dt - 0.5 * this._gravity * dt * dt;
         return jumpDist;
     };
-    CharacterController.prototype._endJump = function () {
+    CharacterController.prototype._getAnimDuration = function (actData) {
+        if (actData == null || actData.rate === 0)
+            return 0;
+        if (this._isAG) {
+            var ag = actData.ag;
+            if (ag == null)
+                return 0;
+            if (ag.targetedAnimations == null || ag.targetedAnimations.length === 0)
+                return 0;
+            var frameCount = ag.to - ag.from;
+            var fps = ag.targetedAnimations[0].animation.framePerSecond;
+            if (fps === 0)
+                return 0;
+            return frameCount / (fps * Math.abs(actData.rate));
+        }
+        else {
+            if (this._skeleton == null)
+                return 0;
+            var range = this._skeleton.getAnimationRange(actData.name);
+            if (range == null)
+                return 0;
+            var frameCount = range.to - range.from;
+            var fps = 30;
+            return frameCount / (fps * Math.abs(actData.rate));
+        }
+    };
+    CharacterController.prototype._beginJump = function (dt) {
+        this._wasIdleJump = !this._wasWalking && !this._wasRunning;
+        var preAnim = this._wasIdleJump
+            ? this._actionMap.preIdleJump
+            : this._actionMap.preRunJump;
+        if (preAnim.exist) {
+            this._jumpStage = 1;
+            this._jumpStageTime = 0;
+            this._jumpStageDuration = this._getAnimDuration(preAnim);
+            return preAnim;
+        }
+        else {
+            this._jumpStage = 2;
+            return this._doJumpAirborne(dt);
+        }
+    };
+    CharacterController.prototype._doPreJump = function (dt) {
+        this._jumpStageTime += dt;
+        var preAnim = this._wasIdleJump
+            ? this._actionMap.preIdleJump
+            : this._actionMap.preRunJump;
+        if (this._jumpStageTime >= this._jumpStageDuration) {
+            this._jumpStage = 2;
+            this._jumpStageTime = 0;
+            return this._doJumpAirborne(dt);
+        }
+        return preAnim;
+    };
+    CharacterController.prototype._doPostJump = function (dt) {
+        this._jumpStageTime += dt;
+        var postAnim = this._wasIdleJump
+            ? this._actionMap.postIdleJump
+            : this._actionMap.postRunJump;
+        if (this._jumpStageTime >= this._jumpStageDuration) {
+            var buffered = this._jumpBuffered;
+            this._endJumpFull();
+            if (buffered) {
+                this._act._jump = true;
+            }
+            return null;
+        }
+        return postAnim;
+    };
+    CharacterController.prototype._endJumpFull = function () {
         this._act._jump = false;
+        this._jumpStage = 0;
+        this._jumpStageTime = 0;
+        this._jumpStageDuration = 0;
         this._jumpTime = 0;
         this._wasWalking = false;
         this._wasRunning = false;
+        this._wasIdleJump = false;
+        this._jumpBuffered = false;
+    };
+    CharacterController.prototype._endJump = function () {
+        if (this._stepSound != null) {
+            this._stepSound.play();
+        }
+        var postAnim = this._wasIdleJump
+            ? this._actionMap.postIdleJump
+            : this._actionMap.postRunJump;
+        if (postAnim.exist) {
+            this._jumpStage = 3;
+            this._jumpStageTime = 0;
+            this._jumpStageDuration = this._getAnimDuration(postAnim);
+        }
+        else {
+            this._endJumpFull();
+        }
     };
     CharacterController.prototype._areVectorsEqual = function (v1, v2, p) {
         return ((Math.abs(v1.x - v2.x) < p) && (Math.abs(v1.y - v2.y) < p) && (Math.abs(v1.z - v2.z) < p));
@@ -1325,6 +1457,8 @@ var CharacterController = (function () {
                             delta -= 2 * Math.PI;
                         while (delta < -Math.PI)
                             delta += 2 * Math.PI;
+                        if (Math.abs(delta) === Math.PI)
+                            delta = this._rhsSign * Math.PI;
                         var step = this._smoothTurnSpeed === 0 ? Math.abs(delta) : Math.min(Math.abs(delta), this._smoothTurnSpeed * dt);
                         if (Math.abs(delta) <= step) {
                             this._setAvatarRotationY(targetAngle);
@@ -1879,7 +2013,12 @@ var CharacterController = (function () {
         }
         switch (e.key.toLowerCase()) {
             case this._actionMap.idleJump.key:
-                this._act._jump = true;
+                if (this._jumpStage === 0) {
+                    this._act._jump = true;
+                }
+                else if (this._jumpStage === 3) {
+                    this._jumpBuffered = true;
+                }
                 break;
             case "capslock":
                 this._act._speedMod = !this._act._speedMod;
@@ -1890,27 +2029,39 @@ var CharacterController = (function () {
             case "up":
             case "arrowup":
             case this._actionMap.walk.key:
+                if (this._jumpStage === 1 || this._jumpStage === 3)
+                    break;
                 this._act._walk = true;
                 break;
             case "left":
             case "arrowleft":
             case this._actionMap.turnLeft.key:
+                if (this._jumpStage === 1 || this._jumpStage === 3)
+                    break;
                 this._act._turnLeft = true;
                 break;
             case "right":
             case "arrowright":
             case this._actionMap.turnRight.key:
+                if (this._jumpStage === 1 || this._jumpStage === 3)
+                    break;
                 this._act._turnRight = true;
                 break;
             case "down":
             case "arrowdown":
             case this._actionMap.walkBack.key:
+                if (this._jumpStage === 1 || this._jumpStage === 3)
+                    break;
                 this._act._walkback = true;
                 break;
             case this._actionMap.strafeLeft.key:
+                if (this._jumpStage === 1 || this._jumpStage === 3)
+                    break;
                 this._act._stepLeft = true;
                 break;
             case this._actionMap.strafeRight.key:
+                if (this._jumpStage === 1 || this._jumpStage === 3)
+                    break;
                 this._act._stepRight = true;
                 break;
         }
@@ -2065,6 +2216,10 @@ var CharacterController = (function () {
         this._act._speedMod = b;
     };
     CharacterController.prototype.jump = function () {
+        if (this._jumpStage !== 0)
+            return;
+        if (this._inFreeFall)
+            return;
         this._act.reset();
         this._act._jump = true;
     };
@@ -2512,6 +2667,10 @@ var Actions = {
     STRAFERIGHT: "strafeRight",
     STRAFERIGHTFAST: "strafeRightFast",
     SLIDEBACK: "slideBack",
+    PREIDLEJUMP: "preIdleJump",
+    POSTIDLEJUMP: "postIdleJump",
+    PRERUNJUMP: "preRunJump",
+    POSTRUNJUMP: "postRunJump",
     getAll: function () { return Object.values(Actions).filter(function (v) { return typeof v === "string"; }); }
 };
 var ActionMap = (function () {
@@ -2533,6 +2692,10 @@ var ActionMap = (function () {
         this.strafeRight = new ActionData(Actions.STRAFERIGHT, 1.5, "e");
         this.strafeRightFast = new ActionData(Actions.STRAFERIGHTFAST, 3, "na");
         this.slideBack = new ActionData(Actions.SLIDEBACK, 0, "na");
+        this.preIdleJump = new ActionData(Actions.PREIDLEJUMP, 0, "na");
+        this.postIdleJump = new ActionData(Actions.POSTIDLEJUMP, 0, "na");
+        this.preRunJump = new ActionData(Actions.PRERUNJUMP, 0, "na");
+        this.postRunJump = new ActionData(Actions.POSTRUNJUMP, 0, "na");
     }
     ActionMap.prototype.reset = function () {
         var keys = Object.keys(this);

@@ -58,6 +58,10 @@ export declare class CharacterController {
     setStrafeLeftFastAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
     setIdleJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
     setRunJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
+    setPreIdleJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
+    setPostIdleJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
+    setPreRunJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
+    setPostRunJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
     setFallAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
     _stepSound: Sound;
     setSound(sound: Sound): void;
@@ -117,6 +121,11 @@ export declare class CharacterController {
     private _inFreeFall;
     private _wasWalking;
     private _wasRunning;
+    private _jumpStage;
+    private _jumpStageTime;
+    private _jumpStageDuration;
+    private _jumpBuffered;
+    private _wasIdleJump;
     private _moveVector;
     private _isAvFacingCamera;
     private _moveAVandCamera;
@@ -125,7 +134,13 @@ export declare class CharacterController {
     private _jumpStartPosY;
     private _jumpTime;
     private _doJump;
+    private _doJumpAirborne;
     private _calcJumpDist;
+    private _getAnimDuration;
+    private _beginJump;
+    private _doPreJump;
+    private _doPostJump;
+    private _endJumpFull;
     private _endJump;
     private _areVectorsEqual;
     private _verticalSlope;
@@ -288,6 +303,10 @@ export declare const Actions: {
     readonly STRAFERIGHT: "strafeRight";
     readonly STRAFERIGHTFAST: "strafeRightFast";
     readonly SLIDEBACK: "slideBack";
+    readonly PREIDLEJUMP: "preIdleJump";
+    readonly POSTIDLEJUMP: "postIdleJump";
+    readonly PRERUNJUMP: "preRunJump";
+    readonly POSTRUNJUMP: "postRunJump";
     readonly getAll: () => any;
 };
 export declare class ActionMap {
@@ -308,6 +327,10 @@ export declare class ActionMap {
     strafeRight: ActionData;
     strafeRightFast: ActionData;
     slideBack: ActionData;
+    preIdleJump: ActionData;
+    postIdleJump: ActionData;
+    preRunJump: ActionData;
+    postRunJump: ActionData;
     reset(): void;
     actionNames(): string[];
 }

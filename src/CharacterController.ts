@@ -112,6 +112,13 @@ function clampPositive(value: number, defaultValue: number): number {
 
 // --- End navigation helper functions ---
 
+const enum JumpStage {
+    NONE = 0,
+    PRE_JUMP = 1,
+    JUMP = 2,
+    POST_JUMP = 3
+}
+
 
 export class CharacterController {
 
@@ -538,6 +545,18 @@ export class CharacterController {
     public setRunJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
         this._setAnim(this._actionMap.runJump, rangeName, rate, loop);
     }
+    public setPreIdleJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+        this._setAnim(this._actionMap.preIdleJump, rangeName, rate, loop);
+    }
+    public setPostIdleJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+        this._setAnim(this._actionMap.postIdleJump, rangeName, rate, loop);
+    }
+    public setPreRunJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+        this._setAnim(this._actionMap.preRunJump, rangeName, rate, loop);
+    }
+    public setPostRunJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+        this._setAnim(this._actionMap.postRunJump, rangeName, rate, loop);
+    }
     public setFallAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
         this._setAnim(this._actionMap.fall, rangeName, rate, loop);
     }
@@ -560,6 +579,12 @@ export class CharacterController {
         this._actionMap.idle.sound = null;
         this._actionMap.fall.sound = null;
         this._actionMap.slideBack.sound = null;
+        this._actionMap.preIdleJump.sound = null;
+        this._actionMap.postIdleJump.sound = null;
+        this._actionMap.preRunJump.sound = null;
+        this._actionMap.postRunJump.sound = null;
+        this._actionMap.idleJump.sound = null;
+        this._actionMap.runJump.sound = null;
     }
 
 
@@ -664,6 +689,7 @@ export class CharacterController {
         for (let key of keys) {
             let anim = this._actionMap[key];
             if (!(anim instanceof ActionData)) continue;
+            if (anim.exist) continue;
             if (skel != null) {
                 if (skel.getAnimationRange(anim.id) != null) {
                     anim.name = anim.id;
@@ -835,6 +861,7 @@ export class CharacterController {
         for (let key of keys) {
             let anim = this._actionMap[key];
             if (!(anim instanceof ActionData)) continue;
+            if (anim.exist) continue;
             if (agMap[anim.name] != null) {
                 anim.ag = agMap[anim.name];
                 anim.exist = true;
@@ -944,6 +971,14 @@ export class CharacterController {
     private _inFreeFall: boolean = false;
     private _wasWalking: boolean = false;
     private _wasRunning: boolean = false;
+
+    // Three-stage jump state
+    private _jumpStage: JumpStage = JumpStage.NONE;
+    private _jumpStageTime: number = 0;
+    private _jumpStageDuration: number = 0;
+    private _jumpBuffered: boolean = false;
+    private _wasIdleJump: boolean = false;
+
     private _moveVector: Vector3 = Vector3.Zero();
 
     //used only in mode 1
@@ -1021,11 +1056,28 @@ export class CharacterController {
     //for how long the AV has been in the jump
     private _jumpTime: number = 0;
     private _doJump(dt: number): ActionData {
+        switch (this._jumpStage) {
+            case JumpStage.NONE:
+                return this._beginJump(dt);
+            case JumpStage.PRE_JUMP:
+                return this._doPreJump(dt);
+            case JumpStage.JUMP:
+                return this._doJumpAirborne(dt);
+            case JumpStage.POST_JUMP:
+                return this._doPostJump(dt);
+        }
+    }
+
+    private _doJumpAirborne(dt: number): ActionData {
 
         let actData: ActionData = null;
         actData = this._actionMap.runJump;
         if (this._jumpTime === 0) {
             this._jumpStartPosY = this._avatar.position.y;
+            // Play liftoff sound
+            if (this._stepSound != null) {
+                this._stepSound.play();
+            }
         }
 
         this._jumpTime = this._jumpTime + dt;
@@ -1093,13 +1145,144 @@ export class CharacterController {
     }
 
     /**
-     * does cleanup at the end of a jump
+     * Computes the playback duration of a non-looping animation in seconds.
+     * Formula: frameCount / (fps × |rate|)
+     * Returns 0 for null/missing data (graceful degradation).
      */
-    private _endJump() {
+    private _getAnimDuration(actData: ActionData): number {
+        if (actData == null || actData.rate === 0) return 0;
+
+        if (this._isAG) {
+            const ag = actData.ag;
+            if (ag == null) return 0;
+            if (ag.targetedAnimations == null || ag.targetedAnimations.length === 0) return 0;
+            const frameCount = ag.to - ag.from;
+            const fps = ag.targetedAnimations[0].animation.framePerSecond;
+            if (fps === 0) return 0;
+            return frameCount / (fps * Math.abs(actData.rate));
+        } else {
+            if (this._skeleton == null) return 0;
+            const range = this._skeleton.getAnimationRange(actData.name);
+            if (range == null) return 0;
+            const frameCount = range.to - range.from;
+            const fps = 30; // BabylonJS default skeleton fps
+            return frameCount / (fps * Math.abs(actData.rate));
+        }
+    }
+
+    /**
+     * Determines whether to enter PRE_JUMP or skip directly to JUMP stage.
+     * Captures the movement state at jump initiation and selects the appropriate
+     * pre-jump animation based on whether the avatar was idle or moving.
+     */
+    private _beginJump(dt: number): ActionData {
+        // Capture movement state at jump initiation
+        this._wasIdleJump = !this._wasWalking && !this._wasRunning;
+
+        const preAnim = this._wasIdleJump
+            ? this._actionMap.preIdleJump
+            : this._actionMap.preRunJump;
+
+        if (preAnim.exist) {
+            this._jumpStage = JumpStage.PRE_JUMP;
+            this._jumpStageTime = 0;
+            this._jumpStageDuration = this._getAnimDuration(preAnim);
+            return preAnim;
+        } else {
+            // Skip pre-jump, go directly to airborne
+            this._jumpStage = JumpStage.JUMP;
+            return this._doJumpAirborne(dt);
+        }
+    }
+
+    /**
+     * Handles the pre-jump grounded stage.
+     * Accumulates time and transitions to JUMP stage when the pre-jump animation completes.
+     * Keeps avatar grounded (no vertical displacement applied).
+     */
+    private _doPreJump(dt: number): ActionData {
+        this._jumpStageTime += dt;
+
+        const preAnim = this._wasIdleJump
+            ? this._actionMap.preIdleJump
+            : this._actionMap.preRunJump;
+
+        if (this._jumpStageTime >= this._jumpStageDuration) {
+            // Pre-jump animation complete, transition to airborne
+            this._jumpStage = JumpStage.JUMP;
+            this._jumpStageTime = 0;
+            return this._doJumpAirborne(dt);
+        }
+
+        // Keep avatar grounded — no displacement applied
+        return preAnim;
+    }
+
+    /**
+     * Handles the post-jump grounded stage.
+     * Accumulates time and keeps the avatar grounded while the post-jump animation plays.
+     * When the animation duration elapses, ends the full jump sequence and optionally
+     * triggers a buffered jump.
+     */
+    private _doPostJump(dt: number): ActionData {
+        this._jumpStageTime += dt;
+
+        const postAnim = this._wasIdleJump
+            ? this._actionMap.postIdleJump
+            : this._actionMap.postRunJump;
+
+        if (this._jumpStageTime >= this._jumpStageDuration) {
+            // Post-jump animation complete
+            const buffered = this._jumpBuffered;
+            this._endJumpFull();
+            if (buffered) {
+                this._act._jump = true;
+            }
+            return null; // Let next frame pick up idle/move/jump
+        }
+
+        // Keep avatar grounded during post-jump
+        return postAnim;
+    }
+
+    /**
+     * Full jump cleanup — resets all jump state variables.
+     */
+    private _endJumpFull() {
         this._act._jump = false;
+        this._jumpStage = JumpStage.NONE;
+        this._jumpStageTime = 0;
+        this._jumpStageDuration = 0;
         this._jumpTime = 0;
         this._wasWalking = false;
         this._wasRunning = false;
+        this._wasIdleJump = false;
+        this._jumpBuffered = false;
+    }
+
+    /**
+     * does cleanup at the end of a jump.
+     * If a post-jump animation exists, transitions to POST_JUMP stage.
+     * Otherwise, performs full cleanup via _endJumpFull().
+     */
+    private _endJump() {
+        // Play landing sound
+        if (this._stepSound != null) {
+            this._stepSound.play();
+        }
+
+        const postAnim = this._wasIdleJump
+            ? this._actionMap.postIdleJump
+            : this._actionMap.postRunJump;
+
+        if (postAnim.exist) {
+            this._jumpStage = JumpStage.POST_JUMP;
+            this._jumpStageTime = 0;
+            this._jumpStageDuration = this._getAnimDuration(postAnim);
+            // _act._jump stays true to keep dispatch routing to _doJump
+        } else {
+            this._endJumpFull();
+        }
     }
 
     /**
@@ -1514,6 +1697,10 @@ export class CharacterController {
                         let delta = targetAngle - current;
                         while (delta > Math.PI) delta -= 2 * Math.PI;
                         while (delta < -Math.PI) delta += 2 * Math.PI;
+
+                        // For exactly 180° (ambiguous direction), always go clockwise (viewed from above)
+                        // In LHS: clockwise = +PI; In RHS: clockwise = -PI
+                        if (Math.abs(delta) === Math.PI) delta = this._rhsSign * Math.PI;
 
                         const step = this._smoothTurnSpeed === 0 ? Math.abs(delta) : Math.min(Math.abs(delta), this._smoothTurnSpeed * dt);
 
@@ -2220,7 +2407,12 @@ export class CharacterController {
         }
         switch (e.key.toLowerCase()) {
             case this._actionMap.idleJump.key:
-                this._act._jump = true;
+                if (this._jumpStage === JumpStage.NONE) {
+                    this._act._jump = true;
+                } else if (this._jumpStage === JumpStage.POST_JUMP) {
+                    this._jumpBuffered = true;
+                }
+                // PRE_JUMP and JUMP stages: ignore
                 break;
             case "capslock":
                 this._act._speedMod = !this._act._speedMod;
@@ -2232,32 +2424,38 @@ export class CharacterController {
             case "arrowup":
             case this._actionMap.walk.key:
                 // console.log("walk");
+                if (this._jumpStage === JumpStage.PRE_JUMP || this._jumpStage === JumpStage.POST_JUMP) break;
                 this._act._walk = true;
                 break;
             case "left":
             case "arrowleft":
             case this._actionMap.turnLeft.key:
                 // console.log("turn left");
+                if (this._jumpStage === JumpStage.PRE_JUMP || this._jumpStage === JumpStage.POST_JUMP) break;
                 this._act._turnLeft = true;
                 break;
             case "right":
             case "arrowright":
             case this._actionMap.turnRight.key:
                 // console.log("turn right");
+                if (this._jumpStage === JumpStage.PRE_JUMP || this._jumpStage === JumpStage.POST_JUMP) break;
                 this._act._turnRight = true;
                 break;
             case "down":
             case "arrowdown":
             case this._actionMap.walkBack.key:
                 // console.log("walk back");
+                if (this._jumpStage === JumpStage.PRE_JUMP || this._jumpStage === JumpStage.POST_JUMP) break;
                 this._act._walkback = true;
                 break;
             case this._actionMap.strafeLeft.key:
                 // console.log("strafe left");
+                if (this._jumpStage === JumpStage.PRE_JUMP || this._jumpStage === JumpStage.POST_JUMP) break;
                 this._act._stepLeft = true;
                 break;
             case this._actionMap.strafeRight.key:
                 // console.log("strafe right");
+                if (this._jumpStage === JumpStage.PRE_JUMP || this._jumpStage === JumpStage.POST_JUMP) break;
                 this._act._stepRight = true;
                 break;
         }
@@ -2419,6 +2617,8 @@ export class CharacterController {
         this._act._speedMod = b;
     }
     public jump() {
+        if (this._jumpStage !== JumpStage.NONE) return;
+        if (this._inFreeFall) return;
         this._act.reset();
         this._act._jump = true;
     }
@@ -3096,6 +3296,10 @@ export const Actions = {
     STRAFERIGHT: "strafeRight",
     STRAFERIGHTFAST: "strafeRightFast",
     SLIDEBACK: "slideBack",
+    PREIDLEJUMP: "preIdleJump",
+    POSTIDLEJUMP: "postIdleJump",
+    PRERUNJUMP: "preRunJump",
+    POSTRUNJUMP: "postRunJump",
     getAll: () => Object.values(Actions).filter(v => typeof v === "string")
 } as const
  
@@ -3118,6 +3322,10 @@ export class ActionMap {
     public strafeRight = new ActionData(Actions.STRAFERIGHT, 1.5, "e");
     public strafeRightFast = new ActionData(Actions.STRAFERIGHTFAST, 3, "na");
     public slideBack = new ActionData(Actions.SLIDEBACK, 0, "na");
+    public preIdleJump = new ActionData(Actions.PREIDLEJUMP, 0, "na");
+    public postIdleJump = new ActionData(Actions.POSTIDLEJUMP, 0, "na");
+    public preRunJump = new ActionData(Actions.PRERUNJUMP, 0, "na");
+    public postRunJump = new ActionData(Actions.POSTRUNJUMP, 0, "na");
 
     public reset() {
         let keys: string[] = Object.keys(this);

@@ -56,6 +56,7 @@ async function main(ar)
   var engine = new BABYLON.Engine(canvas, true, { audioEngine: true });
   scene = new BABYLON.Scene(engine);
   scene.debugLayer.show({ showExplorer: true, embedMode: true });
+  scene.useRightHandedSystem = true;
 
   setScene(scene);
 

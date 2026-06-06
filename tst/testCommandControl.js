@@ -17,7 +17,7 @@ async function main()
   canvas = document.querySelector("#renderCanvas");
   var engine = new BABYLON.Engine(canvas, true, { audioEngine: true });
   var scene = new BABYLON.Scene(engine);
-  scene.useRightHandedSystem = true;
+  scene.useRightHandedSystem = false;
   scene.clearColor = new BABYLON.Color3(0.75, 0.75, 0.75);
   scene.ambientColor = new BABYLON.Color3(1, 1, 1);
 
@@ -37,10 +37,16 @@ async function main()
   var ground = createGround(scene, groundMaterial);
 
   //load and set the player
-  const result = await BABYLON.ImportMeshAsync("player/Vincent-frontFacing.babylon", scene);
+  //const result = await BABYLON.ImportMeshAsync("player/Vincent-frontFacing.babylon", scene);
+  const result = await BABYLON.ImportMeshAsync("player/Animated Base Character.glb", scene);
   let player = result.meshes[0];
 
   setPlayer(player);
+   // Stop all animation groups
+  scene.animationGroups.forEach((group) => {
+      group.stop();
+  });
+  
 
   //create and set the camera
   let arcRotateCamera = createCamera(player, scene);
@@ -48,7 +54,8 @@ async function main()
 
   //create a CharacterController and set it
   cc1 = new CharacterController(player, arcRotateCamera, scene);
-  setCharacterController(cc1, scene);
+  // setCharacterController(cc1, scene);
+  setCharacterController2(cc1, scene);
   cc1.start();
   cc = cc1;
 
@@ -100,19 +107,22 @@ function createBoxes(scene)
 
 function setPlayer(player)
 {
-  var sm = player.material;
-  if (sm.diffuseTexture != null)
-  {
-    sm.backFaceCulling = true;
-    sm.ambientColor = new BABYLON.Color3(1, 1, 1);
-  }
+  // var sm = player.material;
+  // if (sm.diffuseTexture && sm.diffuseTexture != null)
+  // {
+  //   sm.backFaceCulling = true;
+  //   sm.ambientColor = new BABYLON.Color3(1, 1, 1);
+  // }
 
   player.position = new BABYLON.Vector3(0, 12, 0);
   player.checkCollisions = true;
   player.ellipsoid = new BABYLON.Vector3(0.5, 1, 0.5);
   player.ellipsoidOffset = new BABYLON.Vector3(0, 1, 0);
 
-  player.skeleton.enableBlending(0.1);
+  // player.skeleton.enableBlending(0.1);
+
+ 
+
 }
 
 function createCamera(player, scene)
@@ -201,7 +211,71 @@ function setCharacterController(c, scene)
   c.makeObstructionInvisible(false);
 
 }
+function setCharacterController2(c, scene)
+{
 
+  c.setFaceForward(false);
+  c.setMode(0);
+  c.setTurnSpeed(45);
+  //below makes the controller point the camera at the player head which is approx
+  //1.5m above the player origin
+  c.setCameraTarget(new BABYLON.Vector3(0, 1.5, 0));
+
+  //if the camera comes close to the player we want to enter first person mode.
+  c.setNoFirstPerson(false);
+  //the height of steps which the player can climb
+  c.setStepOffset(0.4);
+  //the minimum and maximum slope the player can go up
+  //between the two the player will start sliding down if it stops
+  c.setSlopeLimit(30, 60);
+
+  //tell controller
+  // - which animation range should be played for which player action
+  // - rate at which to play that animation range
+  // - wether the animation range should be looped
+  //use this if name, rate or looping is different from default
+  c.setIdleAnim(scene.getAnimationGroupByName("Rig|Idle_Loop"), 1, true);
+  // c.setTurnLeftAnim(scene.getAnimationGroupByName("turnLeft"), 0.5, true);
+  // c.setTurnRightAnim(scene.getAnimationGroupByName("turnRight"), 0.5, true);
+  // c.setStrafeLeftAnim(scene.getAnimationGroupByName("strafeLeft"), 1, true);
+  // c.setStrafeRightAnim(scene.getAnimationGroupByName("strafeRight"), 1, true);
+  c.setWalkAnim(scene.getAnimationGroupByName("Rig|Walk_Loop"), 1, true);
+   c.setWalkBackAnim(scene.getAnimationGroupByName("Rig|Walk_Loop"), -0.5, true);
+  c.setPreIdleJumpAnim(scene.getAnimationGroupByName("Rig|Jump_Land"), -2, false);
+  c.setIdleJumpAnim(scene.getAnimationGroupByName("Rig|Jump_Loop"), 1, false);
+  c.setPostIdleJumpAnim(scene.getAnimationGroupByName("Rig|Jump_Land"), 2 , false);
+  c.setRunAnim(scene.getAnimationGroupByName("Rig|Sprint_Loop"), 1, true);
+  c.setRunJumpAnim(scene.getAnimationGroupByName("Rig|Jump_Loop"), 0.6, false);
+  c.setFallAnim(scene.getAnimationGroupByName("Rig|Jump_Loop"), 2, false);
+  // c.setSlideBackAnim(scene.getAnimationGroupByName("slideBack"), 1, false);
+
+  c.enableBlending(0.1);
+  // to make player trun instantly
+  c.setSmoothTurnSpeed(360);
+
+  let walkSound = new BABYLON.Sound(
+    "walk",
+    "./sounds/footstep_carpet_000.ogg",
+    scene,
+    () =>
+    {
+      c.setSound(walkSound);
+    },
+    { loop: false }
+  );
+
+  var ua = window.navigator.userAgent;
+  var isIE = /MSIE|Trident/.test(ua);
+  if (isIE)
+  {
+    //IE specific code goes here
+    c.setJumpKey("spacebar");
+  }
+
+  c.setCameraElasticity(true);
+  c.makeObstructionInvisible(false);
+
+}
 async function loadNPC(scene, engine, canvas)
 {
     const result = await BABYLON.ImportMeshAsync("player/starterAvatars.babylon", scene);

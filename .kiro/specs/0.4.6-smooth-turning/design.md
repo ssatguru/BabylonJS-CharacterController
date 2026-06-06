@@ -91,6 +91,8 @@ while (delta < -Math.PI) delta += 2 * Math.PI;
 
 The rotation step per frame is `min(|delta|, _smoothTurnSpeed * dt)`, applied in the direction of `sign(delta)`.
 
+When the delta is exactly ±π (i.e., both clockwise and counter-clockwise arcs are equal at 180°), the tiebreaker always chooses clockwise (viewed from above) regardless of avatar facing or coordinate system handedness. This is implemented as `delta = -_rhsSign * Math.PI` (where `_rhsSign` is `-1` for RHS, `1` for LHS). This prevents positional drift caused by alternating rotation directions when the player rapidly switches between opposite keys (e.g., left↔right or forward↔back).
+
 ## Data Models
 
 ### New Private State
@@ -135,9 +137,9 @@ When keys are released, `_rotateAV2C()` is no longer called (the `_noRot` branch
 
 ### Property 4: Shortest arc direction
 
-*For any* current avatar rotation `c` and target angle `t`, the rotation applied by smooth turning SHALL always be in the direction of the shortest arc, meaning the absolute angular change is at most π radians from `c` to `t`.
+*For any* current avatar rotation `c` and target angle `t`, the rotation applied by smooth turning SHALL always be in the direction of the shortest arc, meaning the absolute angular change is at most π radians from `c` to `t`. When the angular difference is exactly π (180°), the rotation SHALL always be clockwise (positive delta).
 
-**Validates: Requirements 2.3**
+**Validates: Requirements 2.3, 2.4**
 
 ### Property 5: Movement direction during smooth turn
 
