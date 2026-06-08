@@ -168,6 +168,7 @@ var CharacterController = (function () {
         this._down = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.DownReadOnly;
         this._mode = 0;
         this._saveMode = 0;
+        this._saveSmoothTurnSpeed = 0;
         this._isLHS_RHS = false;
         this._signLHS_RHS = -1;
         this._started = false;
@@ -195,6 +196,8 @@ var CharacterController = (function () {
         this._isTurning = false;
         this._noRot = false;
         this._smoothTurnSpeed = 2 * Math.PI;
+        this._smoothTurning = false;
+        this._turnInPlace = true;
         this._steps = true;
         this._stepHigh = false;
         this._rayLine = null;
@@ -328,6 +331,12 @@ var CharacterController = (function () {
     CharacterController.prototype.getSmoothTurnSpeed = function () {
         return this._smoothTurnSpeed * 180 / Math.PI;
     };
+    CharacterController.prototype.setTurnInPlace = function (b) {
+        this._turnInPlace = b;
+    };
+    CharacterController.prototype.isTurnInPlace = function () {
+        return this._turnInPlace;
+    };
     CharacterController.prototype.setGravity = function (n) {
         this._gravity = n;
     };
@@ -437,6 +446,7 @@ var CharacterController = (function () {
         ccs.ellipsoid = this._avatar.ellipsoid;
         ccs.ellipsoidOffset = this._avatar.ellipsoidOffset;
         ccs.smoothTurnSpeed = this.getSmoothTurnSpeed();
+        ccs.turnInPlace = this._turnInPlace;
         ccs.springback = this._springback;
         ccs.springbackSteps = Math.floor(Math.min(1000, Math.max(1, this._springbackSteps)));
         ccs.springbackAngleRestore = this._springbackAngleRestore;
@@ -460,6 +470,9 @@ var CharacterController = (function () {
         this._avatar.ellipsoid = ccs.ellipsoid;
         this._avatar.ellipsoidOffset = ccs.ellipsoidOffset;
         this.setSmoothTurnSpeed(ccs.smoothTurnSpeed);
+        if (ccs.turnInPlace !== undefined) {
+            this._turnInPlace = ccs.turnInPlace;
+        }
         if (ccs.springback !== undefined) {
             this._springback = ccs.springback;
         }
@@ -1197,6 +1210,8 @@ var CharacterController = (function () {
                         horizDist = this._actionMap.walk.speed * dt;
                         actdata = this._actionMap.walk;
                     }
+                    if (this._turnInPlace && this._smoothTurning)
+                        horizDist = 0;
                     this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, this._ffSign * horizDist);
                     moving = true;
                     break;
@@ -1209,6 +1224,8 @@ var CharacterController = (function () {
                     else {
                         actdata = this._actionMap.walkBack;
                     }
+                    if (this._turnInPlace && this._smoothTurning)
+                        horizDist = 0;
                     this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, -this._ffSign * horizDist);
                     moving = true;
                     break;
@@ -1405,10 +1422,12 @@ var CharacterController = (function () {
                         var step = this._smoothTurnSpeed === 0 ? Math.abs(delta) : Math.min(Math.abs(delta), this._smoothTurnSpeed * dt);
                         if (Math.abs(delta) <= step) {
                             this._setAvatarRotationY(targetAngle);
+                            this._smoothTurning = false;
                         }
                         else {
                             var sign = delta > 0 ? 1 : -1;
                             this._setAvatarRotationY(current + step * sign);
+                            this._smoothTurning = true;
                         }
                     }
                 }
@@ -1650,7 +1669,9 @@ var CharacterController = (function () {
                 this._makeMeshInvisible(this._avatar);
                 this._camera.checkCollisions = false;
                 this._saveMode = this._mode;
+                this._saveSmoothTurnSpeed = this._smoothTurnSpeed;
                 this._mode = 0;
+                this._smoothTurnSpeed = 0;
                 this._inFP = true;
             }
             if (this._inFP && fpHoldPos !== null) {
@@ -1677,6 +1698,7 @@ var CharacterController = (function () {
             if (this._inFP) {
                 this._inFP = false;
                 this._mode = this._saveMode;
+                this._smoothTurnSpeed = this._saveSmoothTurnSpeed;
                 this._restoreVisiblity(this._avatar);
                 this._camera.checkCollisions = this._savedCameraCollision;
                 this._expectedRadius = this._camera.radius;

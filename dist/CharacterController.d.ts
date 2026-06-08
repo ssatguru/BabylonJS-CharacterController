@@ -32,6 +32,8 @@ export declare class CharacterController {
     setTurnFastSpeed(n: number): void;
     setSmoothTurnSpeed(speed: number): void;
     getSmoothTurnSpeed(): number;
+    setTurnInPlace(b: boolean): void;
+    isTurnInPlace(): boolean;
     setGravity(n: number): void;
     setAnimationGroups(agMap: {}): void;
     setAnimationRanges(arMap: {}): void;
@@ -88,6 +90,7 @@ export declare class CharacterController {
     private _copySlowAnims;
     private _mode;
     private _saveMode;
+    private _saveSmoothTurnSpeed;
     setMode(n: number): void;
     getMode(): number;
     setTurningOff(b: boolean): void;
@@ -149,6 +152,8 @@ export declare class CharacterController {
     private _isTurning;
     private _noRot;
     private _smoothTurnSpeed;
+    private _smoothTurning;
+    private _turnInPlace;
     private _steps;
     private _stepHigh;
     private _doMove;
@@ -353,6 +358,7 @@ export declare class CCSettings {
     ellipsoid: Vector3;
     ellipsoidOffset: Vector3;
     smoothTurnSpeed: number;
+    turnInPlace: boolean;
     springback?: boolean;
     springbackSteps?: number;
     springbackAngleRestore?: boolean;

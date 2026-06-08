@@ -227,6 +227,21 @@ export class CharacterController {
         return this._smoothTurnSpeed * 180 / Math.PI;
     }
 
+    /**
+     * Set turn-in-place mode. When true, the avatar does not move forward/backward
+     * while smooth turning is in progress — it rotates on the spot until facing the target.
+     */
+    public setTurnInPlace(b: boolean): void {
+        this._turnInPlace = b;
+    }
+
+    /**
+     * Get current turn-in-place mode.
+     */
+    public isTurnInPlace(): boolean {
+        return this._turnInPlace;
+    }
+
     public setGravity(n: number) {
         this._gravity = n;
     }
@@ -388,6 +403,7 @@ export class CharacterController {
         ccs.ellipsoid = this._avatar.ellipsoid;
         ccs.ellipsoidOffset = this._avatar.ellipsoidOffset;
         ccs.smoothTurnSpeed = this.getSmoothTurnSpeed();
+        ccs.turnInPlace = this._turnInPlace;
         ccs.springback = this._springback;
         ccs.springbackSteps = Math.floor(Math.min(1000, Math.max(1, this._springbackSteps)));
         ccs.springbackAngleRestore = this._springbackAngleRestore;
@@ -413,6 +429,9 @@ export class CharacterController {
         this._avatar.ellipsoid=ccs.ellipsoid;
         this._avatar.ellipsoidOffset=ccs.ellipsoidOffset;
         this.setSmoothTurnSpeed(ccs.smoothTurnSpeed);
+        if (ccs.turnInPlace !== undefined) {
+            this._turnInPlace = ccs.turnInPlace;
+        }
         if (ccs.springback !== undefined) {
             this._springback = ccs.springback;
         }
@@ -732,6 +751,7 @@ export class CharacterController {
      */
     private _mode = 0;
     private _saveMode = 0;
+    private _saveSmoothTurnSpeed: number = 0;
     public setMode(n: number) {
         //cannot switch mode to 0 if no camera avaiable.
         if (this._hasCam) {
@@ -1306,6 +1326,10 @@ export class CharacterController {
     private _noRot = false;
     // smooth turn speed in radians per second (default 360 deg/s = 2π rad/s)
     private _smoothTurnSpeed: number = 2 * Math.PI ;
+    // true while avatar is mid-rotation toward target (not yet snapped)
+    private _smoothTurning: boolean = false;
+    // when true, avatar does not move forward/backward while smooth turning (turn in place)
+    private _turnInPlace: boolean = true;
     private _steps = true;
     private _stepHigh:boolean = false;
     private _doMove(dt: number): ActionData {
@@ -1387,6 +1411,8 @@ export class CharacterController {
                         horizDist = this._actionMap.walk.speed * dt;
                         actdata = this._actionMap.walk;
                     }
+                    // Turn-in-place: suppress forward movement while mid-rotation
+                    if (this._turnInPlace && this._smoothTurning) horizDist = 0;
                     this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, this._ffSign * horizDist);
                     moving = true;
                     break;
@@ -1399,6 +1425,8 @@ export class CharacterController {
                     } else {
                         actdata = this._actionMap.walkBack;
                     }
+                    // Turn-in-place: suppress backward movement while mid-rotation
+                    if (this._turnInPlace && this._smoothTurning) horizDist = 0;
                     this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, -this._ffSign * horizDist);
                     moving = true;
                     break;
@@ -1707,12 +1735,12 @@ export class CharacterController {
                         if (Math.abs(delta) <= step) {
                             // Close enough — snap to target to prevent overshoot
                             this._setAvatarRotationY(targetAngle);
-                            // this.turnDone = true;
+                            this._smoothTurning = false;
                         } else {
                             // Rotate by step in the direction of shortest arc
                             const sign = delta > 0 ? 1 : -1;
                             this._setAvatarRotationY(current + step * sign);
-                            // this.turnDone = false;
+                            this._smoothTurning = true;
                         }
                     }
                 } else {
@@ -1999,7 +2027,9 @@ export class CharacterController {
                 this._makeMeshInvisible(this._avatar);
                 this._camera.checkCollisions = false;
                 this._saveMode = this._mode;
+                this._saveSmoothTurnSpeed = this._smoothTurnSpeed;
                 this._mode = 0;
+                this._smoothTurnSpeed = 0;
                 this._inFP = true;
             }
             // If we're in first-person due to elastic push-in, hold camera position
@@ -2027,6 +2057,7 @@ export class CharacterController {
             if (this._inFP) {
                 this._inFP = false;
                 this._mode = this._saveMode;
+                this._smoothTurnSpeed = this._saveSmoothTurnSpeed;
                 this._restoreVisiblity(this._avatar);
                 this._camera.checkCollisions = this._savedCameraCollision;
                 // Reset expected radius so user-change detection doesn't misfire
@@ -3368,6 +3399,7 @@ export class CCSettings {
     public ellipsoid:Vector3;   
     public ellipsoidOffset:Vector3;
     public smoothTurnSpeed: number;
+    public turnInPlace: boolean;
     public springback?: boolean;
     public springbackSteps?: number;
     public springbackAngleRestore?: boolean;

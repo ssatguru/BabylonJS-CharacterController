@@ -744,6 +744,21 @@ cc.setSmoothTurnSpeed(240); // faster, snappier rotation
 
 Set to 0 to disable smooth turning and do instant rotation instead.
 
+When the angular difference is exactly 180° (e.g., pressing back while facing forward), the rotation always goes clockwise (viewed from above) regardless of avatar facing or coordinate system handedness.
+
+In first-person mode, smooth turn speed is automatically set to 0 (instant rotation). When the camera pulls back to third-person, the previous smooth turn speed is restored.
+
+##### Turn in Place
+
+By default, the character does not move forward/backward while smooth turning is in progress — it rotates on the spot until facing the target direction. This prevents the character from arcing away from its starting position during turns.
+
+```
+cc.setTurnInPlace(b: boolean);  // default: true
+cc.isTurnInPlace(): boolean;
+```
+
+Set to `false` to allow the character to move forward along its current facing while rotating (arc movement).
+
 #### Navigation: moveTo / turnTo
 
 High-level navigation APIs for goal-oriented movement and rotation. These call the existing public command methods (`walk`, `run`, `turnLeft`, `turnRight`, `idle`) each frame via a separate render observer — they work exactly as if controlled by external code.

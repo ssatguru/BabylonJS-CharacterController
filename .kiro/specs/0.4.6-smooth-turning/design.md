@@ -91,18 +91,32 @@ while (delta < -Math.PI) delta += 2 * Math.PI;
 
 The rotation step per frame is `min(|delta|, _smoothTurnSpeed * dt)`, applied in the direction of `sign(delta)`.
 
-When the delta is exactly ±π (i.e., both clockwise and counter-clockwise arcs are equal at 180°), the tiebreaker always chooses clockwise (viewed from above) regardless of avatar facing or coordinate system handedness. This is implemented as `delta = -_rhsSign * Math.PI` (where `_rhsSign` is `-1` for RHS, `1` for LHS). This prevents positional drift caused by alternating rotation directions when the player rapidly switches between opposite keys (e.g., left↔right or forward↔back).
+When the delta is exactly ±π (i.e., both clockwise and counter-clockwise arcs are equal at 180°), the tiebreaker always chooses clockwise (viewed from above) regardless of avatar facing or coordinate system handedness. This is implemented as `delta = _rhsSign * Math.PI` (where `_rhsSign` is `-1` for RHS, `1` for LHS). This prevents positional drift caused by alternating rotation directions when the player rapidly switches between opposite keys (e.g., left↔right or forward↔back).
 
 ## Data Models
 
 ### New Private State
 
 ```typescript
-// Default: 120 deg/s = 2π/3 rad/s
-private _smoothTurnSpeed: number = 2 * Math.PI / 3;
+// Default: 360 deg/s = 2π rad/s
+private _smoothTurnSpeed: number = 2 * Math.PI;
+// true while avatar is mid-rotation toward target (not yet snapped)
+private _smoothTurning: boolean = false;
+// when true, avatar does not move forward/backward while smooth turning (turn in place)
+private _turnInPlace: boolean = true;
+// saved smooth turn speed when entering first-person mode
+private _saveSmoothTurnSpeed: number = 0;
 ```
 
-No new classes or data structures are needed. The feature adds one numeric field to `CharacterController` and one to `CCSettings`.
+The feature adds `_smoothTurnSpeed`, `_smoothTurning`, `_turnInPlace`, and `_saveSmoothTurnSpeed` fields to `CharacterController`, and `smoothTurnSpeed` + `turnInPlace` to `CCSettings`.
+
+### Turn-in-Place Behavior
+
+When `_turnInPlace` is true and `_smoothTurning` is true (avatar has not yet reached the target angle), the horizontal displacement (`horizDist`) in `_doMove()` is set to zero. The avatar rotates on the spot. Once the avatar snaps to the target angle (`_smoothTurning` becomes false), forward/backward movement resumes on the next frame.
+
+### First-Person Mode Integration
+
+On entering first-person mode, `_smoothTurnSpeed` is saved and set to 0 (instant rotation). On exiting first-person mode, the saved value is restored. This ensures rotation feels responsive in first-person view without affecting the configured third-person behavior.
 
 ### State Transitions
 

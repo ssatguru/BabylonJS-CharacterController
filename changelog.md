@@ -1,3 +1,9 @@
+## 06/06/2026 0.4.7-alpha10
+
+- turn-in-place: new configurable option `setTurnInPlace(b)` / `isTurnInPlace()` — when true (default), the avatar does not move forward/backward while smooth turning, preventing arc drift
+- `turnInPlace` added to CCSettings for save/restore via getSettings()/setSettings()
+- first-person mode: smooth turn speed is automatically set to 0 (instant rotation) on entering first-person; restored on exit
+
 ## 06/06/2026 0.4.7-alpha9
 
 ### TypeScript upgrade (4.9 → 6.0)
