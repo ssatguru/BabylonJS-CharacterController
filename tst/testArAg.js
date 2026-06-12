@@ -25,10 +25,15 @@ function setUI(ar)
 
   let canvasElement = document.getElementById("renderCanvas");
 
-  helpButton.onclick = closeButton.onclick = () =>
-  {
-    el.style.visibility = el.style.visibility == "visible" ? "hidden" : "visible";
-  };
+  // helpButton.onclick = closeButton.onclick = () =>
+  // {
+  //   el.style.visibility = el.style.visibility == "visible" ? "hidden" : "visible";
+  // };
+
+   helpButton.onclick = () =>
+   {
+      cc.turnTo(slope2);
+   }
 
   pauseButton.onclick = () =>
   {
@@ -56,7 +61,7 @@ async function main(ar)
   var engine = new BABYLON.Engine(canvas, true, { audioEngine: true });
   scene = new BABYLON.Scene(engine);
   scene.debugLayer.show({ showExplorer: true, embedMode: true });
-  scene.useRightHandedSystem = true;
+  scene.useRightHandedSystem = false;
 
   setScene(scene);
 
@@ -113,6 +118,7 @@ async function main(ar)
 
 }
 
+let slope2;
 function setScene(scene){
     scene.clearColor = new BABYLON.Color3(0.75, 0.75, 0.75);
   scene.ambientColor = new BABYLON.Color3(1, 1, 1);
@@ -133,7 +139,7 @@ function setScene(scene){
   slope1.scaling = new BABYLON.Vector3(1, .1, 5);
   slope1.rotation = new BABYLON.Vector3(-65 * Math.PI / 180, 0, 0);
 
-  var slope2 = BABYLON.Mesh.CreateBox("walkable-steep-slope", 2, scene);
+  slope2 = BABYLON.Mesh.CreateBox("walkable-steep-slope", 2, scene);
   slope2.checkCollisions = true;
   slope2.position = new BABYLON.Vector3(6, 7, 14);
   slope2.scaling = new BABYLON.Vector3(1, .1, 5);
@@ -263,7 +269,7 @@ function setCharacterController(cc, scene, ar)
     cc.setFallAnim(scene.getAnimationGroupByName("fall"), 2, false);
     cc.setSlideBackAnim(scene.getAnimationGroupByName("slideBack"), 1, false);
   }
-  cc.setTurningOff(true);
+  cc.setTurningOff(false);
 
   //let's set footstep sound
   //this sound will be played for all actions except idle.

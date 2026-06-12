@@ -1,3 +1,12 @@
+## 06/11/2026 0.4.7-alpha11
+
+### moveTo / turnTo handedness fix
+- fixed: `moveTo()` and `turnTo()` now work correctly for RHS characters (e.g. GLB models) in LHS scenes
+- fixed: navigation code now uses `_getAvatarRotationY()` / `_setAvatarRotationY()` instead of direct `rotation.y` access — fixes GLB models that use `rotationQuaternion` (previously the current rotation was always read as 0, causing turnTo to never stop)
+- fixed: `directionAngle()` now properly uses the `isLHS_RHS` parameter to flip the `faceForward` logic for meshes with a handedness mismatch (e.g. GLB in LHS scene, .babylon in RHS scene)
+- all `directionAngle()` call sites now pass `this._isLHS_RHS` instead of hardcoded `false`
+- known limitation: GLB turn animation plays the wrong direction in RHS scenes (cosmetic only — the actual rotation/convergence is correct)
+
 ## 06/06/2026 0.4.7-alpha10
 
 - turn-in-place: new configurable option `setTurnInPlace(b)` / `isTurnInPlace()` — when true (default), the avatar does not move forward/backward while smooth turning, preventing arc drift

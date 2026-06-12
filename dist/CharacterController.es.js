@@ -173,7 +173,8 @@ function directionAngle(source, target, faceForward, isLHS_RHS) {
     var dx = target.x - source.x;
     var dz = target.z - source.z;
     var angle = Math.atan2(dx, dz);
-    if (!faceForward) {
+    var effectiveFaceForward = isLHS_RHS ? !faceForward : faceForward;
+    if (!effectiveFaceForward) {
         angle += Math.PI;
     }
     while (angle > Math.PI)
@@ -2269,7 +2270,7 @@ var CharacterController = (function () {
                 this.idle();
                 return;
             }
-            var currentY = this._avatar.rotation.y;
+            var currentY = this._getAvatarRotationY();
             this._turnToTargetAngle = currentY + target;
             this._turnToAngle = target;
         }
@@ -2281,15 +2282,15 @@ var CharacterController = (function () {
             this._turnToNode = target;
             var charPos = this._avatar.position;
             var targetPos = target.getAbsolutePosition();
-            this._turnToTargetAngle = directionAngle(charPos, targetPos, this.isFaceForward(), false);
+            this._turnToTargetAngle = directionAngle(charPos, targetPos, this.isFaceForward(), this._isLHS_RHS);
         }
         else {
             this._turnToTarget = target;
             var charPos = this._avatar.position;
-            this._turnToTargetAngle = directionAngle(charPos, target, this.isFaceForward(), false);
+            this._turnToTargetAngle = directionAngle(charPos, target, this.isFaceForward(), this._isLHS_RHS);
         }
         if (this._turnToTargetAngle != null) {
-            var currentY = this._avatar.rotation.y;
+            var currentY = this._getAvatarRotationY();
             var delta = shortestArcDelta(currentY, this._turnToTargetAngle);
             if (isWithinAngularTolerance(delta, angularTolerance)) {
                 this._turnToTargetAngle = null;
@@ -2383,8 +2384,8 @@ var CharacterController = (function () {
         }
         this._moveToCompleteFired = false;
         if (!this._turnToActive) {
-            var targetAngle = directionAngle(charPos, this._moveToTarget, this.isFaceForward(), false);
-            this._avatar.rotation.y = targetAngle;
+            var targetAngle = directionAngle(charPos, this._moveToTarget, this.isFaceForward(), this._isLHS_RHS);
+            this._setAvatarRotationY(targetAngle);
         }
         if (this._moveToRun) {
             this.run(true);
@@ -2410,19 +2411,15 @@ var CharacterController = (function () {
             }
             var charPos = this._avatar.position;
             var nodePos = this._turnToNode.getAbsolutePosition();
-            this._turnToTargetAngle = directionAngle(charPos, nodePos, this.isFaceForward(), false);
+            this._turnToTargetAngle = directionAngle(charPos, nodePos, this.isFaceForward(), this._isLHS_RHS);
         }
         else if (this._turnToTarget != null) {
             var charPos = this._avatar.position;
-            this._turnToTargetAngle = directionAngle(charPos, this._turnToTarget, this.isFaceForward(), false);
+            this._turnToTargetAngle = directionAngle(charPos, this._turnToTarget, this.isFaceForward(), this._isLHS_RHS);
         }
         if (this._turnToTargetAngle == null)
             return;
-        while (this._avatar.rotation.y > Math.PI)
-            this._avatar.rotation.y -= 2 * Math.PI;
-        while (this._avatar.rotation.y < -Math.PI)
-            this._avatar.rotation.y += 2 * Math.PI;
-        var currentY = this._avatar.rotation.y;
+        var currentY = this._getAvatarRotationY();
         var delta = shortestArcDelta(currentY, this._turnToTargetAngle);
         if (isWithinAngularTolerance(delta, this._turnToAngularTolerance)) {
             if (this._turnToNode != null) {

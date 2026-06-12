@@ -26,10 +26,10 @@ function directionAngle(
 ): number {
   const dx = target.x - source.x;
   const dz = target.z - source.z;
-  // Negated atan2 to match BabylonJS rotation.y convention (positive = left/CCW from above)
-  let angle = -Math.atan2(dx, dz);
-  if (!faceForward) {
-    angle += Math.PI; // Rotate 180° for front-facing models
+  let angle = Math.atan2(dx, dz);
+  const effectiveFaceForward = isLHS_RHS ? !faceForward : faceForward;
+  if (!effectiveFaceForward) {
+    angle += Math.PI; // Rotate 180° for front-facing models (or back-facing in LHS_RHS)
   }
   // Normalize to [-PI, PI]
   while (angle > Math.PI) angle -= 2 * Math.PI;
@@ -84,8 +84,8 @@ describe("Feature: moveto-turnto, Property 14: Facing direction converges toward
           expect(targetAngle).toBeGreaterThanOrEqual(-Math.PI);
           expect(targetAngle).toBeLessThanOrEqual(Math.PI);
 
-          // Verify the angle matches the negated atan2 convention for BabylonJS rotation.y
-          const expectedRawAngle = -Math.atan2(dx, dz);
+          // Verify the angle matches the atan2 convention for BabylonJS rotation.y
+          const expectedRawAngle = Math.atan2(dx, dz);
           let expectedAngle = faceForward ? expectedRawAngle : expectedRawAngle + Math.PI;
           // Normalize
           while (expectedAngle > Math.PI) expectedAngle -= 2 * Math.PI;

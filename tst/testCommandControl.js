@@ -54,7 +54,7 @@ async function main()
 
   //create a CharacterController and set it
   cc1 = new CharacterController(player, arcRotateCamera, scene);
-  // setCharacterController(cc1, scene);
+  //setCharacterController(cc1, scene);
   setCharacterController2(cc1, scene);
   cc1.start();
   cc = cc1;
@@ -107,22 +107,10 @@ function createBoxes(scene)
 
 function setPlayer(player)
 {
-  // var sm = player.material;
-  // if (sm.diffuseTexture && sm.diffuseTexture != null)
-  // {
-  //   sm.backFaceCulling = true;
-  //   sm.ambientColor = new BABYLON.Color3(1, 1, 1);
-  // }
-
   player.position = new BABYLON.Vector3(0, 12, 0);
-  player.checkCollisions = true;
+  player.checkCollisions = false;
   player.ellipsoid = new BABYLON.Vector3(0.5, 1, 0.5);
   player.ellipsoidOffset = new BABYLON.Vector3(0, 1, 0);
-
-  // player.skeleton.enableBlending(0.1);
-
- 
-
 }
 
 function createCamera(player, scene)
@@ -156,7 +144,7 @@ function createCamera(player, scene)
 function setCharacterController(c, scene)
 {
 
-  c.setFaceForward(true);
+  c.setFaceForward(false);
   c.setMode(0);
   c.setTurnSpeed(45);
   //below makes the controller point the camera at the player head which is approx
@@ -211,6 +199,7 @@ function setCharacterController(c, scene)
   c.makeObstructionInvisible(false);
 
 }
+
 function setCharacterController2(c, scene)
 {
 

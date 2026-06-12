@@ -126,7 +126,9 @@ These functions encapsulate the decision logic and can be extracted for unit/pro
 // Compute the horizontal (XZ) distance between two Vector3 positions
 function horizontalDistance(a: Vector3, b: Vector3): number;
 
-// Compute the direction angle (Y rotation) from source to target on XZ plane
+// Compute the direction angle (Y rotation) from source to target on XZ plane.
+// When isLHS_RHS is true (mesh-scene handedness mismatch), the faceForward logic is
+// inverted to account for the mesh's flipped Z axis. All call sites pass this._isLHS_RHS.
 function directionAngle(source: Vector3, target: Vector3, faceForward: boolean, isLHS_RHS: boolean): number;
 
 // Compute shortest-arc delta between current angle and target angle, normalized to [-PI, PI]
@@ -146,6 +148,18 @@ function updateObstructionCount(frameDistance: number, threshold: number, curren
 
 // Validate and clamp parameters to defaults
 function clampPositive(value: number, defaultValue: number): number;
+```
+
+### Quaternion Support
+
+Navigation code uses `_getAvatarRotationY()` and `_setAvatarRotationY()` instead of direct `rotation.y` access. This is required for GLB models that use `rotationQuaternion` — direct `rotation.y` access returns 0 regardless of actual rotation for quaternion-based meshes.
+
+### Handedness Handling
+
+The `directionAngle()` function accounts for mesh-scene handedness mismatch via the `isLHS_RHS` parameter. When `_isLHS_RHS` is true (e.g., GLB model in LHS scene or .babylon model in RHS scene), the mesh's local Z axis is flipped relative to the scene. This inverts the relationship between euler Y and world-space facing direction, requiring the `faceForward` offset (±π) to be applied inversely:
+
+```typescript
+const effectiveFaceForward = isLHS_RHS ? !faceForward : faceForward;
 ```
 
 ## Data Models

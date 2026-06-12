@@ -47,12 +47,14 @@ function horizontalDistance(a: Vector3, b: Vector3): number {
 function directionAngle(source: Vector3, target: Vector3, faceForward: boolean, isLHS_RHS: boolean): number {
     const dx = target.x - source.x;
     const dz = target.z - source.z;
-    // atan2(-dx, -dz) gives the angle from negative Z axis measured counter-clockwise,
-    // which matches BabylonJS rotation.y convention (positive = left/CCW from above)
-    // For back-facing models (faceForward=true), forward is +Z, so we use atan2(dx, dz) negated
+    // atan2(dx, dz) gives the angle from +Z axis toward +X axis.
+    // This matches the BabylonJS rotation.y convention for a mesh whose face points at +Z (faceForward=true).
+    // When isLHS_RHS is true, the mesh's local Z is flipped relative to the scene,
+    // so the effective facing direction at rotation.y=0 is inverted — we must flip the faceForward logic.
     let angle = Math.atan2(dx, dz);
-    if (!faceForward) {
-        angle += Math.PI; // Rotate 180Â° for front-facing models
+    const effectiveFaceForward = isLHS_RHS ? !faceForward : faceForward;
+    if (!effectiveFaceForward) {
+        angle += Math.PI; // Rotate 180° for front-facing models (or back-facing in LHS_RHS)
     }
     // Normalize to [-PI, PI]
     while (angle > Math.PI) angle -= 2 * Math.PI;
@@ -2686,7 +2688,7 @@ export class CharacterController {
                 return;
             }
             // Compute absolute target angle from current Y rotation + relative angle
-            const currentY = this._avatar.rotation.y;
+            const currentY = this._getAvatarRotationY();
             this._turnToTargetAngle = currentY + target;
             this._turnToAngle = target;
         }
@@ -2700,19 +2702,19 @@ export class CharacterController {
             // Compute initial target angle
             const charPos = this._avatar.position;
             const targetPos = target.getAbsolutePosition();
-            this._turnToTargetAngle = directionAngle(charPos, targetPos, this.isFaceForward(), false);
+            this._turnToTargetAngle = directionAngle(charPos, targetPos, this.isFaceForward(), this._isLHS_RHS);
         }
         // 6. Handle Vector3
         else {
             this._turnToTarget = target;
             // Compute initial target angle
             const charPos = this._avatar.position;
-            this._turnToTargetAngle = directionAngle(charPos, target, this.isFaceForward(), false);
+            this._turnToTargetAngle = directionAngle(charPos, target, this.isFaceForward(), this._isLHS_RHS);
         }
 
         // 7. Check if already within angular tolerance
         if (this._turnToTargetAngle != null) {
-            const currentY = this._avatar.rotation.y;
+            const currentY = this._getAvatarRotationY();
             const delta = shortestArcDelta(currentY, this._turnToTargetAngle);
             if (isWithinAngularTolerance(delta, angularTolerance)) {
                 // Already facing target, don't activate
@@ -2866,8 +2868,8 @@ export class CharacterController {
 
         // 4. Orient character toward target (only if turnTo is not active)
         if (!this._turnToActive) {
-            const targetAngle = directionAngle(charPos, this._moveToTarget, this.isFaceForward(), false);
-            this._avatar.rotation.y = targetAngle;
+            const targetAngle = directionAngle(charPos, this._moveToTarget, this.isFaceForward(), this._isLHS_RHS);
+            this._setAvatarRotationY(targetAngle);
         }
 
         // 5. Issue walk or run
@@ -2905,20 +2907,17 @@ export class CharacterController {
             }
             const charPos = this._avatar.position;
             const nodePos = this._turnToNode.getAbsolutePosition();
-            this._turnToTargetAngle = directionAngle(charPos, nodePos, this.isFaceForward(), false);
+            this._turnToTargetAngle = directionAngle(charPos, nodePos, this.isFaceForward(), this._isLHS_RHS);
         }
         // 2. Handle Vector3 target
         else if (this._turnToTarget != null) {
             const charPos = this._avatar.position;
-            this._turnToTargetAngle = directionAngle(charPos, this._turnToTarget, this.isFaceForward(), false);
+            this._turnToTargetAngle = directionAngle(charPos, this._turnToTarget, this.isFaceForward(), this._isLHS_RHS);
         }
 
         // 3. Compute shortest-arc delta
         if (this._turnToTargetAngle == null) return;
-        // Normalize rotation.y to [-PI, PI] to prevent unbounded drift from turn commands
-        while (this._avatar.rotation.y > Math.PI) this._avatar.rotation.y -= 2 * Math.PI;
-        while (this._avatar.rotation.y < -Math.PI) this._avatar.rotation.y += 2 * Math.PI;
-        const currentY = this._avatar.rotation.y;
+        const currentY = this._getAvatarRotationY();
         const delta = shortestArcDelta(currentY, this._turnToTargetAngle);
 
         // 4. Check angular tolerance
