@@ -1,15 +1,19 @@
+
+let ar;
 window.onload = function ()
 {
   const queryString = this.document.location.search
   const urlParams = new URLSearchParams(queryString);
   const animType = urlParams.get("animType"); 
-  if (animType == "ar") ar = true; else ar=false
-
+  if (animType == "ar") ar = true; else ar=false;
   setUI(ar);
   main(ar);
+
 };
 
+
 let animPaused = false;
+let ellipsoid = true;
 let cc;
 let scene;
 
@@ -17,24 +21,37 @@ function setUI(ar)
 {
   let animType = document.getElementById("animType");
   if (!ar) animType.innerHTML = "Animation Group";
-
+  let turnToButton = document.getElementById("turnTo"); 
+  let moveToButton = document.getElementById("moveTo"); 
+  let pauseButton = document.getElementById("pause");
+  let ellButton = document.getElementById("ell");
   let helpButton = document.getElementById("help");
   let closeButton = document.getElementById("closehelp");
-  let pauseButton = document.getElementById("pause");
+  
   let el = document.getElementById("overlay");
 
   let canvasElement = document.getElementById("renderCanvas");
 
-  // helpButton.onclick = closeButton.onclick = () =>
-  // {
-  //   el.style.visibility = el.style.visibility == "visible" ? "hidden" : "visible";
-  // };
+  turnToButton.onclick = () =>
+  {
+    cc.turnTo(box);
+  }
 
-   helpButton.onclick = () =>
-   {
-      cc.turnTo(slope2);
-   }
+  moveToButton.onclick = () =>
+  {
+    cc.moveTo(box);
+  }
 
+  helpButton.onclick = closeButton.onclick = () =>
+  {
+    el.style.visibility = el.style.visibility == "visible" ? "hidden" : "visible";
+  };
+
+  ellButton.onclick = () =>
+  {
+    ellipsoid = ! ellipsoid;
+    cc.showEllipsoid(ellipsoid);
+  };
   pauseButton.onclick = () =>
   {
     if (animPaused)
@@ -61,7 +78,7 @@ async function main(ar)
   var engine = new BABYLON.Engine(canvas, true, { audioEngine: true });
   scene = new BABYLON.Scene(engine);
   scene.debugLayer.show({ showExplorer: true, embedMode: true });
-  scene.useRightHandedSystem = false;
+  scene.useRightHandedSystem = true;
 
   setScene(scene);
 
@@ -74,6 +91,7 @@ async function main(ar)
   let result;
   if (ar)
   {
+    console.log("loading babylon");
     result = await BABYLON.ImportMeshAsync("player/Vincent-frontFacing.babylon", scene);
   } else
   {
@@ -116,17 +134,18 @@ async function main(ar)
     scene.render();
   });
 
+  canvas.focus();
 }
 
-let slope2;
+let box;
 function setScene(scene){
-    scene.clearColor = new BABYLON.Color3(0.75, 0.75, 0.75);
+  scene.clearColor = new BABYLON.Color3(0.7, 0.5, 0.5);
   scene.ambientColor = new BABYLON.Color3(1, 1, 1);
 
   var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
   light.intensity = 0.3;
 
-  var light2 = new BABYLON.DirectionalLight("light2", new BABYLON.Vector3(-1, -1, -1), scene);
+  var light2 = new BABYLON.DirectionalLight("light2", new BABYLON.Vector3(1, -1, 1), scene);
   light2.position = new BABYLON.Vector3(0, 128, 0);
   light2.intensity = 0.7;
 
@@ -151,7 +170,6 @@ function setScene(scene){
   slope3.scaling = new BABYLON.Vector3(1, .1, 5);
   slope3.rotation = new BABYLON.Vector3(-25 * Math.PI / 180, 0, 0);
 
-
   //steps
   var step = 0.5;
   var steplength = 1;
@@ -167,13 +185,26 @@ function setScene(scene){
     aStep.position = new BABYLON.Vector3(xpos + stps * steplength, ypos + stps * step, 4.5);
     aStep.scaling = new BABYLON.Vector3(1, 1, 2);
   }
+
+  //red box
+  box = BABYLON.Mesh.CreateBox("box", 2, scene);
+  box.position = new BABYLON.Vector3(28, 10, 9);
+  box.rotation.y = Math.PI/4;
+  var redMaterial = new BABYLON.StandardMaterial("myMaterial", scene);
+  redMaterial.diffuseColor = new BABYLON.Color3(1, 0, 0); // red
+  box.material = redMaterial;
+
 }
 
 
 function setPlayer(player)
 {
   // player position point is the feet
-  player.position = new BABYLON.Vector3(-6, 12, 11);
+  player.position = new BABYLON.Vector3(-8, 7, 9);
+
+  if (ar) player.rotation.y = (1/2)*Math.PI;
+  else player.rotationQuaternion  = BABYLON.Quaternion.FromEulerAngles(0,-(1/2)*Math.PI,0);
+
   player.checkCollisions = true;
 
   //player's ellipsoid should be the size of the player - thus around 1.75m tall
@@ -188,8 +219,10 @@ function setPlayer(player)
 function createCamera(player, scene)
 {
   //rotate the camera behind the player
-  //player.rotation.y = Math.PI / 4;
-  var alpha = -(Math.PI / 2 + player.rotation.y);
+  let alpha;
+  if (ar) alpha = -(Math.PI / 2 + player.rotation.y);
+  else alpha = -(Math.PI / 2 - player.rotationQuaternion.toEulerAngles().y);
+
   var beta = Math.PI / 2.5;
   var target = new BABYLON.Vector3(player.position.x, player.position.y + 1.5, player.position.z);
 

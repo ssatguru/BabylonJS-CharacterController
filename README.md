@@ -13,12 +13,16 @@ For demo see
 It currently supports
 
 - idle
+- preIdleJump
 - idleJump
+- postIdleJump
 - walk
 - walkBack
 - walkBackFast
 - run
+- preRunJump
 - runJump
+- postRunJump
 - fall
 - turnRight
 - turnRightFast
@@ -37,15 +41,15 @@ Mode 0, suitable for third/first person kind of game. Here the camera follows an
 Mode 1, suitable for top down isometric kind of game. The camera follows the character but doesn't turn with or turn the character.  
 
 Further within Mode  0, the third/first person mode, two turning modes are supported.  
-In turning on mode, the left and right keys make the character turn left or right and the back key makes the character walk backward with back facing the camera.  
-In turning off mode, the left and right keys make the character face and move left or right and the back keys makes the character turn around and move towards the camera.  
+In "turning on" mode, the left and right keys make the character turn left or right and the back key makes the character walk backward with back facing the camera.  
+In "turning off" mode, the left and right keys make the character face and move left or right and the back keys makes the character turn around and move towards the camera.  
 
 See "setMode" and "Turning On/Off" below.  
 
 Further it supports constraining character from traversing slopes inclined at certain angles.
 
-It also supports camera "elasticity". In other words if a mesh comes between the camera and character/character, the camera snaps to
-a position in front of the mesh. This way the character/character is always in view.
+It also supports camera "elasticity". In other words if a mesh comes between the camera and character, the camera snaps to
+a position in front of the mesh. This way the character is always in view.
 
 It can also enter first person view if the camera comes very close to the character/character
 
