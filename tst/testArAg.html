@@ -49,22 +49,30 @@
       text-align: center;
     }
   </style>
-
   <script src="/node_modules/babylonjs/babylon.max.js"></script>
   <script src="/node_modules/babylonjs-loaders/babylonjs.loaders.min.js"></script>
   <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+  
 
   <script src="/dist/CharacterController.max.js"></script>
-  <script src="testAnimationGroup.js"></script>
+  <script src="testArAg.js"></script>
 </head>
 
 <body>
-  <canvas id="renderCanvas" tabIndex="0"></canvas>
+  <canvas id="renderCanvas"></canvas>
 
   <div id="controls">
-    <button id="help">Help</button><br>
+    Testing <label id="animType">Animation Range</label><br>
+    <br>
+    <button id="turnTo">Turn to Red Box</button>
+    <br>
+    <button id="moveTo">Move to Red Box</button>
     <br>
     <button id="pause">Pause</button>
+        <br>
+    <button id="ell">Ellipsoid On/Off</button>
+    <br>
+    <button id="help">Help</button><br>
   </div>
 
   <div id="overlay">

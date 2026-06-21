@@ -38,14 +38,15 @@ This feature replaces the instant avatar rotation behavior in mode 0 with `turni
 1. WHILE Turning_Off is true and Mode_0 is active and a directional key is pressed, THE Character_Controller SHALL recalculate the Target_Angle based on the current camera-relative forward direction each frame and rotate the Avatar toward it incrementally using the formula: `rotation_step = Smooth_Turn_Speed * Delta_Time`.
 2. WHEN the absolute angular difference along the shortest arc between the Avatar's current rotation and the Target_Angle is less than or equal to the rotation step for the current frame, THE Character_Controller SHALL set the Avatar's rotation directly to the Target_Angle to prevent overshooting.
 3. WHILE Turning_Off is true and Mode_0 is active, THE Character_Controller SHALL rotate the Avatar along the shortest arc (clockwise or counter-clockwise) toward the Target_Angle.
-4. WHEN the forward key is pressed alone, THE Character_Controller SHALL set the Target_Angle to 0 degrees from the camera-relative forward direction (i.e., facing the same direction the camera is looking along the ground plane).
-5. WHEN the left key is pressed alone, THE Character_Controller SHALL set the Target_Angle to 90 degrees left of the camera-relative forward direction.
-6. WHEN the right key is pressed alone, THE Character_Controller SHALL set the Target_Angle to 90 degrees right of the camera-relative forward direction.
-7. WHEN the back key is pressed alone, THE Character_Controller SHALL set the Target_Angle to 180 degrees from the camera-relative forward direction.
-8. WHEN the forward key and left key are pressed together, THE Character_Controller SHALL set the Target_Angle to 45 degrees left of the camera-relative forward direction.
-9. WHEN the forward key and right key are pressed together, THE Character_Controller SHALL set the Target_Angle to 45 degrees right of the camera-relative forward direction.
-10. WHEN the back key and left key are pressed together, THE Character_Controller SHALL set the Target_Angle to 135 degrees left of the camera-relative forward direction.
-11. WHEN the back key and right key are pressed together, THE Character_Controller SHALL set the Target_Angle to 135 degrees right of the camera-relative forward direction.
+4. WHEN the shortest-arc angular difference between the Avatar's current rotation and the Target_Angle is exactly 180 degrees (±π radians), THE Character_Controller SHALL always rotate clockwise (viewed from above) regardless of avatar facing direction or coordinate system handedness, to prevent positional drift from alternating rotation directions.
+5. WHEN the forward key is pressed alone, THE Character_Controller SHALL set the Target_Angle to 0 degrees from the camera-relative forward direction (i.e., facing the same direction the camera is looking along the ground plane).
+6. WHEN the left key is pressed alone, THE Character_Controller SHALL set the Target_Angle to 90 degrees left of the camera-relative forward direction.
+7. WHEN the right key is pressed alone, THE Character_Controller SHALL set the Target_Angle to 90 degrees right of the camera-relative forward direction.
+8. WHEN the back key is pressed alone, THE Character_Controller SHALL set the Target_Angle to 180 degrees from the camera-relative forward direction.
+9. WHEN the forward key and left key are pressed together, THE Character_Controller SHALL set the Target_Angle to 45 degrees left of the camera-relative forward direction.
+10. WHEN the forward key and right key are pressed together, THE Character_Controller SHALL set the Target_Angle to 45 degrees right of the camera-relative forward direction.
+11. WHEN the back key and left key are pressed together, THE Character_Controller SHALL set the Target_Angle to 135 degrees left of the camera-relative forward direction.
+12. WHEN the back key and right key are pressed together, THE Character_Controller SHALL set the Target_Angle to 135 degrees right of the camera-relative forward direction.
 
 ### Requirement 3: Movement During Smooth Turning
 
@@ -78,3 +79,28 @@ This feature replaces the instant avatar rotation behavior in mode 0 with `turni
 1. WHILE Mode_0 is active and Turning_Off is false, THE Character_Controller SHALL instantly set the Avatar's rotation to the camera-relative forward direction each frame (rotation = av2cam - camera.alpha) without applying Smooth_Turn_Speed interpolation.
 2. WHILE mode 1 (top-down/isometric) is active, THE Character_Controller SHALL rotate the Avatar using the sign-based turn logic driven by the facing-camera direction, regardless of the Smooth_Turn_Speed value.
 3. IF the mode is changed from 0 to 1 or Turning_Off is changed from true to false while the Avatar is mid-rotation toward a Target_Angle, THEN THE Character_Controller SHALL immediately stop the smooth rotation and apply the rotation logic appropriate to the new mode or Turning_Off state.
+
+### Requirement 6: Turn in Place
+
+**User Story:** As a game developer, I want the avatar to rotate in place without moving forward during smooth turning, so that the character doesn't arc away from its starting position.
+
+#### Acceptance Criteria
+
+1. THE Character_Controller SHALL expose a `setTurnInPlace(b: boolean)` method to enable or disable turn-in-place mode.
+2. THE Character_Controller SHALL expose an `isTurnInPlace(): boolean` method to return the current turn-in-place setting.
+3. THE Character_Controller SHALL default turn-in-place to true.
+4. WHILE turn-in-place is true and the Avatar is mid-rotation toward the Target_Angle (smooth turning is in progress), THE Character_Controller SHALL set the forward and backward horizontal displacement to zero each frame.
+5. WHEN the Avatar snaps to the Target_Angle (smooth turning completes), THE Character_Controller SHALL resume normal forward/backward movement on the next frame.
+6. THE CCSettings class SHALL include a `turnInPlace` property of type boolean.
+7. WHEN `getSettings()` is called, THE Character_Controller SHALL include the current `turnInPlace` value in the returned CCSettings object.
+8. WHEN `setSettings(ccs)` is called with a CCSettings object containing a `turnInPlace` value, THE Character_Controller SHALL apply that value.
+
+### Requirement 7: First-Person Mode Disables Smooth Turning
+
+**User Story:** As a player, I want rotation to be instant in first-person mode, so that looking around feels responsive.
+
+#### Acceptance Criteria
+
+1. WHEN the camera enters first-person mode (radius reaches lowerRadiusLimit), THE Character_Controller SHALL save the current Smooth_Turn_Speed and set it to zero (instant rotation).
+2. WHEN the camera exits first-person mode (radius increases beyond lowerRadiusLimit), THE Character_Controller SHALL restore the previously saved Smooth_Turn_Speed value.
+3. THE Character_Controller SHALL NOT modify the Turning_Off setting when entering or exiting first-person mode.

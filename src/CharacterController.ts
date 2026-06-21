@@ -1,4 +1,4 @@
-import {
+﻿import {
     Skeleton,
     ArcRotateCamera,
     Vector3,
@@ -25,6 +25,101 @@ import {
     Color3,
     Quaternion
 } from "babylonjs";
+
+
+// --- Navigation helper functions (pure, standalone) ---
+
+/**
+ * Compute the horizontal (XZ-plane) distance between two Vector3 positions.
+ */
+function horizontalDistance(a: Vector3, b: Vector3): number {
+    const dx = a.x - b.x;
+    const dz = a.z - b.z;
+    return Math.sqrt(dx * dx + dz * dz);
+}
+
+/**
+ * Compute the direction angle (Y rotation) from source to target on the XZ plane.
+ * Returns the angle in radians that the character should face.
+ * @param faceForward true if character's forward is along positive Z (back-facing model)
+ * @param isLHS_RHS true for left-hand/right-hand mismatch (e.g. GLB in LHS scene)
+ */
+function directionAngle(source: Vector3, target: Vector3, faceForward: boolean, isLHS_RHS: boolean): number {
+    const dx = target.x - source.x;
+    const dz = target.z - source.z;
+    // atan2(dx, dz) gives the angle from +Z axis toward +X axis.
+    // This matches the BabylonJS rotation.y convention for a mesh whose face points at +Z (faceForward=true).
+    // When isLHS_RHS is true, the mesh's local Z is flipped relative to the scene,
+    // so the effective facing direction at rotation.y=0 is inverted — we must flip the faceForward logic.
+    let angle = Math.atan2(dx, dz);
+    const effectiveFaceForward = isLHS_RHS ? !faceForward : faceForward;
+    if (!effectiveFaceForward) {
+        angle += Math.PI; // Rotate 180° for front-facing models (or back-facing in LHS_RHS)
+    }
+    // Normalize to [-PI, PI]
+    while (angle > Math.PI) angle -= 2 * Math.PI;
+    while (angle < -Math.PI) angle += 2 * Math.PI;
+    return angle;
+}
+
+/**
+ * Compute shortest-arc delta between current angle and target angle,
+ * normalized to [-PI, PI].
+ */
+function shortestArcDelta(current: number, target: number): number {
+    let delta = target - current;
+    while (delta > Math.PI) delta -= 2 * Math.PI;
+    while (delta < -Math.PI) delta += 2 * Math.PI;
+    return delta;
+}
+
+/**
+ * Determine turn direction based on shortest arc.
+ * Returns 'left' for positive delta (increase rotation.y), 'right' for negative delta.
+ */
+function turnDirection(current: number, target: number): 'left' | 'right' {
+    const delta = shortestArcDelta(current, target);
+    return delta >= 0 ? 'left' : 'right';
+}
+
+/**
+ * Check if distance is within arrival threshold.
+ */
+function isWithinArrival(distance: number, arrivalDistance: number): boolean {
+    return distance <= arrivalDistance;
+}
+
+/**
+ * Check if angular difference is within tolerance.
+ */
+function isWithinAngularTolerance(delta: number, tolerance: number): boolean {
+    return Math.abs(delta) <= tolerance;
+}
+
+/**
+ * Obstruction detection: given per-frame distance and threshold, update counter.
+ * Increments count if frame distance is below threshold, resets to 0 otherwise.
+ */
+function updateObstructionCount(frameDistance: number, threshold: number, currentCount: number): number {
+    return frameDistance < threshold ? currentCount + 1 : 0;
+}
+
+/**
+ * Validate and clamp a parameter to a default value.
+ * If value is <= 0, returns defaultValue.
+ */
+function clampPositive(value: number, defaultValue: number): number {
+    return value > 0 ? value : defaultValue;
+}
+
+// --- End navigation helper functions ---
+
+const enum JumpStage {
+    NONE = 0,
+    PRE_JUMP = 1,
+    JUMP = 2,
+    POST_JUMP = 3
+}
 
 
 export class CharacterController {
@@ -134,6 +229,21 @@ export class CharacterController {
         return this._smoothTurnSpeed * 180 / Math.PI;
     }
 
+    /**
+     * Set turn-in-place mode. When true, the avatar does not move forward/backward
+     * while smooth turning is in progress — it rotates on the spot until facing the target.
+     */
+    public setTurnInPlace(b: boolean): void {
+        this._turnInPlace = b;
+    }
+
+    /**
+     * Get current turn-in-place mode.
+     */
+    public isTurnInPlace(): boolean {
+        return this._turnInPlace;
+    }
+
     public setGravity(n: number) {
         this._gravity = n;
     }
@@ -225,10 +335,12 @@ export class CharacterController {
                     this._hasAnims = true;
                     ccActData.exist = true;
                     if (inActData instanceof Object) {
+                        //if animation group
                         if (inActData.ag) {
                             ccActData.ag = inActData.ag;
                             agMap = true;
                         }
+                        //if animation range
                         if (inActData.name) {
                             ccActData.name = inActData.name;
                         }
@@ -293,8 +405,10 @@ export class CharacterController {
         ccs.ellipsoid = this._avatar.ellipsoid;
         ccs.ellipsoidOffset = this._avatar.ellipsoidOffset;
         ccs.smoothTurnSpeed = this.getSmoothTurnSpeed();
+        ccs.turnInPlace = this._turnInPlace;
         ccs.springback = this._springback;
         ccs.springbackSteps = Math.floor(Math.min(1000, Math.max(1, this._springbackSteps)));
+        ccs.springbackAngleRestore = this._springbackAngleRestore;
 
         return ccs;
     }
@@ -317,11 +431,17 @@ export class CharacterController {
         this._avatar.ellipsoid=ccs.ellipsoid;
         this._avatar.ellipsoidOffset=ccs.ellipsoidOffset;
         this.setSmoothTurnSpeed(ccs.smoothTurnSpeed);
+        if (ccs.turnInPlace !== undefined) {
+            this._turnInPlace = ccs.turnInPlace;
+        }
         if (ccs.springback !== undefined) {
             this._springback = ccs.springback;
         }
         if (ccs.springbackSteps !== undefined) {
             this._springbackSteps = Math.floor(Math.min(1000, Math.max(1, ccs.springbackSteps)));
+        }
+        if (ccs.springbackAngleRestore !== undefined) {
+            this.setSpringbackAngleRestore(ccs.springbackAngleRestore);
         }
 
     }
@@ -349,6 +469,8 @@ export class CharacterController {
 
         if (loop != null) anim.loop = loop;
         if (rate != null) anim.rate = rate;
+        
+        this._hasAnims = true;
     }
 
     public enableBlending(n: number) {
@@ -444,6 +566,18 @@ export class CharacterController {
     public setRunJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
         this._setAnim(this._actionMap.runJump, rangeName, rate, loop);
     }
+    public setPreIdleJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+        this._setAnim(this._actionMap.preIdleJump, rangeName, rate, loop);
+    }
+    public setPostIdleJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+        this._setAnim(this._actionMap.postIdleJump, rangeName, rate, loop);
+    }
+    public setPreRunJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+        this._setAnim(this._actionMap.preRunJump, rangeName, rate, loop);
+    }
+    public setPostRunJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+        this._setAnim(this._actionMap.postRunJump, rangeName, rate, loop);
+    }
     public setFallAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
         this._setAnim(this._actionMap.fall, rangeName, rate, loop);
     }
@@ -466,6 +600,12 @@ export class CharacterController {
         this._actionMap.idle.sound = null;
         this._actionMap.fall.sound = null;
         this._actionMap.slideBack.sound = null;
+        this._actionMap.preIdleJump.sound = null;
+        this._actionMap.postIdleJump.sound = null;
+        this._actionMap.preRunJump.sound = null;
+        this._actionMap.postRunJump.sound = null;
+        this._actionMap.idleJump.sound = null;
+        this._actionMap.runJump.sound = null;
     }
 
 
@@ -496,6 +636,11 @@ export class CharacterController {
         this._cameraElastic = b;
         if (!b) {
             this._originalRadius = null;
+            this._originalAlpha = null;
+            this._originalBeta = null;
+            this._expectedAlpha = null;
+            this._expectedBeta = null;
+            this._angleRestorationActive = false;
         }
     }
 
@@ -516,6 +661,21 @@ export class CharacterController {
         if (n < 1) n = 1;
         if (n > 1000) n = 1000;
         this._springbackSteps = n;
+    }
+
+    public setSpringbackAngleRestore(b: boolean): void {
+        this._springbackAngleRestore = b;
+        if (b) {
+            if (this._originalAlpha !== null) {
+                this._angleRestorationActive = true;
+            }
+        } else {
+            this._angleRestorationActive = false;
+        }
+    }
+
+    public isSpringbackAngleRestore(): boolean {
+        return this._springbackAngleRestore;
     }
 
     public makeObstructionInvisible(b: boolean) {
@@ -550,6 +710,7 @@ export class CharacterController {
         for (let key of keys) {
             let anim = this._actionMap[key];
             if (!(anim instanceof ActionData)) continue;
+            if (anim.exist) continue;
             if (skel != null) {
                 if (skel.getAnimationRange(anim.id) != null) {
                     anim.name = anim.id;
@@ -592,6 +753,7 @@ export class CharacterController {
      */
     private _mode = 0;
     private _saveMode = 0;
+    private _saveSmoothTurnSpeed: number = 0;
     public setMode(n: number) {
         //cannot switch mode to 0 if no camera avaiable.
         if (this._hasCam) {
@@ -721,6 +883,7 @@ export class CharacterController {
         for (let key of keys) {
             let anim = this._actionMap[key];
             if (!(anim instanceof ActionData)) continue;
+            if (anim.exist) continue;
             if (agMap[anim.name] != null) {
                 anim.ag = agMap[anim.name];
                 anim.exist = true;
@@ -830,6 +993,14 @@ export class CharacterController {
     private _inFreeFall: boolean = false;
     private _wasWalking: boolean = false;
     private _wasRunning: boolean = false;
+
+    // Three-stage jump state
+    private _jumpStage: JumpStage = JumpStage.NONE;
+    private _jumpStageTime: number = 0;
+    private _jumpStageDuration: number = 0;
+    private _jumpBuffered: boolean = false;
+    private _wasIdleJump: boolean = false;
+
     private _moveVector: Vector3 = Vector3.Zero();
 
     //used only in mode 1
@@ -843,6 +1014,7 @@ export class CharacterController {
     }
 
     private _moveAVandCamera() {
+
         this._avStartPos.copyFrom(this._avatar.position);
         let actData: ActionData = null;
         const dt: number = this._scene.getEngine().getDeltaTime() / 1000;
@@ -906,11 +1078,28 @@ export class CharacterController {
     //for how long the AV has been in the jump
     private _jumpTime: number = 0;
     private _doJump(dt: number): ActionData {
+        switch (this._jumpStage) {
+            case JumpStage.NONE:
+                return this._beginJump(dt);
+            case JumpStage.PRE_JUMP:
+                return this._doPreJump(dt);
+            case JumpStage.JUMP:
+                return this._doJumpAirborne(dt);
+            case JumpStage.POST_JUMP:
+                return this._doPostJump(dt);
+        }
+    }
+
+    private _doJumpAirborne(dt: number): ActionData {
 
         let actData: ActionData = null;
         actData = this._actionMap.runJump;
         if (this._jumpTime === 0) {
             this._jumpStartPosY = this._avatar.position.y;
+            // Play liftoff sound
+            if (this._stepSound != null) {
+                this._stepSound.play();
+            }
         }
 
         this._jumpTime = this._jumpTime + dt;
@@ -978,13 +1167,144 @@ export class CharacterController {
     }
 
     /**
-     * does cleanup at the end of a jump
+     * Computes the playback duration of a non-looping animation in seconds.
+     * Formula: frameCount / (fps × |rate|)
+     * Returns 0 for null/missing data (graceful degradation).
      */
-    private _endJump() {
+    private _getAnimDuration(actData: ActionData): number {
+        if (actData == null || actData.rate === 0) return 0;
+
+        if (this._isAG) {
+            const ag = actData.ag;
+            if (ag == null) return 0;
+            if (ag.targetedAnimations == null || ag.targetedAnimations.length === 0) return 0;
+            const frameCount = ag.to - ag.from;
+            const fps = ag.targetedAnimations[0].animation.framePerSecond;
+            if (fps === 0) return 0;
+            return frameCount / (fps * Math.abs(actData.rate));
+        } else {
+            if (this._skeleton == null) return 0;
+            const range = this._skeleton.getAnimationRange(actData.name);
+            if (range == null) return 0;
+            const frameCount = range.to - range.from;
+            const fps = 30; // BabylonJS default skeleton fps
+            return frameCount / (fps * Math.abs(actData.rate));
+        }
+    }
+
+    /**
+     * Determines whether to enter PRE_JUMP or skip directly to JUMP stage.
+     * Captures the movement state at jump initiation and selects the appropriate
+     * pre-jump animation based on whether the avatar was idle or moving.
+     */
+    private _beginJump(dt: number): ActionData {
+        // Capture movement state at jump initiation
+        this._wasIdleJump = !this._wasWalking && !this._wasRunning;
+
+        const preAnim = this._wasIdleJump
+            ? this._actionMap.preIdleJump
+            : this._actionMap.preRunJump;
+
+        if (preAnim.exist) {
+            this._jumpStage = JumpStage.PRE_JUMP;
+            this._jumpStageTime = 0;
+            this._jumpStageDuration = this._getAnimDuration(preAnim);
+            return preAnim;
+        } else {
+            // Skip pre-jump, go directly to airborne
+            this._jumpStage = JumpStage.JUMP;
+            return this._doJumpAirborne(dt);
+        }
+    }
+
+    /**
+     * Handles the pre-jump grounded stage.
+     * Accumulates time and transitions to JUMP stage when the pre-jump animation completes.
+     * Keeps avatar grounded (no vertical displacement applied).
+     */
+    private _doPreJump(dt: number): ActionData {
+        this._jumpStageTime += dt;
+
+        const preAnim = this._wasIdleJump
+            ? this._actionMap.preIdleJump
+            : this._actionMap.preRunJump;
+
+        if (this._jumpStageTime >= this._jumpStageDuration) {
+            // Pre-jump animation complete, transition to airborne
+            this._jumpStage = JumpStage.JUMP;
+            this._jumpStageTime = 0;
+            return this._doJumpAirborne(dt);
+        }
+
+        // Keep avatar grounded — no displacement applied
+        return preAnim;
+    }
+
+    /**
+     * Handles the post-jump grounded stage.
+     * Accumulates time and keeps the avatar grounded while the post-jump animation plays.
+     * When the animation duration elapses, ends the full jump sequence and optionally
+     * triggers a buffered jump.
+     */
+    private _doPostJump(dt: number): ActionData {
+        this._jumpStageTime += dt;
+
+        const postAnim = this._wasIdleJump
+            ? this._actionMap.postIdleJump
+            : this._actionMap.postRunJump;
+
+        if (this._jumpStageTime >= this._jumpStageDuration) {
+            // Post-jump animation complete
+            const buffered = this._jumpBuffered;
+            this._endJumpFull();
+            if (buffered) {
+                this._act._jump = true;
+            }
+            return null; // Let next frame pick up idle/move/jump
+        }
+
+        // Keep avatar grounded during post-jump
+        return postAnim;
+    }
+
+    /**
+     * Full jump cleanup — resets all jump state variables.
+     */
+    private _endJumpFull() {
         this._act._jump = false;
+        this._jumpStage = JumpStage.NONE;
+        this._jumpStageTime = 0;
+        this._jumpStageDuration = 0;
         this._jumpTime = 0;
         this._wasWalking = false;
         this._wasRunning = false;
+        this._wasIdleJump = false;
+        this._jumpBuffered = false;
+    }
+
+    /**
+     * does cleanup at the end of a jump.
+     * If a post-jump animation exists, transitions to POST_JUMP stage.
+     * Otherwise, performs full cleanup via _endJumpFull().
+     */
+    private _endJump() {
+        // Play landing sound
+        if (this._stepSound != null) {
+            this._stepSound.play();
+        }
+
+        const postAnim = this._wasIdleJump
+            ? this._actionMap.postIdleJump
+            : this._actionMap.postRunJump;
+
+        if (postAnim.exist) {
+            this._jumpStage = JumpStage.POST_JUMP;
+            this._jumpStageTime = 0;
+            this._jumpStageDuration = this._getAnimDuration(postAnim);
+            // _act._jump stays true to keep dispatch routing to _doJump
+        } else {
+            this._endJumpFull();
+        }
     }
 
     /**
@@ -1008,6 +1328,10 @@ export class CharacterController {
     private _noRot = false;
     // smooth turn speed in radians per second (default 360 deg/s = 2π rad/s)
     private _smoothTurnSpeed: number = 2 * Math.PI ;
+    // true while avatar is mid-rotation toward target (not yet snapped)
+    private _smoothTurning: boolean = false;
+    // when true, avatar does not move forward/backward while smooth turning (turn in place)
+    private _turnInPlace: boolean = true;
     private _steps = true;
     private _stepHigh:boolean = false;
     private _doMove(dt: number): ActionData {
@@ -1089,6 +1413,8 @@ export class CharacterController {
                         horizDist = this._actionMap.walk.speed * dt;
                         actdata = this._actionMap.walk;
                     }
+                    // Turn-in-place: suppress forward movement while mid-rotation
+                    if (this._turnInPlace && this._smoothTurning) horizDist = 0;
                     this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, this._ffSign * horizDist);
                     moving = true;
                     break;
@@ -1101,6 +1427,8 @@ export class CharacterController {
                     } else {
                         actdata = this._actionMap.walkBack;
                     }
+                    // Turn-in-place: suppress backward movement while mid-rotation
+                    if (this._turnInPlace && this._smoothTurning) horizDist = 0;
                     this._moveVector = this._avatar.calcMovePOV(0, -this._freeFallDist, -this._ffSign * horizDist);
                     moving = true;
                     break;
@@ -1400,17 +1728,21 @@ export class CharacterController {
                         while (delta > Math.PI) delta -= 2 * Math.PI;
                         while (delta < -Math.PI) delta += 2 * Math.PI;
 
+                        // For exactly 180° (ambiguous direction), always go clockwise (viewed from above)
+                        // In LHS: clockwise = +PI; In RHS: clockwise = -PI
+                        if (Math.abs(delta) === Math.PI) delta = this._rhsSign * Math.PI;
+
                         const step = this._smoothTurnSpeed === 0 ? Math.abs(delta) : Math.min(Math.abs(delta), this._smoothTurnSpeed * dt);
 
                         if (Math.abs(delta) <= step) {
                             // Close enough — snap to target to prevent overshoot
                             this._setAvatarRotationY(targetAngle);
-                            // this.turnDone = true;
+                            this._smoothTurning = false;
                         } else {
                             // Rotate by step in the direction of shortest arc
                             const sign = delta > 0 ? 1 : -1;
                             this._setAvatarRotationY(current + step * sign);
-                            // this.turnDone = false;
+                            this._smoothTurning = true;
                         }
                     }
                 } else {
@@ -1429,6 +1761,27 @@ export class CharacterController {
             }
             let a;
             if (this._mode == 1) {
+                if (this._turnToActive) {
+                    // Navigation mode: bypass camera-relative sign logic.
+                    // turnLeft = increase rotation.y (positive), turnRight = decrease (negative)
+                    a = this._act._turnLeft ? 1 : -1;
+                    if (!moving) {
+                        anim = this._act._turnLeft ? this._actionMap.turnRight : this._actionMap.turnLeft;
+                    }
+                } else if (!this._hasCam) {
+                    // NPC (no camera): turn direction is relative to the character itself,
+                    // independent of any camera position or face-forward setting.
+                    // turnLeft always decreases rotation.y in LHS (and increases in RHS).
+                    a = -this._rhsSign;
+                    if (this._act._turnRight) a = -a;
+                    if (!moving) {
+                        if (this._rhsSign > 0) {
+                            anim = this._act._turnLeft ? this._actionMap.turnLeft : this._actionMap.turnRight;
+                        } else {
+                            anim = this._act._turnLeft ? this._actionMap.turnRight : this._actionMap.turnLeft;
+                        }
+                    }
+                } else {
                 // while turining, the avatar could start facing away from camera and end up facing camera.
                 // we should not switch turning direction during this transition
                 if (!this._isTurning) {
@@ -1453,14 +1806,15 @@ export class CharacterController {
                         anim = (this._sign > 0) ? this._actionMap.turnLeft : this._actionMap.turnRight;
                     }
                 }
+                }
             } else {
                 a = 1;
                 if (this._act._turnLeft) {
                     if (this._act._walkback) a = -1;
-                    if (!moving) anim = this._actionMap.turnLeft;
+                    if (!moving) anim = (this._rhsSign > 0) ? this._actionMap.turnLeft : this._actionMap.turnRight;
                 } else {
                     if (this._act._walk) a = -1;
-                    if (!moving) { a = -1; anim = this._actionMap.turnRight; }
+                    if (!moving) { a = -1; anim = (this._rhsSign > 0) ? this._actionMap.turnRight : this._actionMap.turnLeft; }
                 }
                 if (this._hasCam)
                     this._camera.alpha = this._camera.alpha + this._rhsSign * turnAngle * a;
@@ -1586,11 +1940,81 @@ export class CharacterController {
             if (newDist >= this._originalRadius) {
                 // Avatar moved far enough — distance restored. Resume normal following.
                 this._originalRadius = null;
+                this._originalAlpha = null;
+                this._originalBeta = null;
+                this._expectedAlpha = null;
+                this._expectedBeta = null;
+                this._angleRestorationActive = false;
                 this._expectedRadius = this._camera.radius;
             } else if (newDist > this._camera.radius) {
                 // Avatar moved away — hold camera at saved position
                 this._camera.position.copyFrom(holdCameraPos);
                 this._camera.rebuildAnglesAndRadius();
+
+                // Angle-priority restoration: restore alpha/beta first, suppress radius restoration
+                if (this._originalAlpha !== null && this._springbackAngleRestore && this._springback) {
+                    const alphaDiff: number = this._originalAlpha - this._camera.alpha;
+                    const betaDiff: number = this._originalBeta - this._camera.beta;
+
+                    if (Math.abs(alphaDiff) <= 0.005 && Math.abs(betaDiff) <= 0.005) {
+                        // Angles within snap threshold — snap to targets
+                        this._camera.alpha = this._originalAlpha;
+                        this._camera.beta = this._originalBeta;
+
+                        // Ray cast verification: check if the path is clear at restored angles
+                        // before allowing radius restoration.
+                        const restoredDir: Vector3 = new Vector3(
+                            Math.sin(this._originalBeta) * Math.sin(this._originalAlpha),
+                            Math.cos(this._originalBeta),
+                            Math.sin(this._originalBeta) * Math.cos(this._originalAlpha)
+                        );
+                        this._ray.origin = this._camera.target;
+                        this._ray.direction = restoredDir;
+                        this._ray.length = this._originalRadius;
+                        const verifyPis: PickingInfo[] = this._scene.multiPickWithRay(this._ray, (mesh) => {
+                            if (this._avChildren.includes(mesh)) return false;
+                            return mesh.isPickable;
+                        });
+
+                        const _ellipsoid = (this._camera as any).ellipsoid || (this._camera as any).collisionRadius;
+                        const ellipsoidRadius: number = _ellipsoid ? Math.max(_ellipsoid.x, _ellipsoid.z) : 0;
+                        const currentDist: number = Vector3.Distance(this._camera.position, this._camera.target);
+                        let pathBlocked: boolean = false;
+                        for (let i = 0; i < verifyPis.length; i++) {
+                            const pm = verifyPis[i].pickedMesh;
+                            if (this._isSeeAble(pm) || pm.checkCollisions) {
+                                const pickDist: number = Vector3.Distance(verifyPis[i].pickedPoint, this._camera.target);
+                                if ((pickDist - ellipsoidRadius) < this._originalRadius && (pickDist - ellipsoidRadius) > currentDist) {
+                                    pathBlocked = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!pathBlocked) {
+                            // Path clear — allow radius restoration to proceed
+                            this._angleRestorationActive = false;
+                        } else {
+                            // Path blocked — hold current radius, clear angle state, retain _originalRadius
+                            this._originalAlpha = null;
+                            this._originalBeta = null;
+                            this._expectedAlpha = null;
+                            this._expectedBeta = null;
+                            this._angleRestorationActive = false;
+                        }
+                    } else {
+                        // Apply angle restoration steps (suppress radius restoration)
+                        this._angleRestorationActive = true;
+                        const alphaStep: number = alphaDiff / this._springbackSteps;
+                        const betaStep: number = betaDiff / this._springbackSteps;
+                        this._camera.alpha += alphaStep;
+                        this._camera.beta += betaStep;
+                    }
+                    // Store expected values for user-change detection
+                    this._expectedAlpha = this._camera.alpha;
+                    this._expectedBeta = this._camera.beta;
+                }
+
                 // Update expectedRadius so user-change detection doesn't misfire
                 this._expectedRadius = this._camera.radius;
             }
@@ -1605,7 +2029,9 @@ export class CharacterController {
                 this._makeMeshInvisible(this._avatar);
                 this._camera.checkCollisions = false;
                 this._saveMode = this._mode;
+                this._saveSmoothTurnSpeed = this._smoothTurnSpeed;
                 this._mode = 0;
+                this._smoothTurnSpeed = 0;
                 this._inFP = true;
             }
             // If we're in first-person due to elastic push-in, hold camera position
@@ -1616,6 +2042,11 @@ export class CharacterController {
                     // Avatar moved away enough to exit first-person
                     if (distToTarget >= this._originalRadius) {
                         this._originalRadius = null;
+                        this._originalAlpha = null;
+                        this._originalBeta = null;
+                        this._expectedAlpha = null;
+                        this._expectedBeta = null;
+                        this._angleRestorationActive = false;
                         this._expectedRadius = this._camera.radius;
                     } else {
                         this._camera.position.copyFrom(fpHoldPos);
@@ -1628,6 +2059,7 @@ export class CharacterController {
             if (this._inFP) {
                 this._inFP = false;
                 this._mode = this._saveMode;
+                this._smoothTurnSpeed = this._saveSmoothTurnSpeed;
                 this._restoreVisiblity(this._avatar);
                 this._camera.checkCollisions = this._savedCameraCollision;
                 // Reset expected radius so user-change detection doesn't misfire
@@ -1666,8 +2098,8 @@ export class CharacterController {
 
     private _ray: Ray = new Ray(Vector3.Zero(), Vector3.One(), 1);
     private _rayDir: Vector3 = Vector3.Zero();
-    //camera seems to get stuck into things
-    //should move camera away from things by a value of cameraSkin
+    // Superseded by ellipsoid-based clearance (ellipsoidRadius = Math.max(camera.ellipsoid.x, camera.ellipsoid.z)).
+    // For default ellipsoid (0.5, 1, 0.5), ellipsoidRadius = 0.5 matches this value.
     private _cameraSkin: number = 0.5;
     private _prevPickedMeshes: AbstractMesh[];
     private _pickedMeshes: AbstractMesh[] = new Array();;
@@ -1677,6 +2109,12 @@ export class CharacterController {
     private _springbackSteps: number = 50;
     private _originalRadius: number | null = null;
     private _expectedRadius: number | null = null;
+    private _originalAlpha: number | null = null;
+    private _originalBeta: number | null = null;
+    private _springbackAngleRestore: boolean = true;
+    private _expectedAlpha: number | null = null;
+    private _expectedBeta: number | null = null;
+    private _angleRestorationActive: boolean = false;
     private _alreadyInvisible: AbstractMesh[];
 
     /**
@@ -1704,6 +2142,11 @@ export class CharacterController {
             if (radiusDelta < -0.01 && this._originalRadius !== null) {
                 userScrolled = true;
                 this._originalRadius = null;
+                this._originalAlpha = null;
+                this._originalBeta = null;
+                this._expectedAlpha = null;
+                this._expectedBeta = null;
+                this._angleRestorationActive = false;
                 this._expectedRadius = this._camera.radius;
             } else {
                 // For other changes, use the step-based threshold
@@ -1715,6 +2158,11 @@ export class CharacterController {
                 if (absDelta > maxExpectedStep) {
                     userScrolled = true;
                     this._originalRadius = null;
+                    this._originalAlpha = null;
+                    this._originalBeta = null;
+                    this._expectedAlpha = null;
+                    this._expectedBeta = null;
+                    this._angleRestorationActive = false;
                     this._expectedRadius = this._camera.radius;
                 }
             }
@@ -1763,6 +2211,8 @@ export class CharacterController {
         }
 
         if (this._cameraElastic) {
+            const _ellipsoid = (this._camera as any).ellipsoid || (this._camera as any).collisionRadius;
+            const ellipsoidRadius: number = _ellipsoid ? Math.max(_ellipsoid.x, _ellipsoid.z) : 0;
             if (pis.length > 0) {
                 // postion the camera in front of the mesh that is obstructing camera
 
@@ -1791,6 +2241,19 @@ export class CharacterController {
                     this._originalRadius = this._camera.radius;
                 }
 
+                // Store original alpha/beta on first push-in for angle restoration
+                if (this._springbackAngleRestore && this._originalAlpha === null) {
+                    this._originalAlpha = this._camera.alpha;
+                    this._originalBeta = this._camera.beta;
+                }
+
+                // If angle restoration was active, pause it during obstruction push-in.
+                // The stored _originalAlpha/_originalBeta are retained so restoration
+                // resumes when the obstruction clears.
+                if (this._angleRestorationActive) {
+                    this._angleRestorationActive = false;
+                }
+
                 const c2p: Vector3 = this._camera.position.subtract(pp);
                 //note that when camera is collidable, changing the orbital camera radius may not work.
                 //changing the radius moves the camera forward (with collision?) and collision can interfere with movement
@@ -1802,13 +2265,15 @@ export class CharacterController {
                 //if collision is on
 
                 const l: number = c2p.length();
-                if (l <= 0.1) {
+                if (l <= Math.max(ellipsoidRadius, 0.1)) {
                     // Close enough — stop moving. The deceleration has brought us near the target.
                 } else if (this._camera.checkCollisions) {
-                    let step: Vector3 = c2p.normalize().scaleInPlace(l / this._elasticSteps);
+                    const targetDist: number = Math.max(l - ellipsoidRadius, 0);
+                    let step: Vector3 = c2p.normalize().scaleInPlace(targetDist / this._elasticSteps);
                     this._camera.position = this._camera.position.subtract(step);
                 } else {
-                    let step: number = l / this._elasticSteps;
+                    const targetDist: number = Math.max(l - ellipsoidRadius, 0);
+                    let step: number = targetDist / this._elasticSteps;
                     this._camera.radius = this._camera.radius - step;
                 }
             } else {
@@ -1834,7 +2299,7 @@ export class CharacterController {
                             const pm = springPis[i].pickedMesh;
                             if (this._isSeeAble(pm) || pm.checkCollisions) {
                                 const pickDist: number = Vector3.Distance(springPis[i].pickedPoint, this._camera.target);
-                                if (pickDist > currentDist) {
+                                if ((pickDist - ellipsoidRadius) > currentDist) {
                                     // Obstruction exists between camera and original radius — don't spring back
                                     springBlocked = true;
                                     break;
@@ -1843,9 +2308,41 @@ export class CharacterController {
                         }
 
                         if (!springBlocked) {
+                            // Detect user-initiated angle changes BEFORE applying angle restoration steps.
+                            // This mirrors the radius user-change detection at the top of the method.
+                            if (this._expectedAlpha !== null && this._expectedBeta !== null && !this._angleRestorationActive) {
+                                const actualAlpha: number = this._camera.alpha;
+                                const actualBeta: number = this._camera.beta;
+                                const alphaDelta: number = Math.abs(actualAlpha - this._expectedAlpha);
+                                const betaDelta: number = Math.abs(actualBeta - this._expectedBeta);
+
+                                // Compute threshold: max(|_originalAlpha - camera.alpha| / _springbackSteps, 0.001)
+                                const alphaThreshold: number = this._originalAlpha !== null
+                                    ? Math.max(Math.abs(this._originalAlpha - actualAlpha) / this._springbackSteps, 0.001)
+                                    : 0.001;
+                                const betaThreshold: number = this._originalBeta !== null
+                                    ? Math.max(Math.abs(this._originalBeta - actualBeta) / this._springbackSteps, 0.001)
+                                    : 0.001;
+
+                                if (alphaDelta > alphaThreshold || betaDelta > betaThreshold) {
+                                    // User-initiated angle change detected
+                                    if (this._originalAlpha !== null) {
+                                        // Update springback targets to user's new preferred angles
+                                        this._originalAlpha = this._camera.alpha;
+                                        this._originalBeta = this._camera.beta;
+                                    }
+                                    // If _originalAlpha === null: no-op (no angle springback in progress)
+                                }
+                            }
+
                             if (remainingDistance <= 0.1) {
                                 // Close enough — stop. Clear displacement.
                                 this._originalRadius = null;
+                                this._originalAlpha = null;
+                                this._originalBeta = null;
+                                this._expectedAlpha = null;
+                                this._expectedBeta = null;
+                                this._angleRestorationActive = false;
                             } else if (this._camera.checkCollisions) {
                                 // Collision mode: move camera position along the avatar-to-camera vector
                                 const dir: Vector3 = this._camera.position.subtract(this._camera.target).normalize();
@@ -1857,14 +2354,48 @@ export class CharacterController {
                                 const step: number = remainingDistance / this._springbackSteps;
                                 this._camera.radius = this._camera.radius + step;
                             }
+
+                            // Concurrent angle restoration: restore alpha/beta alongside radius
+                            if (this._springbackAngleRestore && this._originalAlpha !== null && this._springback) {
+                                const alphaStep: number = (this._originalAlpha - this._camera.alpha) / this._springbackSteps;
+                                const betaStep: number = (this._originalBeta - this._camera.beta) / this._springbackSteps;
+
+                                if (Math.abs(this._originalAlpha - this._camera.alpha) <= 0.005 && Math.abs(this._originalBeta - this._camera.beta) <= 0.005) {
+                                    // Snap both angles to targets
+                                    this._camera.alpha = this._originalAlpha;
+                                    this._camera.beta = this._originalBeta;
+                                    this._originalAlpha = null;
+                                    this._originalBeta = null;
+                                    this._angleRestorationActive = false;
+                                } else {
+                                    // Apply deceleration steps
+                                    this._camera.alpha += alphaStep;
+                                    this._camera.beta += betaStep;
+                                    this._angleRestorationActive = true;
+                                }
+                                // Store expected values for user-change detection
+                                this._expectedAlpha = this._camera.alpha;
+                                this._expectedBeta = this._camera.beta;
+                            }
+
                             // Clear _originalRadius when camera reaches target (within 0.01 tolerance)
                             if (this._originalRadius !== null && Math.abs(this._camera.radius - this._originalRadius) <= 0.01) {
                                 this._originalRadius = null;
+                                this._originalAlpha = null;
+                                this._originalBeta = null;
+                                this._expectedAlpha = null;
+                                this._expectedBeta = null;
+                                this._angleRestorationActive = false;
                             }
                         }
                     } else {
                         // Camera is at or beyond original radius — clear recovery target
                         this._originalRadius = null;
+                        this._originalAlpha = null;
+                        this._originalBeta = null;
+                        this._expectedAlpha = null;
+                        this._expectedBeta = null;
+                        this._angleRestorationActive = false;
                     }
                 }
             }
@@ -1872,6 +2403,13 @@ export class CharacterController {
 
         // Store current radius as expected for next frame's user-change detection
         this._expectedRadius = this._camera.radius;
+
+        // Store current angles as expected for next frame's user-change detection
+        // (only when angle tracking is active but not already set by angle restoration above)
+        if (this._originalAlpha !== null && this._expectedAlpha === null) {
+            this._expectedAlpha = this._camera.alpha;
+            this._expectedBeta = this._camera.beta;
+        }
     }
 
     //how many ways can a mesh be invisible?
@@ -1892,9 +2430,22 @@ export class CharacterController {
     private _onKeyDown(e: KeyboardEvent) {
         if (!e.key) return;
         if (e.repeat) return;
+        // Cancel navigation on keyboard press (only if keyboard is enabled)
+        if (this._ekb) {
+            if (this._moveToActive || this._turnToActive) {
+                this._cancelMoveTo();
+                this._cancelTurnTo();
+                this._act.reset();
+            }
+        }
         switch (e.key.toLowerCase()) {
             case this._actionMap.idleJump.key:
-                this._act._jump = true;
+                if (this._jumpStage === JumpStage.NONE) {
+                    this._act._jump = true;
+                } else if (this._jumpStage === JumpStage.POST_JUMP) {
+                    this._jumpBuffered = true;
+                }
+                // PRE_JUMP and JUMP stages: ignore
                 break;
             case "capslock":
                 this._act._speedMod = !this._act._speedMod;
@@ -1906,32 +2457,38 @@ export class CharacterController {
             case "arrowup":
             case this._actionMap.walk.key:
                 // console.log("walk");
+                if (this._jumpStage === JumpStage.PRE_JUMP || this._jumpStage === JumpStage.POST_JUMP) break;
                 this._act._walk = true;
                 break;
             case "left":
             case "arrowleft":
             case this._actionMap.turnLeft.key:
                 // console.log("turn left");
+                if (this._jumpStage === JumpStage.PRE_JUMP || this._jumpStage === JumpStage.POST_JUMP) break;
                 this._act._turnLeft = true;
                 break;
             case "right":
             case "arrowright":
             case this._actionMap.turnRight.key:
                 // console.log("turn right");
+                if (this._jumpStage === JumpStage.PRE_JUMP || this._jumpStage === JumpStage.POST_JUMP) break;
                 this._act._turnRight = true;
                 break;
             case "down":
             case "arrowdown":
             case this._actionMap.walkBack.key:
                 // console.log("walk back");
+                if (this._jumpStage === JumpStage.PRE_JUMP || this._jumpStage === JumpStage.POST_JUMP) break;
                 this._act._walkback = true;
                 break;
             case this._actionMap.strafeLeft.key:
                 // console.log("strafe left");
+                if (this._jumpStage === JumpStage.PRE_JUMP || this._jumpStage === JumpStage.POST_JUMP) break;
                 this._act._stepLeft = true;
                 break;
             case this._actionMap.strafeRight.key:
                 // console.log("strafe right");
+                if (this._jumpStage === JumpStage.PRE_JUMP || this._jumpStage === JumpStage.POST_JUMP) break;
                 this._act._stepRight = true;
                 break;
         }
@@ -2001,6 +2558,38 @@ export class CharacterController {
         canvas.removeEventListener("keydown", this._handleKeyDown, false);
     }
 
+    /**
+     * Clear moveTo state (called from keyboard handler to cancel navigation).
+     */
+    private _cancelMoveTo(): void {
+        if (!this._moveToActive) return;
+        this._moveToTarget = null;
+        this._moveToNode = null;
+        this._moveToActive = false;
+        this._moveToObstructionCount = 0;
+        this._moveToLastPos = null;
+        this._moveToOnComplete = null;
+        this._moveToCompleteFired = false;
+        this.setMode(this._moveToSaveMode);
+        this._stopNavRenderer();
+    }
+
+    /**
+     * Clear turnTo state (called from keyboard handler to cancel navigation).
+     */
+    private _cancelTurnTo(): void {
+        if (!this._turnToActive) return;
+        this._turnToTarget = null;
+        this._turnToNode = null;
+        this._turnToAngle = null;
+        this._turnToTargetAngle = null;
+        this._turnToActive = false;
+        this._turnToOnComplete = null;
+        this._turnToCompleteFired = false;
+        this.setMode(this._turnToSaveMode);
+        this._stopNavRenderer();
+    }
+
     // control movement by commands rather than keyboard.
     public walk(b: boolean) {
         this._act.reset();
@@ -2061,6 +2650,8 @@ export class CharacterController {
         this._act._speedMod = b;
     }
     public jump() {
+        if (this._jumpStage !== JumpStage.NONE) return;
+        if (this._inFreeFall) return;
         this._act.reset();
         this._act._jump = true;
     }
@@ -2074,6 +2665,93 @@ export class CharacterController {
         this._act.reset();
     }
 
+    public turnTo(target: Vector3 | TransformNode | number | null | undefined, options?: TurnToOptions): void {
+        // 1. Ignore null/undefined
+        if (target == null) return;
+
+        // 2. Extract and clamp options
+        const fast = options?.fast ?? false;
+        const angularTolerance = clampPositive(options?.angularTolerance ?? 0.035, 0.035);
+        const onComplete = options?.onComplete ?? null;
+
+        // 3. Cancel previous turnTo (clear state without calling idle)
+        this._turnToTarget = null;
+        this._turnToNode = null;
+        this._turnToAngle = null;
+        this._turnToTargetAngle = null;
+        this._turnToActive = false;
+
+        // 4. Handle numeric angle
+        if (typeof target === 'number') {
+            if (target === 0) {
+                this.idle();
+                return;
+            }
+            // Compute absolute target angle from current Y rotation + relative angle
+            const currentY = this._getAvatarRotationY();
+            this._turnToTargetAngle = currentY + target;
+            this._turnToAngle = target;
+        }
+        // 5. Handle TransformNode
+        else if (target instanceof TransformNode) {
+            if (target.isDisposed()) {
+                this.idle();
+                return;
+            }
+            this._turnToNode = target;
+            // Compute initial target angle
+            const charPos = this._avatar.position;
+            const targetPos = target.getAbsolutePosition();
+            this._turnToTargetAngle = directionAngle(charPos, targetPos, this.isFaceForward(), this._isLHS_RHS);
+        }
+        // 6. Handle Vector3
+        else {
+            this._turnToTarget = target;
+            // Compute initial target angle
+            const charPos = this._avatar.position;
+            this._turnToTargetAngle = directionAngle(charPos, target, this.isFaceForward(), this._isLHS_RHS);
+        }
+
+        // 7. Check if already within angular tolerance
+        if (this._turnToTargetAngle != null) {
+            const currentY = this._getAvatarRotationY();
+            const delta = shortestArcDelta(currentY, this._turnToTargetAngle);
+            if (isWithinAngularTolerance(delta, angularTolerance)) {
+                // Already facing target, don't activate
+                this._turnToTargetAngle = null;
+                this._turnToTarget = null;
+                this._turnToNode = null;
+                this._turnToAngle = null;
+                return;
+            }
+        }
+
+        // 8. Activate
+        this._turnToFast = fast;
+        this._turnToAngularTolerance = angularTolerance;
+        this._turnToActive = true;
+        this._turnToOnComplete = onComplete;
+        this._turnToCompleteFired = false;
+        this.moveToStop();
+        this._turnToSaveMode = this.getMode();
+        this.setMode(1);
+        this._startNavRenderer();
+    }
+
+    public turnToStop(): void {
+        if (!this._turnToActive) return;
+        this.idle();
+        this._turnToTarget = null;
+        this._turnToNode = null;
+        this._turnToAngle = null;
+        this._turnToTargetAngle = null;
+        this._turnToActive = false;
+        this._turnToOnComplete = null;
+        this._turnToCompleteFired = false;
+        this.setMode(this._turnToSaveMode);
+        this._stopNavRenderer();
+    }
+
     private _act: _Action;
     private _renderer: () => void;
     private _handleKeyUp: (e) => void;
@@ -2083,8 +2761,278 @@ export class CharacterController {
         return this._isAG;
     }
 
+    // moveTo navigation state
+    private _moveToTarget: Vector3 | null = null;
+    private _moveToNode: TransformNode | null = null;
+    private _moveToRun: boolean = false;
+    private _moveToArrivalDist: number = 0.5;
+    private _moveToObstructionThreshold: number = 0.001;
+    private _moveToObstructionCount: number = 0;
+    private _moveToActive: boolean = false;
+    private _moveToLastPos: Vector3 | null = null;
+    private _moveToSaveMode:number;
+    private _moveToOnComplete: (() => void) | null = null;
+    private _moveToCompleteFired: boolean = false;
 
+    // turnTo navigation state
+    private _turnToTarget: Vector3 | null = null;
+    private _turnToNode: TransformNode | null = null;
+    private _turnToAngle: number | null = null;
+    private _turnToTargetAngle: number | null = null;
+    private _turnToFast: boolean = false;
+    private _turnToAngularTolerance: number = 0.035;
+    private _turnToActive: boolean = false;
+    private _turnToSaveMode:number;
+    private _turnToOnComplete: (() => void) | null = null;
+    private _turnToCompleteFired: boolean = false;
 
+    // Navigation renderer (separate from CC's main renderer)
+    private _navRenderer: (() => void) | null = null;
+
+    /**
+     * Starts the navigation renderer if not already running.
+     * The renderer calls public methods each frame, just like external code would.
+     */
+    private _startNavRenderer(): void {
+        if (this._navRenderer != null) return;
+        this._navRenderer = () => { this._navUpdate(); };
+        this._scene.registerBeforeRender(this._navRenderer);
+    }
+
+    /**
+     * Stops the navigation renderer if no navigation is active.
+     */
+    private _stopNavRenderer(): void {
+        if (this._moveToActive || this._turnToActive) return;
+        if (this._navRenderer == null) return;
+        this._scene.unregisterBeforeRender(this._navRenderer);
+        this._navRenderer = null;
+    }
+
+    /**
+     * Per-frame navigation update. Registered as a separate beforeRender observer.
+     * Calls public methods exactly as external code would.
+     */
+    private _navUpdate(): void {
+        if (this._moveToActive) {
+            this._navUpdateMoveTo();
+        }
+        if (this._turnToActive) {
+            this._navUpdateTurnTo();
+        }
+    }
+
+    /**
+     * Per-frame moveTo logic. Calls public walk/run/idle methods.
+     */
+    private _navUpdateMoveTo(): void {
+        // 1. Handle disposed node
+        if (this._moveToNode != null) {
+            if (this._moveToNode.isDisposed()) {
+                this.moveToStop();
+                return;
+            }
+            if (!this._moveToTarget.equals(this._moveToNode.getAbsolutePosition())){
+                this._moveToTarget = this._moveToNode.getAbsolutePosition().clone();
+            }
+        }
+
+        if (this._moveToTarget == null) return;
+
+        // 2. Compute horizontal distance
+        const charPos = this._avatar.position;
+        const dist = horizontalDistance(charPos, this._moveToTarget);
+
+        // 3. Check arrival
+        if (isWithinArrival(dist, this._moveToArrivalDist)) {
+            if (this._moveToNode != null) {
+                // Following a node: idle but remain active (will resume when node moves)
+                this.idle();
+                this._moveToLastPos = null;
+                this._moveToObstructionCount = 0;
+                if (this._moveToOnComplete && !this._moveToCompleteFired) {
+                    this._moveToCompleteFired = true;
+                    this._moveToOnComplete();
+                }
+            } else {
+                // Static target: stop completely, fire onComplete
+                const cb = this._moveToOnComplete;
+                this.moveToStop();
+                if (cb) cb();
+            }
+            return;
+        }
+
+        // Reset the complete-fired flag when character leaves arrival zone (movement resumes)
+        this._moveToCompleteFired = false;
+
+        // 4. Orient character toward target (only if turnTo is not active)
+        if (!this._turnToActive) {
+            const targetAngle = directionAngle(charPos, this._moveToTarget, this.isFaceForward(), this._isLHS_RHS);
+            this._setAvatarRotationY(targetAngle);
+        }
+
+        // 5. Issue walk or run
+        if (this._moveToRun) {
+            this.run(true);
+        } else {
+            this.walk(true);
+        }
+
+        // 6. Obstruction detection
+        if (this._moveToLastPos != null) {
+            const frameDistance = horizontalDistance(this._moveToLastPos, charPos);
+            this._moveToObstructionCount = updateObstructionCount(
+                frameDistance,
+                this._moveToObstructionThreshold,
+                this._moveToObstructionCount
+            );
+            if (this._moveToObstructionCount >= 3) {
+                this.moveToStop();
+                return;
+            }
+        }
+        this._moveToLastPos = charPos.clone();
+    }
+
+    /**
+     * Per-frame turnTo logic. Calls public turnLeft/turnRight/idle methods.
+     */
+    private _navUpdateTurnTo(): void {
+        // 1. Handle disposed node
+        if (this._turnToNode != null) {
+            if (this._turnToNode.isDisposed()) {
+                this.turnToStop();
+                return;
+            }
+            const charPos = this._avatar.position;
+            const nodePos = this._turnToNode.getAbsolutePosition();
+            this._turnToTargetAngle = directionAngle(charPos, nodePos, this.isFaceForward(), this._isLHS_RHS);
+        }
+        // 2. Handle Vector3 target
+        else if (this._turnToTarget != null) {
+            const charPos = this._avatar.position;
+            this._turnToTargetAngle = directionAngle(charPos, this._turnToTarget, this.isFaceForward(), this._isLHS_RHS);
+        }
+
+        // 3. Compute shortest-arc delta
+        if (this._turnToTargetAngle == null) return;
+        const currentY = this._getAvatarRotationY();
+        const delta = shortestArcDelta(currentY, this._turnToTargetAngle);
+
+        // 4. Check angular tolerance
+        if (isWithinAngularTolerance(delta, this._turnToAngularTolerance)) {
+            if (this._turnToNode != null) {
+                // Node tracking: stop turning, remain active (will resume when node moves)
+                this.idle();
+                if (this._turnToOnComplete && !this._turnToCompleteFired) {
+                    this._turnToCompleteFired = true;
+                    this._turnToOnComplete();
+                }
+            } else {
+                // Static target or angle: operation complete, fire onComplete
+                const cb = this._turnToOnComplete;
+                this.turnToStop();
+                if (cb) cb();
+            }
+            return;
+        }
+
+        // Reset the complete-fired flag when character leaves angular tolerance (rotation resumes)
+        this._turnToCompleteFired = false;
+
+        // 5. Issue turn command based on direction
+        // Positive delta = need to increase rotation.y = turnLeft
+        // Negative delta = need to decrease rotation.y = turnRight
+        if (delta > 0) {
+            if (this._turnToFast) {
+                this.turnLeftFast(true);
+            } else {
+                this.turnLeft(true);
+            }
+        } else {
+            if (this._turnToFast) {
+                this.turnRightFast(true);
+            } else {
+                this.turnRight(true);
+            }
+        }
+    }
+
+    /**
+     * Move the character toward a target position or follow a TransformNode.
+     * If the character is already within the arrival distance, idle() is called immediately.
+     * If a previous moveTo is active, it is replaced by the new target.
+     * @param target A world-space Vector3 position or a TransformNode to follow
+     * @param options Optional parameters: run, arrivalDistance, obstructionThreshold
+     */
+    public moveTo(target: Vector3 | TransformNode, options?: MoveToOptions): void {
+        // 1. Extract and clamp options
+        const run = options?.run ?? false;
+        const arrivalDist = clampPositive(options?.arrivalDistance ?? 0.5, 0.5);
+        const obstructionThreshold = clampPositive(options?.obstructionThreshold ?? 0.001, 0.001);
+        const onComplete = options?.onComplete ?? null;
+
+        // 2. Determine target position
+        let targetPos: Vector3;
+        let targetNode: TransformNode | null = null;
+
+        if (target instanceof TransformNode) {
+            // Check if disposed
+            if (target.isDisposed()) {
+                this.idle();
+                return;
+            }
+            targetNode = target;
+            targetPos = target.getAbsolutePosition().clone();
+        } else {
+            targetPos = target;
+        }
+
+        // 3. Check if already within arrival distance
+        const charPos = this._avatar.position;
+        if (isWithinArrival(horizontalDistance(charPos, targetPos), arrivalDist)) {
+            this.idle();
+            return;
+        }
+
+        // 4. Clear previous state if replacing (reset fields without calling idle)
+        // This handles Requirement 10.1: replacing an existing moveTo
+
+        // 5. Set new state
+        this._moveToTarget = targetPos;
+        this._moveToNode = targetNode;
+        this._moveToRun = run;
+        this._moveToArrivalDist = arrivalDist;
+        this._moveToObstructionThreshold = obstructionThreshold;
+        this._moveToObstructionCount = 0;
+        this._moveToActive = true;
+        this._moveToOnComplete = onComplete;
+        this._moveToCompleteFired = false;
+        this.turnToStop();
+        this._moveToSaveMode = this.getMode();
+        this.setMode(1);
+        this._startNavRenderer();
+    }
+
+    /**
+     * Stop the current moveTo operation.
+     * Calls idle() and clears all moveTo state.
+     * No-op if no moveTo operation is currently active.
+     */
+    public moveToStop(): void {
+        if (!this._moveToActive) return;
+        this.idle();
+        this._moveToTarget = null;
+        this._moveToNode = null;
+        this._moveToActive = false;
+        this._moveToObstructionCount = 0;
+        this._moveToLastPos = null;
+        this._moveToOnComplete = null;
+        this._moveToCompleteFired = false;
+        this.setMode(this._moveToSaveMode);
+        this._stopNavRenderer();
+    }
 
     private _findSkel(n: Node): Skeleton {
         let root = this._root(n);
@@ -2242,8 +3190,8 @@ export class CharacterController {
 
         this._camera = camera;
 
-        //if camera is null assume this would be used to control an NPC
-        //we cannot use mode 0 as that is dependent on camera being present. so force mode 1 (TODO revist this)
+        //if camera is null assume this character controller will be used to control an NPC
+        //also we cannot use mode 0 as that is dependent on camera being present. so force mode 1 (TODO revist this)
         if (this._camera == null) {
             this._hasCam = false;
             this.setMode(1);
@@ -2378,6 +3326,10 @@ export const Actions = {
     STRAFERIGHT: "strafeRight",
     STRAFERIGHTFAST: "strafeRightFast",
     SLIDEBACK: "slideBack",
+    PREIDLEJUMP: "preIdleJump",
+    POSTIDLEJUMP: "postIdleJump",
+    PRERUNJUMP: "preRunJump",
+    POSTRUNJUMP: "postRunJump",
     getAll: () => Object.values(Actions).filter(v => typeof v === "string")
 } as const
  
@@ -2400,6 +3352,10 @@ export class ActionMap {
     public strafeRight = new ActionData(Actions.STRAFERIGHT, 1.5, "e");
     public strafeRightFast = new ActionData(Actions.STRAFERIGHTFAST, 3, "na");
     public slideBack = new ActionData(Actions.SLIDEBACK, 0, "na");
+    public preIdleJump = new ActionData(Actions.PREIDLEJUMP, 0, "na");
+    public postIdleJump = new ActionData(Actions.POSTIDLEJUMP, 0, "na");
+    public preRunJump = new ActionData(Actions.PRERUNJUMP, 0, "na");
+    public postRunJump = new ActionData(Actions.POSTRUNJUMP, 0, "na");
 
     public reset() {
         let keys: string[] = Object.keys(this);
@@ -2442,6 +3398,22 @@ export class CCSettings {
     public ellipsoid:Vector3;   
     public ellipsoidOffset:Vector3;
     public smoothTurnSpeed: number;
+    public turnInPlace: boolean;
     public springback?: boolean;
     public springbackSteps?: number;
+    public springbackAngleRestore?: boolean;
+}
+
+
+export interface MoveToOptions {
+    run?: boolean;
+    arrivalDistance?: number;
+    obstructionThreshold?: number;
+    onComplete?: () => void;
+}
+
+export interface TurnToOptions {
+    fast?: boolean;
+    angularTolerance?: number;
+    onComplete?: () => void;
 }

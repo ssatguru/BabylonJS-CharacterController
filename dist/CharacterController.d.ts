@@ -1,4 +1,4 @@
-import { Skeleton, ArcRotateCamera, Vector3, Mesh, Scene, AnimationGroup, Sound, LinesMesh } from "babylonjs";
+import { Skeleton, ArcRotateCamera, Vector3, Mesh, Scene, AnimationGroup, TransformNode, Sound, LinesMesh } from "babylonjs";
 export declare class CharacterController {
     private _avatar;
     private _skeleton;
@@ -32,6 +32,8 @@ export declare class CharacterController {
     setTurnFastSpeed(n: number): void;
     setSmoothTurnSpeed(speed: number): void;
     getSmoothTurnSpeed(): number;
+    setTurnInPlace(b: boolean): void;
+    isTurnInPlace(): boolean;
     setGravity(n: number): void;
     setAnimationGroups(agMap: {}): void;
     setAnimationRanges(arMap: {}): void;
@@ -58,6 +60,10 @@ export declare class CharacterController {
     setStrafeLeftFastAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
     setIdleJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
     setRunJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
+    setPreIdleJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
+    setPostIdleJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
+    setPreRunJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
+    setPostRunJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
     setFallAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean): void;
     _stepSound: Sound;
     setSound(sound: Sound): void;
@@ -73,6 +79,8 @@ export declare class CharacterController {
     setCameraElasticSpringback(b: boolean): void;
     isCameraElasticSpringback(): boolean;
     setSpringbackSteps(n: number): void;
+    setSpringbackAngleRestore(b: boolean): void;
+    isSpringbackAngleRestore(): boolean;
     makeObstructionInvisible(b: boolean): void;
     setCameraTarget(v: Vector3): void;
     cameraCollisionChanged(): void;
@@ -82,6 +90,7 @@ export declare class CharacterController {
     private _copySlowAnims;
     private _mode;
     private _saveMode;
+    private _saveSmoothTurnSpeed;
     setMode(n: number): void;
     getMode(): number;
     setTurningOff(b: boolean): void;
@@ -115,6 +124,11 @@ export declare class CharacterController {
     private _inFreeFall;
     private _wasWalking;
     private _wasRunning;
+    private _jumpStage;
+    private _jumpStageTime;
+    private _jumpStageDuration;
+    private _jumpBuffered;
+    private _wasIdleJump;
     private _moveVector;
     private _isAvFacingCamera;
     private _moveAVandCamera;
@@ -123,7 +137,13 @@ export declare class CharacterController {
     private _jumpStartPosY;
     private _jumpTime;
     private _doJump;
+    private _doJumpAirborne;
     private _calcJumpDist;
+    private _getAnimDuration;
+    private _beginJump;
+    private _doPreJump;
+    private _doPostJump;
+    private _endJumpFull;
     private _endJump;
     private _areVectorsEqual;
     private _verticalSlope;
@@ -132,6 +152,8 @@ export declare class CharacterController {
     private _isTurning;
     private _noRot;
     private _smoothTurnSpeed;
+    private _smoothTurning;
+    private _turnInPlace;
     private _steps;
     private _stepHigh;
     private _doMove;
@@ -166,6 +188,12 @@ export declare class CharacterController {
     private _springbackSteps;
     private _originalRadius;
     private _expectedRadius;
+    private _originalAlpha;
+    private _originalBeta;
+    private _springbackAngleRestore;
+    private _expectedAlpha;
+    private _expectedBeta;
+    private _angleRestorationActive;
     private _alreadyInvisible;
     private _handleObstruction;
     private _isSeeAble;
@@ -178,6 +206,8 @@ export declare class CharacterController {
     enableKeyBoard(b: boolean): void;
     private _addkeylistener;
     private _removekeylistener;
+    private _cancelMoveTo;
+    private _cancelTurnTo;
     walk(b: boolean): void;
     walkBack(b: boolean): void;
     walkBackFast(b: boolean): void;
@@ -193,12 +223,43 @@ export declare class CharacterController {
     jump(): void;
     fall(): void;
     idle(): void;
+    turnTo(target: Vector3 | TransformNode | number | null | undefined, options?: TurnToOptions): void;
+    turnToStop(): void;
     private _act;
     private _renderer;
     private _handleKeyUp;
     private _handleKeyDown;
     private _isAG;
     isAg(): boolean;
+    private _moveToTarget;
+    private _moveToNode;
+    private _moveToRun;
+    private _moveToArrivalDist;
+    private _moveToObstructionThreshold;
+    private _moveToObstructionCount;
+    private _moveToActive;
+    private _moveToLastPos;
+    private _moveToSaveMode;
+    private _moveToOnComplete;
+    private _moveToCompleteFired;
+    private _turnToTarget;
+    private _turnToNode;
+    private _turnToAngle;
+    private _turnToTargetAngle;
+    private _turnToFast;
+    private _turnToAngularTolerance;
+    private _turnToActive;
+    private _turnToSaveMode;
+    private _turnToOnComplete;
+    private _turnToCompleteFired;
+    private _navRenderer;
+    private _startNavRenderer;
+    private _stopNavRenderer;
+    private _navUpdate;
+    private _navUpdateMoveTo;
+    private _navUpdateTurnTo;
+    moveTo(target: Vector3 | TransformNode, options?: MoveToOptions): void;
+    moveToStop(): void;
     private _findSkel;
     private _root;
     private _getAbstractMeshChildren;
@@ -247,6 +308,10 @@ export declare const Actions: {
     readonly STRAFERIGHT: "strafeRight";
     readonly STRAFERIGHTFAST: "strafeRightFast";
     readonly SLIDEBACK: "slideBack";
+    readonly PREIDLEJUMP: "preIdleJump";
+    readonly POSTIDLEJUMP: "postIdleJump";
+    readonly PRERUNJUMP: "preRunJump";
+    readonly POSTRUNJUMP: "postRunJump";
     readonly getAll: () => any;
 };
 export declare class ActionMap {
@@ -267,6 +332,10 @@ export declare class ActionMap {
     strafeRight: ActionData;
     strafeRightFast: ActionData;
     slideBack: ActionData;
+    preIdleJump: ActionData;
+    postIdleJump: ActionData;
+    preRunJump: ActionData;
+    postRunJump: ActionData;
     reset(): void;
     actionNames(): string[];
 }
@@ -289,6 +358,19 @@ export declare class CCSettings {
     ellipsoid: Vector3;
     ellipsoidOffset: Vector3;
     smoothTurnSpeed: number;
+    turnInPlace: boolean;
     springback?: boolean;
     springbackSteps?: number;
+    springbackAngleRestore?: boolean;
+}
+export interface MoveToOptions {
+    run?: boolean;
+    arrivalDistance?: number;
+    obstructionThreshold?: number;
+    onComplete?: () => void;
+}
+export interface TurnToOptions {
+    fast?: boolean;
+    angularTolerance?: number;
+    onComplete?: () => void;
 }

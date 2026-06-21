@@ -2,12 +2,14 @@
 
 ```
 ├── src/
-│   └── CharacterController.ts    # Entire library in a single file
+│   ├── CharacterController.ts    # Entire library in a single file
+│   └── _babylonjs-esm-bridge.js  # ESM bridge: re-exports BabylonJS types from @babylonjs/core sub-paths
 ├── dist/                          # Build output (committed)
-│   ├── CharacterController.js     # Production (minified)
-│   ├── CharacterController.max.js # Development (unminified)
-│   └── CharacterController.d.ts   # TypeScript declarations
-├── tests/                         # Automated property-based tests (vitest + fast-check)
+│   ├── CharacterController.js     # UMD production (minified)
+│   ├── CharacterController.max.js # UMD development (unminified)
+│   ├── CharacterController.es.js  # ES module (unminified, tree-shakeable)
+│   └── CharacterController.d.ts   # TypeScript declarations (shared)
+├── tests/                         # Automated tests (vitest + fast-check)
 │   ├── setup.test.ts
 │   ├── rotation-convergence.test.ts
 │   ├── shortest-arc-direction.test.ts
@@ -15,21 +17,58 @@
 │   ├── mode0-instant-rotation.test.ts
 │   ├── mode-turningoff-mid-rotation.test.ts
 │   ├── movement-direction-during-turn.test.ts
+│   ├── turn-direction-animation.test.ts
 │   ├── elastic-springback-step-formula.test.ts
 │   ├── elastic-springback-state-tracking.test.ts
 │   ├── elastic-springback-modes.test.ts
-│   └── elastic-springback-settings.test.ts
+│   ├── elastic-springback-settings.test.ts
+│   ├── elastic-springback-ellipsoid-clearance-bug.test.ts
+│   ├── elastic-springback-ellipsoid-preservation.test.ts
+│   ├── moveto-distance-reduction.test.ts
+│   ├── moveto-arrival-detection.test.ts
+│   ├── moveto-obstruction-detection.test.ts
+│   ├── moveto-follow-resume.test.ts
+│   ├── moveto-manual-cancel.test.ts
+│   ├── moveto-facing-convergence.test.ts
+│   ├── moveto-turnto-independence.test.ts
+│   ├── turnto-shortest-arc.test.ts
+│   ├── turnto-angular-arrival.test.ts
+│   ├── turnto-manual-cancel.test.ts
+│   ├── navigation-parameter-clamping.test.ts
+│   ├── navigation-keyboard-cancel.test.ts
+│   ├── navigation-keyboard-disabled.test.ts
+│   ├── navigation-stop-noop.test.ts
+│   ├── three-stage-jump-anim-duration.test.ts
+│   ├── three-stage-jump-pre-jump-grounded.test.ts
+│   ├── three-stage-jump-pre-jump-completion.test.ts
+│   ├── three-stage-jump-pre-jump-skip.test.ts
+│   ├── three-stage-jump-backward-compat.test.ts
+│   ├── three-stage-jump-displacement-formula.test.ts
+│   ├── three-stage-jump-speed-components.test.ts
+│   ├── three-stage-jump-landing-detection.test.ts
+│   ├── three-stage-jump-post-jump-entry.test.ts
+│   ├── three-stage-jump-post-jump-skip.test.ts
+│   ├── three-stage-jump-input-ignored.test.ts
+│   ├── three-stage-jump-movement-ignored.test.ts
+│   ├── three-stage-jump-buffering.test.ts
+│   ├── three-stage-jump-post-jump-completion.test.ts
+│   ├── three-stage-jump-programmatic-jump.test.ts
+│   ├── three-stage-jump-jump-ignored.test.ts
+│   ├── esm-import-map-completeness.test.ts
+│   ├── esm-output-externals.test.ts
+│   ├── esm-output-integration.test.ts
+│   ├── package-entry-points.test.ts
+│   └── webpack-config-structure.test.ts
 ├── tst/                           # Manual test pages
 │   ├── test.html                  # Default dev server page
-│   ├── testAnimationGroup.html/js # Tests with AnimationGroup (.glb)
-│   ├── testAnimationRange.html/js # Tests with AnimationRange (.babylon)
+│   ├── testArAg.html/js           # Tests with AnimationRange + AnimationGroup
 │   ├── testCommandControl.html/js # Tests for programmatic control
-│   ├── testNPC.html/js            # Tests for NPC (no camera) mode
 │   ├── player/                    # Avatar models (.babylon, .glb, .blend)
 │   ├── ground/                    # Terrain textures and heightmaps
 │   └── sounds/                    # Footstep audio files
+├── webpack.es-externals.js        # Import map: BabylonJS type → @babylonjs/core sub-path
 ├── vitest.config.ts
-├── webpack.config.js
+├── webpack.config.js              # Multi-config: UMD + ESM
 ├── tsconfig.json
 ├── package.json
 └── changelog.md
@@ -39,8 +78,9 @@
 
 - The library is a single-file architecture: all classes live in `src/CharacterController.ts`
 - Exported classes: `CharacterController`, `ActionData`, `ActionMap`, `CCSettings`
-- Internal class: `_Action` (prefixed with underscore, mangled in production)
-- Private members use `_` prefix convention (mangled by Terser in production builds)
+- Internal class: `_Action` (prefixed with underscore, mangled in UMD production)
+- Private members use `_` prefix convention (mangled by Terser in UMD production builds only)
 - Public API uses setter/getter methods (e.g., `setWalkSpeed()`, `getMode()`)
 - No physics engine dependency — uses kinematic equations and `moveWithCollisions()`
-- BabylonJS types are imported individually from the `"babylonjs"` package
+- BabylonJS types are imported individually from the `"babylonjs"` package in source
+- The build system rewrites these to `@babylonjs/core` sub-paths for the ESM output via a bridge module and import map
