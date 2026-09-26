@@ -42,11 +42,12 @@ async function main()
   let player = result.meshes[0];
 
   setPlayer(player);
-   // Stop all animation groups
-  scene.animationGroups.forEach((group) => {
-      group.stop();
+  // Stop all animation groups
+  scene.animationGroups.forEach((group) =>
+  {
+    group.stop();
   });
-  
+
 
   //create and set the camera
   let arcRotateCamera = createCamera(player, scene);
@@ -229,10 +230,10 @@ function setCharacterController2(c, scene)
   // c.setStrafeLeftAnim(scene.getAnimationGroupByName("strafeLeft"), 1, true);
   // c.setStrafeRightAnim(scene.getAnimationGroupByName("strafeRight"), 1, true);
   c.setWalkAnim(scene.getAnimationGroupByName("Rig|Walk_Loop"), 1, true);
-   c.setWalkBackAnim(scene.getAnimationGroupByName("Rig|Walk_Loop"), -0.5, true);
+  c.setWalkBackAnim(scene.getAnimationGroupByName("Rig|Walk_Loop"), -0.5, true);
   c.setPreIdleJumpAnim(scene.getAnimationGroupByName("Rig|Jump_Land"), -2, false);
   c.setIdleJumpAnim(scene.getAnimationGroupByName("Rig|Jump_Loop"), 1, false);
-  c.setPostIdleJumpAnim(scene.getAnimationGroupByName("Rig|Jump_Land"), 2 , false);
+  c.setPostIdleJumpAnim(scene.getAnimationGroupByName("Rig|Jump_Land"), 2, false);
   c.setRunAnim(scene.getAnimationGroupByName("Rig|Sprint_Loop"), 1, true);
   c.setRunJumpAnim(scene.getAnimationGroupByName("Rig|Jump_Loop"), 0.6, false);
   c.setFallAnim(scene.getAnimationGroupByName("Rig|Jump_Loop"), 2, false);
@@ -267,62 +268,62 @@ function setCharacterController2(c, scene)
 }
 async function loadNPC(scene, engine, canvas)
 {
-    const result = await BABYLON.ImportMeshAsync("player/starterAvatars.babylon", scene);
+  const result = await BABYLON.ImportMeshAsync("player/starterAvatars.babylon", scene);
 
-    var player = result.meshes[0];
-    player.skeleton.enableBlending(0.1);
+  var player = result.meshes[0];
+  player.skeleton.enableBlending(0.1);
 
-    var sm = player.material;
-    if (sm.diffuseTexture != null)
+  var sm = player.material;
+  if (sm.diffuseTexture != null)
+  {
+    sm.backFaceCulling = true;
+    sm.ambientColor = new BABYLON.Color3(1, 1, 1);
+  }
+
+  player.position = new BABYLON.Vector3(3, 12, 1);
+  player.checkCollisions = true;
+  player.ellipsoid = new BABYLON.Vector3(0.5, 1, 0.5);
+  player.ellipsoidOffset = new BABYLON.Vector3(0, 1, 0);
+
+  //camera null for npc
+  cc2 = new CharacterController(player, null, scene);
+  cc2.setFaceForward(false);
+  cc2.setMode(0);
+  cc2.setTurnSpeed(45);
+
+  cc2.setStepOffset(0.4);
+  cc2.setSlopeLimit(30, 60);
+
+  cc2.setIdleAnim("idle", 1, true);
+  cc2.setTurnLeftAnim("turnLeft", 0.5, true);
+  cc2.setTurnRightAnim("turnRight", 0.5, true);
+  cc2.setWalkBackAnim("walkBack", 0.5, true);
+  cc2.setIdleJumpAnim("idleJump", 0.5, false);
+  cc2.setRunJumpAnim("runJump", 0.6, false);
+  cc2.setFallAnim("fall", 2, false);
+  cc2.setSlideBackAnim("slideBack", 1, false);
+
+  let walkSound = new BABYLON.Sound(
+    "walk",
+    "./sounds/footstep_carpet_000.ogg",
+    scene,
+    () =>
     {
-      sm.backFaceCulling = true;
-      sm.ambientColor = new BABYLON.Color3(1, 1, 1);
-    }
+      cc2.setSound(walkSound);
+    },
+    { loop: false }
+  );
 
-    player.position = new BABYLON.Vector3(3, 12, 1);
-    player.checkCollisions = true;
-    player.ellipsoid = new BABYLON.Vector3(0.5, 1, 0.5);
-    player.ellipsoidOffset = new BABYLON.Vector3(0, 1, 0);
+  var ua = window.navigator.userAgent;
+  var isIE = /MSIE|Trident/.test(ua);
+  if (isIE)
+  {
+    //IE specific code goes here
+    cc2.setJumpKey("spacebar");
+  }
 
-    //camera null for npc
-    cc2 = new CharacterController(player, null, scene);
-    cc2.setFaceForward(false);
-    cc2.setMode(0);
-    cc2.setTurnSpeed(45);
-
-    cc2.setStepOffset(0.4);
-    cc2.setSlopeLimit(30, 60);
-
-    cc2.setIdleAnim("idle", 1, true);
-    cc2.setTurnLeftAnim("turnLeft", 0.5, true);
-    cc2.setTurnRightAnim("turnRight", 0.5, true);
-    cc2.setWalkBackAnim("walkBack", 0.5, true);
-    cc2.setIdleJumpAnim("idleJump", 0.5, false);
-    cc2.setRunJumpAnim("runJump", 0.6, false);
-    cc2.setFallAnim("fall", 2, false);
-    cc2.setSlideBackAnim("slideBack", 1, false);
-
-    let walkSound = new BABYLON.Sound(
-      "walk",
-      "./sounds/footstep_carpet_000.ogg",
-      scene,
-      () =>
-      {
-        cc2.setSound(walkSound);
-      },
-      { loop: false }
-    );
-
-    var ua = window.navigator.userAgent;
-    var isIE = /MSIE|Trident/.test(ua);
-    if (isIE)
-    {
-      //IE specific code goes here
-      cc2.setJumpKey("spacebar");
-    }
-
-    cc2.enableKeyBoard(false);
-    cc2.start();
+  cc2.enableKeyBoard(false);
+  cc2.start();
 }
 
 function createGround(scene, groundMaterial)
@@ -377,29 +378,35 @@ function showControls()
   el.style.visibility = "visible";
 }
 
-var mvt,tnt = false;
+var mvt, tnt = false;
 
 let activeElement = null;
 let activeClass = "w3-pale-green";
 let inActiveClass = "w3-pale-red";
 
+function makeAllInactive(){
+   Actions.getAll().forEach((action) =>
+  {
+    ele = document.getElementById(action);
+    if (ele) {
+      ele.classList.remove(activeClass);
+      ele.classList.add(inActiveClass);
+    }
+  })
+}
+
+
 function toggleClass(e, action)
 {
-  e.target.classList.toggle(inActiveClass);
-  e.target.classList.toggle(activeClass);
-  if (e.target.classList.contains(activeClass))
+  if (action)
   {
-    if (activeElement != null)
-    {
-      activeElement.classList.toggle(inActiveClass);
-      activeElement.classList.toggle(activeClass)
-    }
-    if (action) cc[action](true);
-    activeElement = e.target;
-  } else
-  {
-    if (action) cc[action](false);
-    activeElement = null;
+    makeAllInactive();
+    cc[action](!cc.getActiveActions().includes(action));
+    console.log(cc.getActiveActions());
+    cc.getActiveActions().forEach((act)=>{
+        ele = document.getElementById(act);
+        if (ele) ele.classList.add(activeClass); 
+    })
   }
   canvas.focus();
 }
@@ -452,59 +459,14 @@ function setControls()
     canvas.focus();
   };
 
-  document.getElementById("w").onclick = function (e)
+
+  Actions.getAll().forEach((action) =>
   {
-    toggleClass(e, "walk");
-  };
-  document.getElementById("wb").onclick = function (e)
-  {
-    toggleClass(e, "walkBack");
-  };
-  document.getElementById("wbf").onclick = function (e)
-  {
-    toggleClass(e, "walkBackFast");
-  };
-  document.getElementById("r").onclick = function (e)
-  {
-    toggleClass(e, "run");
-  };
-  document.getElementById("j").onclick = function (e)
-  {
-    cc.jump();
-    canvas.focus();
-  };
-  document.getElementById("tl").onclick = function (e)
-  {
-    toggleClass(e, "turnLeft");
-  };
-  document.getElementById("tlf").onclick = function (e)
-  {
-    toggleClass(e, "turnLeftFast");
-  };
-  document.getElementById("tr").onclick = function (e)
-  {
-    toggleClass(e, "turnRight");
-  };
-  document.getElementById("trf").onclick = function (e)
-  {
-    toggleClass(e, "turnRightFast");
-  };
-  document.getElementById("sl").onclick = function (e)
-  {
-    toggleClass(e, "strafeLeft");
-  };
-  document.getElementById("slf").onclick = function (e)
-  {
-    toggleClass(e, "strafeLeftFast");
-  };
-  document.getElementById("sr").onclick = function (e)
-  {
-    toggleClass(e, "strafeRight");
-  };
-  document.getElementById("srf").onclick = function (e)
-  {
-    toggleClass(e, "strafeRightFast");
-  };
+    ele = document.getElementById(action);
+    if (ele) ele.onclick = function (e){toggleClass(e, action);};
+    
+  })
+ 
   document.getElementById("mvt").onclick = function (e)
   {
     if (mvt)

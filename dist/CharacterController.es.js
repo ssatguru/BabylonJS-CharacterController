@@ -232,6 +232,7 @@ var CharacterController = (function () {
         this._started = false;
         this._stopAnim = false;
         this._prevActData = null;
+        this._activeActData = null;
         this._avStartPos = math_vector_namespaceObject.Vector3.Zero();
         this._prevPickY = 0;
         this._grounded = false;
@@ -314,9 +315,9 @@ var CharacterController = (function () {
             this.setMode(1);
         }
         this._scene = scene;
-        var success = this.setAvatar(avatar, faceForward);
+        var success = this.setCharacter(avatar, faceForward);
         if (!success) {
-            console.error("unable to set avatar");
+            console.error("unable to set character");
         }
         var dataType = null;
         if (actionMap != null) {
@@ -461,6 +462,33 @@ var CharacterController = (function () {
             return "ag";
         else
             return "ar";
+    };
+    CharacterController.prototype.getActiveActions = function () {
+        var actions = [];
+        var fast = this._act._speedMod;
+        if (this._act._jump)
+            actions.push(Actions.IDLEJUMP);
+        if (this._act._walk)
+            actions.push(fast ? Actions.RUN : Actions.WALK);
+        if (this._act._walkback)
+            actions.push(fast ? Actions.WALKBACKFAST : Actions.WALKBACK);
+        if (this._act._turnLeft)
+            actions.push(fast ? Actions.TURNLEFTFAST : Actions.TURNLEFT);
+        if (this._act._turnRight)
+            actions.push(fast ? Actions.TURNRIGHTFAST : Actions.TURNRIGHT);
+        if (this._act._stepLeft)
+            actions.push(fast ? Actions.STRAFELEFTFAST : Actions.STRAFELEFT);
+        if (this._act._stepRight)
+            actions.push(fast ? Actions.STRAFERIGHTFAST : Actions.STRAFERIGHT);
+        if (this._activeActData != null) {
+            var id = this._activeActData.id;
+            if ((id === Actions.FALL || id === Actions.SLIDEBACK) && actions.indexOf(id) < 0) {
+                actions.push(id);
+            }
+        }
+        if (actions.length === 0)
+            actions.push(Actions.IDLE);
+        return actions;
     };
     CharacterController.prototype.getActionMap = function () {
         var map = new ActionMap();
@@ -1007,6 +1035,7 @@ var CharacterController = (function () {
         else if (!this._inFreeFall) {
             actData = this._doIdle(dt);
         }
+        this._activeActData = actData;
         if (!this._stopAnim && this._hasAnims && actData != null) {
             if (this._prevActData !== actData) {
                 if (actData.exist) {
@@ -2195,26 +2224,22 @@ var CharacterController = (function () {
         this._act._speedMod = b;
     };
     CharacterController.prototype.turnLeft = function (b) {
-        this._act.reset();
         this._act._turnLeft = b;
         if (!b)
             this._isTurning = b;
     };
     CharacterController.prototype.turnLeftFast = function (b) {
-        this._act.reset();
         this._act._turnLeft = b;
         if (!b)
             this._isTurning = b;
         this._act._speedMod = b;
     };
     CharacterController.prototype.turnRight = function (b) {
-        this._act.reset();
         this._act._turnRight = b;
         if (!b)
             this._isTurning = b;
     };
     CharacterController.prototype.turnRightFast = function (b) {
-        this._act.reset();
         this._act._turnRight = b;
         if (!b)
             this._isTurning = b;
@@ -2243,11 +2268,9 @@ var CharacterController = (function () {
             return;
         if (this._inFreeFall)
             return;
-        this._act.reset();
         this._act._jump = true;
     };
     CharacterController.prototype.fall = function () {
-        this._act.reset();
         this._grounded = false;
     };
     CharacterController.prototype.idle = function () {
@@ -2540,9 +2563,9 @@ var CharacterController = (function () {
         }, false);
         return ms;
     };
-    CharacterController.prototype.setAvatar = function (avatar, faceForward) {
+    CharacterController.prototype.setCharacter = function (character, faceForward) {
         if (faceForward === void 0) { faceForward = false; }
-        var rootNode = this._root(avatar);
+        var rootNode = this._root(character);
         if (rootNode instanceof mesh_namespaceObject.Mesh) {
             this._avatar = rootNode;
         }
@@ -2551,14 +2574,18 @@ var CharacterController = (function () {
             return false;
         }
         this._avChildren = this._getAbstractMeshChildren(rootNode);
-        this._skeleton = this._findSkel(avatar);
-        this._isAG = this._containsAG(avatar, this._scene.animationGroups, true);
+        this._skeleton = this._findSkel(character);
+        this._isAG = this._containsAG(character, this._scene.animationGroups, true);
         this._actionMap.reset();
         if (!this._isAG && this._skeleton != null)
             this._checkAnimRanges(this._skeleton);
-        this._setRHS(avatar);
+        this._setRHS(character);
         this.setFaceForward(faceForward);
         return true;
+    };
+    CharacterController.prototype.setAvatar = function (avatar, faceForward) {
+        if (faceForward === void 0) { faceForward = false; }
+        return this.setCharacter(avatar, faceForward);
     };
     CharacterController.prototype.showEllipsoid = function (show) {
         if (!show) {
@@ -2597,10 +2624,13 @@ var CharacterController = (function () {
         ellipsoid.position = this._avatar.ellipsoidOffset;
         this._ellipsoid = ellipsoid;
     };
-    CharacterController.prototype.getAvatar = function () {
+    CharacterController.prototype.getCharacter = function () {
         return this._avatar;
     };
-    CharacterController.prototype.setAvatarSkeleton = function (skeleton) {
+    CharacterController.prototype.getAvatar = function () {
+        return this.getCharacter();
+    };
+    CharacterController.prototype.setCharacterSkeleton = function (skeleton) {
         this._skeleton = skeleton;
         if (this._skeleton != null && this._skelDrivenByAG(skeleton))
             this._isAG = true;
@@ -2608,6 +2638,9 @@ var CharacterController = (function () {
             this._isAG = false;
         if (!this._isAG && this._skeleton != null)
             this._checkAnimRanges(this._skeleton);
+    };
+    CharacterController.prototype.setAvatarSkeleton = function (skeleton) {
+        this.setCharacterSkeleton(skeleton);
     };
     CharacterController.prototype._skelDrivenByAG = function (skeleton) {
         var _this = this;

@@ -1,3 +1,28 @@
+## 09/26/2026 0.4.8
+
+### active action query
+- new API: `getActiveActions(): string[]` — returns the list of actions the character is currently performing (e.g. `["walk", "turnLeft"]`), since the character can do several things at once even though only one animation plays per frame
+- fast variants are reported when the speed modifier is active (e.g. `"run"` instead of `"walk"`, `"turnLeftFast"` instead of `"turnLeft"`)
+- physics-driven states (`fall`, `slideBack`) are folded in from the action resolved for the current frame, since these are not expressible via input flags
+- returns `["idle"]` when the character is doing nothing; remains accurate for animation-less meshes and while paused via `pauseAnim()`
+- internal: added `_activeActData` field, assigned each frame in `_moveAVandCamera()` independently of the animation/sound transition state (`_prevActData` is left untouched)
+
+### character/avatar API rename
+- new API: `setCharacter()`, `getCharacter()`, `setCharacterSkeleton()` — preferred names aligning with the library's "character" terminology
+- deprecated: `setAvatar()`, `getAvatar()`, `setAvatarSkeleton()` — kept as backward-compatible aliases that delegate to the new methods; marked `@deprecated`, to be removed in a future release
+- no behavior change — the new methods are the real implementations; the old names simply forward
+
+### tst file testCommandControl streamlined
+- uses the new api getActiveActions() to decide which action button to show as active
+
+### docs
+- README: documented `getActiveActions()` under "Checking movement state"
+- README: added deprecation table mapping the old avatar methods to their character replacements
+
+## 06/21/2026 0.4.7
+
+### Published 0.4.7
+
 ## 06/11/2026 0.4.7-alpha11
 
 ### moveTo / turnTo handedness fix

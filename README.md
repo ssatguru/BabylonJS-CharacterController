@@ -543,6 +543,41 @@ In some use cases the ground/floor might move away and thus leave the Character 
 cc.anyMovement(): boolean;  // returns true if any movement key/command is active
 ```
 
+To find out which actions the character is currently performing, use `getActiveActions()`.
+Unlike a single "resolved" action (only one animation plays per frame), the character can be
+doing several things at once — for example walking while turning. Each concurrent action is
+returned as a separate entry, using the action name strings from the `Actions` constant.
+
+```
+cc.getActiveActions(): string[];
+```
+
+Behavior:
+
+- The speed modifier (run/fast) is reflected by returning the fast variant where one exists
+  (e.g. `"run"` instead of `"walk"`, `"turnLeftFast"` instead of `"turnLeft"`).
+- Physics-driven states that are not input actions (`fall`, `slideBack`) are included based on
+  the action resolved for the current frame, since these cannot be expressed by the inputs alone.
+- Jump is reported as `"idleJump"` whenever a jump is in progress.
+- When the character is doing nothing, returns `["idle"]`.
+- Remains accurate for meshes without animations and while animation playback is paused via
+  `pauseAnim()`.
+
+Example:
+
+```
+cc.walk(true);
+cc.turnLeft(true);
+cc.getActiveActions();  // ["walk", "turnLeft"]
+
+cc.run(true);           // run = walk + speed modifier
+cc.turnLeft(true);
+cc.getActiveActions();  // ["run", "turnLeftFast"]
+
+// standing still
+cc.getActiveActions();  // ["idle"]
+```
+
 #### Enabling/Disabling the Keyboard control
 
 Sometimes, when you are controlling the movement of the Character programmatically as shown above, you might want to disable the keyboard.  
@@ -640,6 +675,15 @@ cc.getCharacter(): Mesh;
 cc.setCharacterSkeleton(skeleton: Skeleton);
 cc.getSkeleton(): Skeleton;
 ```
+
+The following methods are **deprecated** — they are kept as aliases for backward compatibility
+and will be removed in a future release. Switch to the `Character` equivalents above.
+
+| Deprecated | Use instead |
+|------------|-------------|
+| `cc.setAvatar(...)` | `cc.setCharacter(...)` |
+| `cc.getAvatar()` | `cc.getCharacter()` |
+| `cc.setAvatarSkeleton(...)` | `cc.setCharacterSkeleton(...)` |
 
 #### Face forward
 

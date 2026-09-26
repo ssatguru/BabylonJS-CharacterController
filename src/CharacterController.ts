@@ -361,6 +361,55 @@ export class CharacterController {
         if (agMap) return "ag"; else return "ar";
     }
 
+    /**
+     * Returns the list of actions the character is currently performing.
+     *
+     * Unlike a single "resolved" action (only one animation plays per frame),
+     * the character can be doing several things at once — e.g. walking while
+     * turning left, optionally at fast speed. Each concurrent action is
+     * reported as a separate entry, using the ids from the Actions constant.
+     *
+     * The speed modifier (run/fast) is reflected by returning the fast variant
+     * where one exists (e.g. "run" instead of "walk", "turnLeftFast" instead of
+     * "turnLeft").
+     *
+     * Physics-driven states that are not input flags (fall, slideBack) are
+     * included based on the action resolved for the current frame, since these
+     * cannot be expressed by the input flags alone.
+     *
+     * When the character is doing nothing, returns ["idle"].
+     *
+     * This remains accurate for meshes without animations and while animation
+     * playback is paused via pauseAnim().
+     */
+    public getActiveActions(): string[] {
+        const actions: string[] = [];
+        const fast = this._act._speedMod;
+
+        if (this._act._jump) actions.push(Actions.IDLEJUMP);
+
+        if (this._act._walk) actions.push(fast ? Actions.RUN : Actions.WALK);
+        if (this._act._walkback) actions.push(fast ? Actions.WALKBACKFAST : Actions.WALKBACK);
+
+        if (this._act._turnLeft) actions.push(fast ? Actions.TURNLEFTFAST : Actions.TURNLEFT);
+        if (this._act._turnRight) actions.push(fast ? Actions.TURNRIGHTFAST : Actions.TURNRIGHT);
+
+        if (this._act._stepLeft) actions.push(fast ? Actions.STRAFELEFTFAST : Actions.STRAFELEFT);
+        if (this._act._stepRight) actions.push(fast ? Actions.STRAFERIGHTFAST : Actions.STRAFERIGHT);
+
+        // Fold in physics-driven states that the input flags cannot express.
+        // These come from the action resolved for the current frame.
+        if (this._activeActData != null) {
+            const id = this._activeActData.id;
+            if ((id === Actions.FALL || id === Actions.SLIDEBACK) && actions.indexOf(id) < 0) {
+                actions.push(id);
+            }
+        }
+
+        if (actions.length === 0) actions.push(Actions.IDLE);
+        return actions;
+    }
+
     public getActionMap(): ActionMap {
         let map: ActionMap = new ActionMap();
 
@@ -984,6 +1033,11 @@ export class CharacterController {
     }
 
     private _prevActData: ActionData = null;
+    //tracks the action resolved each frame, independent of animation/sound state.
+    //used by getActiveActions() to surface physics states (fall/slideBack) that
+    //are not represented by the input flags; safe to read even for animation-less
+    //meshes or while paused.
+    private _activeActData: ActionData = null;
     private _avStartPos: Vector3 = Vector3.Zero();
     private _prevPickY: number = 0;
     private _grounded: boolean = false;
@@ -1030,6 +1084,11 @@ export class CharacterController {
         } else if (!this._inFreeFall) {
             actData = this._doIdle(dt);
         }
+
+        //always mirror the resolved action so getActiveActions() can surface
+        //physics states regardless of _stopAnim/_hasAnims. do not fold this into
+        //_prevActData, which drives animation/sound transition detection.
+        this._activeActData = actData;
 
         if (!this._stopAnim && this._hasAnims && actData != null) {
             // console.log("anim: " + actData.name);
@@ -2610,23 +2669,23 @@ export class CharacterController {
         this._act._speedMod = b;
     }
     public turnLeft(b: boolean) {
-        this._act.reset();
+        //this._act.reset();
         this._act._turnLeft = b;
         if (!b) this._isTurning = b;
     }
     public turnLeftFast(b: boolean) {
-        this._act.reset();
+        //this._act.reset();
         this._act._turnLeft = b;
         if (!b) this._isTurning = b;
         this._act._speedMod = b;
     }
     public turnRight(b: boolean) {
-        this._act.reset();
+        //this._act.reset();
         this._act._turnRight = b;
         if (!b) this._isTurning = b;
     }
     public turnRightFast(b: boolean) {
-        this._act.reset();
+        //this._act.reset();
         this._act._turnRight = b;
         if (!b) this._isTurning = b;
         this._act._speedMod = b;
@@ -2652,12 +2711,12 @@ export class CharacterController {
     public jump() {
         if (this._jumpStage !== JumpStage.NONE) return;
         if (this._inFreeFall) return;
-        this._act.reset();
+        //this._act.reset();
         this._act._jump = true;
     }
 
     public fall() {
-        this._act.reset();
+        //this._act.reset();
         this._grounded = false;
     }
 
@@ -3072,9 +3131,15 @@ export class CharacterController {
         return ms;  
     }
 
-    public setAvatar(avatar: Mesh, faceForward: boolean = false): boolean {
+    /**
+     * Sets the character mesh that this controller drives.
+     * @param character the character mesh (or the root of its hierarchy)
+     * @param faceForward true if the character's face points in the positive local Z direction
+     * @returns true if the character was set successfully
+     */
+    public setCharacter(character: Mesh, faceForward: boolean = false): boolean {
 
-        let rootNode = this._root(avatar);
+        let rootNode = this._root(character);
         if (rootNode instanceof Mesh) {
             this._avatar = rootNode;
         } else {
@@ -3082,18 +3147,26 @@ export class CharacterController {
             return false;
         }
         this._avChildren = this._getAbstractMeshChildren(rootNode);
-        this._skeleton = this._findSkel(avatar);
-        this._isAG = this._containsAG(avatar, this._scene.animationGroups, true);
+        this._skeleton = this._findSkel(character);
+        this._isAG = this._containsAG(character, this._scene.animationGroups, true);
 
         this._actionMap.reset();
 
         //animation ranges
         if (!this._isAG && this._skeleton != null) this._checkAnimRanges(this._skeleton);
 
-        this._setRHS(avatar);
+        this._setRHS(character);
         this.setFaceForward(faceForward);
 
         return true;
+    }
+
+    /**
+     * @deprecated Use {@link setCharacter} instead. This alias is kept for
+     * backward compatibility and will be removed in a future release.
+     */
+    public setAvatar(avatar: Mesh, faceForward: boolean = false): boolean {
+        return this.setCharacter(avatar, faceForward);
     }
 
 
@@ -3134,19 +3207,38 @@ export class CharacterController {
         this._ellipsoid= ellipsoid;
     }
 
-    public getAvatar() {
+    /**
+     * Returns the character mesh currently driven by this controller.
+     */
+    public getCharacter() {
         return this._avatar;
     }
 
-    // force a skeleton to be the avatar skeleton
+    /**
+     * @deprecated Use {@link getCharacter} instead. This alias is kept for
+     * backward compatibility and will be removed in a future release.
+     */
+    public getAvatar() {
+        return this.getCharacter();
+    }
+
+    // force a skeleton to be the character skeleton
     // should not be calling this normally
-    public setAvatarSkeleton(skeleton: Skeleton) {
+    public setCharacterSkeleton(skeleton: Skeleton) {
         this._skeleton = skeleton;
 
 
         if (this._skeleton != null && this._skelDrivenByAG(skeleton)) this._isAG = true; else this._isAG = false;
 
         if (!this._isAG && this._skeleton != null) this._checkAnimRanges(this._skeleton);
+    }
+
+    /**
+     * @deprecated Use {@link setCharacterSkeleton} instead. This alias is kept
+     * for backward compatibility and will be removed in a future release.
+     */
+    public setAvatarSkeleton(skeleton: Skeleton) {
+        this.setCharacterSkeleton(skeleton);
     }
 
 
@@ -3198,9 +3290,9 @@ export class CharacterController {
         }
         this._scene = scene;
 
-        let success = this.setAvatar(avatar, faceForward);
+        let success = this.setCharacter(avatar, faceForward);
         if (!success) {
-            console.error("unable to set avatar");
+            console.error("unable to set character");
         }
 
         let dataType: string = null;

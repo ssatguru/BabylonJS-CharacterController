@@ -38,6 +38,7 @@ export declare class CharacterController {
     setAnimationGroups(agMap: {}): void;
     setAnimationRanges(arMap: {}): void;
     setActionMap(inActMap: ActionMap): string;
+    getActiveActions(): string[];
     getActionMap(): ActionMap;
     getSettings(): CCSettings;
     setSettings(ccs: CCSettings): void;
@@ -117,6 +118,7 @@ export declare class CharacterController {
     pauseAnim(): void;
     resumeAnim(): void;
     private _prevActData;
+    private _activeActData;
     private _avStartPos;
     private _prevPickY;
     private _grounded;
@@ -263,10 +265,13 @@ export declare class CharacterController {
     private _findSkel;
     private _root;
     private _getAbstractMeshChildren;
+    setCharacter(character: Mesh, faceForward?: boolean): boolean;
     setAvatar(avatar: Mesh, faceForward?: boolean): boolean;
     private _ellipsoid;
     showEllipsoid(show: boolean): void;
+    getCharacter(): Mesh;
     getAvatar(): Mesh;
+    setCharacterSkeleton(skeleton: Skeleton): void;
     setAvatarSkeleton(skeleton: Skeleton): void;
     private _skelDrivenByAG;
     getSkeleton(): Skeleton;
