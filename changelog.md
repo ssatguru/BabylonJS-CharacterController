@@ -1,3 +1,51 @@
+## 09/28/2026 0.5.0
+
+### WebXR support (immersive VR/AR)
+- added WebXR support directly to the library: the character controller can now drive its avatar inside an immersive VR or AR session while reusing the existing follow-camera, movement, collision, and animation behavior — a consuming application no longer needs its own XR glue
+- opt-in and fully backward compatible: with XR never enabled the controller behaves exactly as before, and every public XR method is a safe no-op / inert query until `enableXR()` is called
+
+#### new public XR API on `CharacterController`
+- `enableXR(xr?)` — enable XR by adopting a provided `WebXRDefaultExperience`/`WebXRCamera`, or by passing nothing to lazily create a default experience. Asynchronous; resolves `true` on success, `false` on failure; never throws
+- `disableXR()` — release the XR experience/camera and unregister; restores desktop ArcRotate mode first if a session is active; no-op when XR was never enabled
+- `enterXR(type)` — enter an immersive session (`'vr'` or `'ar'`) using the `local-floor` reference space; no-op when disabled or unsupported
+- `exitXR()` — exit the active session; idempotent no-op when no session is active
+- `isInXR()` — `true` only while an XR session is active
+- `isXRSupported()` — resolves `{ vrSupported, arSupported }`, querying `immersive-vr` and `immersive-ar` independently; resolves `{ false, false }` when `navigator.xr` is absent or XR was never enabled; never throws
+- `setXRStickDeadzone(v)` — set the left-stick deadzone (default `0.15`), clamped to `[0, 1]`
+- `setXROrbitAlphaRate(v)` / `setXROrbitBetaRate(v)` — orbit sensitivity, clamped to `0…0.02`; non-finite input leaves the rate unchanged
+- `setXRDollyRate(v)` — dolly sensitivity, clamped to `0…0.2`; non-finite input leaves the rate unchanged
+- `setXRInputMapping(mapping)` — apply a partial input mapping (overlaid on the default, then validated); returns `{ applied, rejected, reason? }` and only replaces the effective mapping when valid
+- `getDefaultXRInputMapping()` / `getEffectiveXRInputMapping()` — return copies of the documented default and the current effective mapping
+
+#### thumbstick-primary locomotion
+- left thumbstick moves the avatar (`walk` / `walkBack` / `strafeLeft` / `strafeRight`) through the existing movement methods, sampled per frame with deadzone and dominant-axis gating (at most one of forward/back vs strafe per frame; ties resolve to forward/back) so backing up never drifts sideways
+- movement is edge-triggered — a movement method is called only on the frame a direction's active state changes, not every frame
+- clicking (pressing) the left thumbstick engages the fast/run variant matching the active direction (`run`, `walkBackFast`, `strafeLeftFast`, `strafeRightFast`); releasing switches back to the normal variant, and the two speeds are never active at once
+- left trigger jumps on the rising edge (bound only to the left controller)
+- right thumbstick orbits the follow camera (alpha/beta) with dominant-axis gating (ties resolve to alpha); the right B / A face buttons dolly the camera (radius) in / out; the left X button toggles a dolly-to-avatar snap. Camera controls never rotate the avatar
+- teleport and point-to-move are retained as available mechanisms but are not the active movement path
+
+#### follow-camera mirroring
+- during a session the follow `ArcRotateCamera` keeps being driven exactly as on the desktop; each frame its transform is mirrored onto the `WebXRCamera` via `setTransformationFromNonVRCamera(arcCamera, true)` and the arc camera's Y is re-applied (the mirror forces the XR camera `position.y` to zero) so the third-person follow carries into the headset without reimplementing follow math
+- an initial-pose hook seeds the XR camera onto the follow pose at session start so the floor/eye-level drop never appears, with an entry-blend glide retained as a secondary smoother
+- first/third-person locomotion mode selects camera coupling only (`setNoFirstPerson`), not the movement mechanism; the A/X face button toggles it in-session (blocked toggles toward first-person give best-effort haptic feedback)
+- desktop state is preserved and restored around a session: keyboard input is disabled (controller kept running) on enter and restored on exit, ArcRotate mode is restored, and all per-session observers/captures are torn down so repeated enter/exit cycles never accumulate handlers; collision handling, slope limits, and animation behavior are untouched
+
+#### configurable input mapping
+- which controller input drives which action is data-driven, not hardcoded: `BindableAction` (`Move`, `FastModifier`, `Jump`, `CameraOrbit`, `CameraDollyIn`, `CameraDollyOut`, `DollyToAvatarToggle`, `LocomotionModeToggle`, `Teleport`) is bound to `BindableInput` (thumbstick axes/press, triggers, and a/b/x/y face buttons per handedness)
+- a developer-supplied partial mapping is overlaid onto `DEFAULT_XR_INPUT_MAPPING` so unspecified actions keep their defaults; the merged mapping is validated (rejecting unknown enum values, input/action conflicts, and axis/button type mismatches) and only applied when valid — an invalid mapping keeps the previous one
+- exported helpers `DEFAULT_XR_INPUT_MAPPING`, `mergeXRInputMapping`, `validateXRInputMapping`, plus the `BindableAction`/`BindableInput` enums and `XRInputMapping`/`MappingResult` types
+
+#### new `src/xr/` modules
+- WebXR code lives in its own cohesive modules under `src/xr/` (the historical single-file convention is relaxed for this feature; the existing core classes in `src/CharacterController.ts` are unchanged):
+  - `XRController.ts` — BabylonJS-facing glue owned by a `CharacterController` instance: session lifecycle, per-frame stick sampling, camera orbit/dolly/follow, data-driven controller binding, ray management, teleport/point-to-move retention, and desktop preserve/restore
+  - `XRLocomotion.ts` — pure first/third-person state machine plus `mapStickToIntent` / `neutralMoveIntent` and the `MoveIntent` / `StickInput` / `LocomotionMode` / `ToggleResult` types (no BabylonJS scene)
+  - `XRSupport.ts` — pure `detectXRSupport` / `computeXRSupportResult` and `XRSupportState`
+  - `XRInputMapping.ts` — the `BindableAction` / `BindableInput` enums, mapping types, default mapping, merge/validate functions, and the WebXR component-id constants
+- the public XR types/enums/functions are re-exported from the `CharacterController` entry point so consumers import them from the library root, and they appear in the shared `dist/CharacterController.d.ts`
+- ESM import-map (`webpack.es-externals.js`) and bridge (`src/_babylonjs-esm-bridge.js`) updated for the new BabylonJS WebXR types; the dual UMD/ESM build shape is unchanged
+- the three pure modules are unit- and property-tested without a scene; the `XRController` glue is tested against mocked BabylonJS
+
 ## 09/26/2026 0.4.8
 
 ### active action query

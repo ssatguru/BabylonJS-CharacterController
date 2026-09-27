@@ -1,8 +1,13 @@
-# Project Structure
+﻿# Project Structure
 
 ```
 ├── src/
-│   ├── CharacterController.ts    # Entire library in a single file
+│   ├── CharacterController.ts    # Core library: CharacterController, ActionData, ActionMap, CCSettings, _Action, pure navigation helpers
+│   ├── xr/                        # WebXR support modules (imported by CharacterController.ts)
+│   │   ├── XRController.ts         # BabylonJS-facing XR glue: session lifecycle, stick sampling, camera orbit/dolly/follow, controller binding, ray mgmt, preserve/restore
+│   │   ├── XRLocomotion.ts         # Pure: first/third-person state machine + mapStickToIntent + MoveIntent/StickInput/LocomotionMode/ToggleResult types
+│   │   ├── XRSupport.ts            # Pure: detectXRSupport + computeXRSupportResult + XRSupportState
+│   │   └── XRInputMapping.ts       # Pure: BindableAction/BindableInput enums, XRInputMapping, DEFAULT_XR_INPUT_MAPPING, merge/validate, WebXR component-id constants
 │   └── _babylonjs-esm-bridge.js  # ESM bridge: re-exports BabylonJS types from @babylonjs/core sub-paths
 ├── dist/                          # Build output (committed)
 │   ├── CharacterController.js     # UMD production (minified)
@@ -76,11 +81,14 @@
 
 ## Architecture Notes
 
-- The library is a single-file architecture: all classes live in `src/CharacterController.ts`
-- Exported classes: `CharacterController`, `ActionData`, `ActionMap`, `CCSettings`
+- The library core lives in `src/CharacterController.ts`. Historically the entire library was a single file; larger features are now allowed to live in their own modules under `src/` (e.g. `src/xr/` for WebXR). Prefer keeping the existing core classes in `CharacterController.ts` and introducing new cohesive features as separate modules rather than growing the single file further.
+- Exported classes: `CharacterController`, `ActionData`, `ActionMap`, `CCSettings` (in `CharacterController.ts`)
 - Internal class: `_Action` (prefixed with underscore, mangled in UMD production)
-- Private members use `_` prefix convention (mangled by Terser in UMD production builds only)
+- WebXR support is modularized under `src/xr/`: `XRController.ts` (BabylonJS-facing glue owned by a `CharacterController` instance) plus three pure, scene-free modules — `XRLocomotion.ts`, `XRSupport.ts`, `XRInputMapping.ts`. `CharacterController` imports `XRController`, owns one instance, and re-exports the public XR types/enums/functions so consumers import them from the library entry point.
+- Module split guidance: keep BabylonJS-touching glue separate from pure logic. Pure modules (no BabylonJS scene) are imported directly by their property/unit tests, mirroring the existing pure-helper testing pattern.
+- Private members use `_` prefix convention (mangled by Terser in UMD production builds only). A new feature module's class no longer needs an underscore-prefixed NAME for file scoping, but its private MEMBERS still use the `_` prefix.
 - Public API uses setter/getter methods (e.g., `setWalkSpeed()`, `getMode()`)
 - No physics engine dependency — uses kinematic equations and `moveWithCollisions()`
-- BabylonJS types are imported individually from the `"babylonjs"` package in source
+- BabylonJS types are imported individually from the `"babylonjs"` package in source (in `CharacterController.ts` and any `src/xr/*.ts` module that needs them)
 - The build system rewrites these to `@babylonjs/core` sub-paths for the ESM output via a bridge module and import map
+- Build shape is unaffected by the module split: webpack bundles everything reachable from the single entry point `src/CharacterController.ts` into the same dual UMD/ESM outputs, and `tsconfig` already compiles all `src/**/*.ts`, so adding modules under `src/` needs no webpack/tsconfig entry change.

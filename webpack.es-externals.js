@@ -31,6 +31,11 @@ const BABYLONJS_ES6_MAP = {
   "MeshBuilder": "@babylonjs/core/Meshes/meshBuilder",
   "Color3": "@babylonjs/core/Maths/math.color",
   "Quaternion": "@babylonjs/core/Maths/math.vector",
+  "WebXRSessionManager": "@babylonjs/core/XR/webXRSessionManager",
+  "WebXRDefaultExperience": "@babylonjs/core/XR/webXRDefaultExperience",
+  "WebXRCamera": "@babylonjs/core/XR/webXRCamera",
+  "WebXRState": "@babylonjs/core/XR/webXRTypes",
+  "Observer": "@babylonjs/core/Misc/observable",
 };
 
 /**

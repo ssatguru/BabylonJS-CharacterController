@@ -59,6 +59,8 @@
   },
   "scripts": {
     "dev": "webpack serve --open /tst/test.html",
+    "dev:https": "webpack serve --server-type https --open /tst/testXR.html",
+    "dev:https:lan": "webpack serve --server-type https --host 0.0.0.0",
     "build-dev": "webpack --mode=development",
     "build": "webpack --mode=production",
     "test": "vitest --run"

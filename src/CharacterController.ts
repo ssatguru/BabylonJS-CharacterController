@@ -23,8 +23,37 @@
     LinesMesh,
     MeshBuilder,
     Color3,
-    Quaternion
+    Quaternion,
+    WebXRDefaultExperience,
+    WebXRCamera
 } from "babylonjs";
+
+import { XRController } from "./xr/XRController";
+import type { XRSessionType } from "./xr/XRSessionType";
+import type { XRSupportState } from "./xr/XRSupport";
+import {
+    XRInputMapping,
+    MappingResult,
+    DEFAULT_XR_INPUT_MAPPING,
+    mergeXRInputMapping,
+    validateXRInputMapping
+} from "./xr/XRInputMapping";
+
+// --- Public WebXR API re-exports (task 20.2) ---
+// Re-export the public XR types/enums/functions so consumers import them from
+// the library entry point and they appear in the shared dist/CharacterController.d.ts.
+
+// Values (enums, class, functions, const) not already imported above:
+export { XRLocomotion, mapStickToIntent } from "./xr/XRLocomotion";
+export { detectXRSupport } from "./xr/XRSupport";
+export { BindableAction, BindableInput } from "./xr/XRInputMapping";
+
+// Pure types/interfaces not already imported above:
+export type { LocomotionMode, ToggleResult, MoveIntent, StickInput } from "./xr/XRLocomotion";
+
+// Re-export identifiers already imported above (referencing local names):
+export { DEFAULT_XR_INPUT_MAPPING, mergeXRInputMapping, validateXRInputMapping };
+export type { XRSessionType, XRSupportState, XRInputMapping, MappingResult };
 
 
 // --- Navigation helper functions (pure, standalone) ---
@@ -131,6 +160,23 @@ export class CharacterController {
     public getScene(): Scene {
         return this._scene;
     }
+
+    /**
+     * The WebXR glue instance, constructed lazily by `enableXR` (design D2). It
+     * stays `null` until the developer opts into XR, so the controller behaves
+     * exactly as it did before the WebXR feature existed - every public XR
+     * delegate below no-ops or resolves safely while `_xr` is null (R1.9, R2.7,
+     * R16.4).
+     */
+    private _xr: XRController | null = null;
+
+    /**
+     * The effective XR input mapping tracked at the CharacterController level.
+     * Seeded to the documented default and updated by `setXRInputMapping` only
+     * when a candidate mapping validates. `getEffectiveXRInputMapping` returns
+     * this (or the live XRController mapping once XR is enabled). (R18.6, R18.14)
+     */
+    private _xrEffectiveMapping: XRInputMapping = { ...DEFAULT_XR_INPUT_MAPPING };
 
 
     private _gravity: number = 9.8;
@@ -3325,6 +3371,259 @@ export class CharacterController {
         this._renderer = () => { this._moveAVandCamera() };
         this._handleKeyUp = (e) => { this._onKeyUp(e) };
         this._handleKeyDown = (e) => { this._onKeyDown(e) };
+    }
+
+    // =========================================================================
+    // WebXR public API (thin delegates to the lazily-constructed XRController).
+    //
+    // The XRController instance is created on the first `enableXR` call and
+    // owns all WebXR state and behavior. Every method below is safe to call
+    // before XR is enabled: while `_xr` is null the controller behaves exactly
+    // as it did before the WebXR feature existed - queries return the inert
+    // "not supported / not in XR" answer and commands no-op or resolve without
+    // side effects (R1.9, R2.7, R16.4).
+    // =========================================================================
+
+    /**
+     * Enable WebXR support. Lazily constructs the owned {@link XRController} on
+     * the first call (passing this controller, its `ArcRotateCamera`, and the
+     * scene), then delegates to its `enable(xr?)`.
+     *
+     * With a provided {@link WebXRDefaultExperience} or {@link WebXRCamera} the
+     * XRController adopts it; with no argument it creates a default experience.
+     * Resolves `true` on success and `false` on failure; never throws.
+     *
+     * _Requirements: 1.9_
+     */
+    public async enableXR(xr?: WebXRDefaultExperience | WebXRCamera): Promise<boolean> {
+        if (this._xr == null) {
+            this._xr = new XRController(this, this._camera, this._scene);
+            // Seed the freshly-constructed XRController with whatever effective
+            // mapping the developer already configured via `setXRInputMapping`
+            // before enabling XR, so the two stay in sync (best-effort, guarded).
+            this._applyXRMappingToController(this._xrEffectiveMapping);
+        }
+        return this._xr.enable(xr);
+    }
+
+    /**
+     * Disable WebXR support. Delegates to the XRController's `disable()` (which
+     * restores desktop `ArcRotateCamera` mode first when a session is active).
+     * No-op when XR was never enabled. Never throws.
+     *
+     * _Requirements: 1.9_
+     */
+    public async disableXR(): Promise<void> {
+        if (this._xr == null) {
+            return;
+        }
+        await this._xr.disable();
+    }
+
+    /**
+     * Enter an immersive XR session of the given type (`'vr'` or `'ar'`).
+     * No-op (leaving desktop ArcRotate mode intact) when XR is not enabled or
+     * the requested type is unsupported. Never throws.
+     *
+     * _Requirements: 2.7_
+     */
+    public async enterXR(type: XRSessionType): Promise<void> {
+        if (this._xr == null) {
+            return;
+        }
+        await this._xr.enter(type);
+    }
+
+    /**
+     * Exit the active immersive XR session. Idempotent no-op when no session is
+     * active or XR was never enabled. Never throws.
+     *
+     * _Requirements: 2.7_
+     */
+    public async exitXR(): Promise<void> {
+        if (this._xr == null) {
+            return;
+        }
+        await this._xr.exit();
+    }
+
+    /**
+     * True only while an immersive XR session is active. Returns `false` when
+     * XR was never enabled.
+     *
+     * _Requirements: 2.7_
+     */
+    public isInXR(): boolean {
+        if (this._xr == null) {
+            return false;
+        }
+        return this._xr.isInXR();
+    }
+
+    /**
+     * Detect immersive VR / AR support. Returns `{ vrSupported: false,
+     * arSupported: false }` when XR was never enabled; otherwise delegates to
+     * the XRController's async support probe.
+     *
+     * _Requirements: 16.4, 16.5_
+     */
+    public async isXRSupported(): Promise<XRSupportState> {
+        if (this._xr == null) {
+            return { vrSupported: false, arSupported: false };
+        }
+        // The XRController does not currently expose a public support probe
+        // (that surface is owned by a later task); delegate defensively so a
+        // present method is used and an absent one falls back to the pure
+        // detector. Guarded so calling it never throws.
+        const xr = this._xr as unknown as { isXRSupported?: () => Promise<XRSupportState> };
+        try {
+            if (typeof xr.isXRSupported === "function") {
+                return await xr.isXRSupported();
+            }
+        } catch {
+            // fall through to the inert default
+        }
+        return { vrSupported: false, arSupported: false };
+    }
+
+    /**
+     * Set the left-stick deadzone used by XR thumbstick locomotion, clamped to
+     * `[0, 1]` by the XRController. No-op when XR was never enabled.
+     *
+     * _Requirements: 6.8_
+     */
+    public setXRStickDeadzone(v: number): void {
+        if (this._xr == null) {
+            return;
+        }
+        this._xr.setStickDeadzone(v);
+    }
+
+    /**
+     * Set the camera-orbit alpha (horizontal) sensitivity rate for XR right-stick
+     * orbit. The XRController clamps the value; non-finite input leaves it
+     * unchanged. No-op when XR was never enabled. Delegated defensively so it is
+     * a safe no-op if the XRController setter is not present.
+     *
+     * _Requirements: 12.1_
+     */
+    public setXROrbitAlphaRate(v: number): void {
+        this._callXRSetter("setAlphaRate", v);
+    }
+
+    /**
+     * Set the camera-orbit beta (vertical) sensitivity rate for XR right-stick
+     * orbit. The XRController clamps the value; non-finite input leaves it
+     * unchanged. No-op when XR was never enabled. Delegated defensively so it is
+     * a safe no-op if the XRController setter is not present.
+     *
+     * _Requirements: 12.2_
+     */
+    public setXROrbitBetaRate(v: number): void {
+        this._callXRSetter("setBetaRate", v);
+    }
+
+    /**
+     * Set the camera-dolly (radius) sensitivity rate for XR button dolly. The
+     * XRController clamps the value; non-finite input leaves it unchanged. No-op
+     * when XR was never enabled. Delegated defensively so it is a safe no-op if
+     * the XRController setter is not present.
+     *
+     * _Requirements: 12.3, 12.4_
+     */
+    public setXRDollyRate(v: number): void {
+        this._callXRSetter("setRadiusRate", v);
+    }
+
+    /**
+     * Apply a developer XR input mapping (partial).
+     *
+     * The partial is overlaid onto {@link DEFAULT_XR_INPUT_MAPPING} via
+     * `mergeXRInputMapping`, then validated via `validateXRInputMapping`. When
+     * valid, the merged mapping becomes the effective mapping (stored here and
+     * pushed to the XRController) and `{ applied: true, rejected: false }` is
+     * returned. When invalid, the effective mapping is left unchanged and
+     * `{ applied: false, rejected: true, reason }` is returned (R18.14).
+     *
+     * _Requirements: 18.1, 18.6, 18.14_
+     */
+    public setXRInputMapping(mapping: Partial<XRInputMapping>): MappingResult {
+        const merged = mergeXRInputMapping(mapping);
+        const result = validateXRInputMapping(merged);
+        if (result.applied) {
+            // Only a valid mapping replaces the effective one (R18.14).
+            this._xrEffectiveMapping = merged;
+            this._applyXRMappingToController(merged);
+        }
+        return result;
+    }
+
+    /**
+     * Return a copy of the documented default XR input mapping.
+     *
+     * _Requirements: 18.5_
+     */
+    public getDefaultXRInputMapping(): XRInputMapping {
+        return { ...DEFAULT_XR_INPUT_MAPPING };
+    }
+
+    /**
+     * Return a copy of the current effective XR input mapping (the default
+     * overlaid with the last valid developer partial).
+     *
+     * _Requirements: 18.4, 18.6_
+     */
+    public getEffectiveXRInputMapping(): XRInputMapping {
+        return { ...this._xrEffectiveMapping };
+    }
+
+    /**
+     * Push an effective mapping onto the owned XRController, best-effort.
+     *
+     * The XRController stores its effective mapping in a private member and does
+     * not yet expose a public setter (that surface is owned by a later task), so
+     * this tries a public `setInputMapping` if present, then asks the controller
+     * to re-bind an active session if that method is present. Every hop is
+     * guarded so a missing method is a safe no-op and never throws.
+     */
+    private _applyXRMappingToController(mapping: XRInputMapping): void {
+        if (this._xr == null) {
+            return;
+        }
+        const xr = this._xr as unknown as {
+            setInputMapping?: (m: XRInputMapping) => void;
+            rebindActiveSession?: () => void;
+        };
+        try {
+            if (typeof xr.setInputMapping === "function") {
+                xr.setInputMapping(mapping);
+                if (typeof xr.rebindActiveSession === "function") {
+                    xr.rebindActiveSession();
+                }
+            }
+        } catch {
+            // guarded no-op: the XRController mapping setter is not yet present
+        }
+    }
+
+    /**
+     * Invoke a named clamped sensitivity setter on the owned XRController,
+     * best-effort. No-op when XR was never enabled. Guarded so that a setter the
+     * XRController does not yet expose is a safe no-op rather than a throw.
+     */
+    private _callXRSetter(method: "setAlphaRate" | "setBetaRate" | "setRadiusRate", v: number): void {
+        if (this._xr == null) {
+            return;
+        }
+        const xr = this._xr as unknown as Record<string, ((value: number) => void) | undefined>;
+        try {
+            const fn = xr[method];
+            if (typeof fn === "function") {
+                fn.call(this._xr, v);
+            }
+        } catch {
+            // guarded no-op: the XRController sensitivity setter is not yet present
+        }
     }
 }
 

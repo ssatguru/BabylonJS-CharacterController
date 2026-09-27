@@ -27,3 +27,8 @@ export { AnimationEvent } from "@babylonjs/core/Animations/animationEvent";
 export { LinesMesh } from "@babylonjs/core/Meshes/linesMesh";
 export { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 export { Color3 } from "@babylonjs/core/Maths/math.color";
+export { WebXRSessionManager } from "@babylonjs/core/XR/webXRSessionManager";
+export { WebXRDefaultExperience } from "@babylonjs/core/XR/webXRDefaultExperience";
+export { WebXRCamera } from "@babylonjs/core/XR/webXRCamera";
+export { WebXRState } from "@babylonjs/core/XR/webXRTypes";
+export { Observer } from "@babylonjs/core/Misc/observable";

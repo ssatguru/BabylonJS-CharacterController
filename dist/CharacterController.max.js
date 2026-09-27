@@ -12,6 +12,1922 @@ return /******/ (() => { // webpackBootstrap
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
+/***/ "./src/xr/XRController.ts":
+/*!********************************!*\
+  !*** ./src/xr/XRController.ts ***!
+  \********************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "XRController": () => (/* binding */ XRController)
+/* harmony export */ });
+/* harmony import */ var babylonjs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! babylonjs */ "babylonjs");
+/* harmony import */ var babylonjs__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(babylonjs__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _XRLocomotion__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./XRLocomotion */ "./src/xr/XRLocomotion.ts");
+/* harmony import */ var _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./XRInputMapping */ "./src/xr/XRInputMapping.ts");
+/* harmony import */ var _XRSupport__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./XRSupport */ "./src/xr/XRSupport.ts");
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __generator = (undefined && undefined.__generator) || function (thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
+    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (g && (g = 0, op[0] && (_ = 0)), _) try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+    }
+};
+
+
+
+
+var DEFAULT_ALPHA_RATE = 0.0075;
+var DEFAULT_BETA_RATE = 0.003;
+var DEFAULT_RADIUS_RATE = 0.05;
+var MAX_ORBIT_RATE = 0.02;
+var MAX_RADIUS_RATE = 0.2;
+var BETA_MIN_FALLBACK = 0.05;
+var BETA_MAX_FALLBACK = Math.PI - 0.05;
+var ENTRY_BLEND_FRAMES = 90;
+var TELEPORTATION_FEATURE_NAME = "xr-controller-teleportation";
+var POINTER_SELECTION_FEATURE_NAME = "xr-controller-pointer-selection";
+var RIGHT_RAY_RENDERING_GROUP = 2;
+var XRController = (function () {
+    function XRController(cc, camera, scene) {
+        this._alphaRate = DEFAULT_ALPHA_RATE;
+        this._betaRate = DEFAULT_BETA_RATE;
+        this._radiusRate = DEFAULT_RADIUS_RATE;
+        this._stickDeadzone = _XRLocomotion__WEBPACK_IMPORTED_MODULE_1__.DEFAULT_STICK_DEADZONE;
+        this._entryBlendFrame = ENTRY_BLEND_FRAMES;
+        this._xrExperience = null;
+        this._xrCamera = null;
+        this._enabled = false;
+        this._stateObserver = null;
+        this._renderObserver = null;
+        this._triggerObservers = [];
+        this._controllerAddedObservers = [];
+        this._motionControllerInitObservers = [];
+        this._toggleObservers = [];
+        this._moveAxesComponent = null;
+        this._orbitAxesComponent = null;
+        this._fastModifierComponent = null;
+        this._lastToggleController = null;
+        this._leftRayHidden = false;
+        this._rightRingRaised = false;
+        this._leftControllerForRay = null;
+        this._rightControllerForRay = null;
+        this._initialPoseObserver = null;
+        this._inXR = false;
+        this._sessionType = null;
+        this._priorKeyboardEnabled = true;
+        this._priorRunning = true;
+        this._lastIntent = null;
+        this._lastFast = false;
+        this._fastModifierPressed = false;
+        this._entryBlendOffsetX = 0;
+        this._entryBlendOffsetY = 0;
+        this._entryBlendOffsetZ = 0;
+        this._dollyInComponent = null;
+        this._dollyOutComponent = null;
+        this._dollyToAvatarActive = false;
+        this._dollyToAvatarPriorRadius = 0;
+        this._cc = cc;
+        this._camera = camera;
+        this._scene = scene;
+        this._locomotion = new _XRLocomotion__WEBPACK_IMPORTED_MODULE_1__.XRLocomotion();
+        this._effectiveMapping = _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.DEFAULT_XR_INPUT_MAPPING;
+        this._alphaRate = DEFAULT_ALPHA_RATE;
+        this._betaRate = DEFAULT_BETA_RATE;
+        this._radiusRate = DEFAULT_RADIUS_RATE;
+        this._stickDeadzone = _XRLocomotion__WEBPACK_IMPORTED_MODULE_1__.DEFAULT_STICK_DEADZONE;
+        this._entryBlendFrame = ENTRY_BLEND_FRAMES;
+    }
+    XRController.prototype.isInXR = function () {
+        return this._inXR === true;
+    };
+    XRController.prototype.enter = function (type) {
+        return __awaiter(this, void 0, void 0, function () {
+            var support, supported, base, sessionMode, _a;
+            var _b;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0:
+                        if (!this._enabled) {
+                            return [2];
+                        }
+                        _c.label = 1;
+                    case 1:
+                        _c.trys.push([1, 4, , 5]);
+                        return [4, (0,_XRSupport__WEBPACK_IMPORTED_MODULE_3__.detectXRSupport)()];
+                    case 2:
+                        support = _c.sent();
+                        supported = type === "ar" ? support.arSupported === true : support.vrSupported === true;
+                        if (!supported) {
+                            return [2];
+                        }
+                        base = (_b = this._xrExperience) === null || _b === void 0 ? void 0 : _b.baseExperience;
+                        if (base == null || typeof base.enterXRAsync !== "function") {
+                            return [2];
+                        }
+                        this._sessionType = type;
+                        sessionMode = type === "ar" ? "immersive-ar" : "immersive-vr";
+                        return [4, base.enterXRAsync(sessionMode, "local-floor")];
+                    case 3:
+                        _c.sent();
+                        return [3, 5];
+                    case 4:
+                        _a = _c.sent();
+                        return [3, 5];
+                    case 5: return [2];
+                }
+            });
+        });
+    };
+    XRController.prototype.exit = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var base, _a;
+            var _b;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0:
+                        if (!this._inXR) {
+                            return [2];
+                        }
+                        _c.label = 1;
+                    case 1:
+                        _c.trys.push([1, 4, , 5]);
+                        base = (_b = this._xrExperience) === null || _b === void 0 ? void 0 : _b.baseExperience;
+                        if (!(base != null && typeof base.exitXRAsync === "function")) return [3, 3];
+                        return [4, base.exitXRAsync()];
+                    case 2:
+                        _c.sent();
+                        _c.label = 3;
+                    case 3: return [3, 5];
+                    case 4:
+                        _a = _c.sent();
+                        return [3, 5];
+                    case 5: return [2];
+                }
+            });
+        });
+    };
+    XRController.prototype.onSessionStart = function (type) {
+        try {
+            this._sessionType = type;
+            this.disableDesktopController();
+            this._entryBlendFrame = 0;
+            this._entryBlendOffsetX = 0;
+            this._entryBlendOffsetY = 0;
+            this._entryBlendOffsetZ = 0;
+            this._lastIntent = null;
+            this._lastFast = false;
+            this._fastModifierPressed = false;
+            this._triggerObservers = [];
+            this._controllerAddedObservers = [];
+            this._motionControllerInitObservers = [];
+            this._toggleObservers = [];
+            this._moveAxesComponent = null;
+            this._orbitAxesComponent = null;
+            this._fastModifierComponent = null;
+            this._lastToggleController = null;
+            this._leftRayHidden = false;
+            this._rightRingRaised = false;
+            this._leftControllerForRay = null;
+            this._rightControllerForRay = null;
+            this._initialPoseObserver = null;
+            this._dollyToAvatarActive = false;
+            this._dollyToAvatarPriorRadius = 0;
+            this._registerInitialPoseHook();
+            var noFirstPerson = this._readNoFirstPerson();
+            var mode = noFirstPerson === false ? "firstPerson" : "thirdPerson";
+            var canFirstPerson = noFirstPerson === false;
+            try {
+                this._locomotion.setMode(mode, canFirstPerson);
+            }
+            catch (_a) {
+            }
+            this.applyLocomotionMode(mode);
+            this._buildEffectiveMapping();
+            this._bindInputs(this._xrExperience);
+            this._startRenderObserver();
+        }
+        catch (_b) {
+        }
+    };
+    XRController.prototype.onSessionEnd = function () {
+        if (!this._inXR) {
+            return;
+        }
+        try {
+            this._stopAllMovement();
+            this.detachSessionObservers();
+            this._clearSessionCaptures();
+            this.restoreDesktopController();
+            this.restoreArcRotateMode();
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype.disableDesktopController = function () {
+        var _a, _b, _c, _d;
+        try {
+            this._priorKeyboardEnabled = ((_b = (_a = this._cc).isKeyBoardEnabled) === null || _b === void 0 ? void 0 : _b.call(_a)) === true;
+        }
+        catch (_e) {
+            this._priorKeyboardEnabled = true;
+        }
+        this._priorRunning = true;
+        try {
+            (_d = (_c = this._cc).enableKeyBoard) === null || _d === void 0 ? void 0 : _d.call(_c, false);
+        }
+        catch (_f) {
+        }
+    };
+    XRController.prototype.restoreDesktopController = function () {
+        var _a, _b;
+        try {
+            (_b = (_a = this._cc).enableKeyBoard) === null || _b === void 0 ? void 0 : _b.call(_a, this._priorKeyboardEnabled);
+        }
+        catch (_c) {
+        }
+        void this._priorRunning;
+    };
+    XRController.prototype.enable = function (xr) {
+        return __awaiter(this, void 0, void 0, function () {
+            var experience, camera, adopted, observer, _a;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        _b.trys.push([0, 4, , 5]);
+                        experience = null;
+                        camera = null;
+                        if (!(xr != null)) return [3, 1];
+                        adopted = this._adoptProvided(xr);
+                        experience = adopted.experience;
+                        camera = adopted.camera;
+                        return [3, 3];
+                    case 1: return [4, this._createDefaultExperience()];
+                    case 2:
+                        experience = _b.sent();
+                        camera = this._extractCameraFromExperience(experience);
+                        _b.label = 3;
+                    case 3:
+                        if (experience == null && camera == null) {
+                            return [2, false];
+                        }
+                        observer = this._registerStateObserver(experience);
+                        if (this._enabled) {
+                            this._unregisterStateObserver();
+                        }
+                        this._xrExperience = experience;
+                        this._xrCamera = camera;
+                        this._stateObserver = observer;
+                        this._enabled = true;
+                        return [2, true];
+                    case 4:
+                        _a = _b.sent();
+                        return [2, false];
+                    case 5: return [2];
+                }
+            });
+        });
+    };
+    XRController.prototype.disable = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                if (!this._enabled) {
+                    return [2];
+                }
+                try {
+                    if (this._inXR) {
+                        this.restoreArcRotateMode();
+                    }
+                }
+                finally {
+                    this._unregisterStateObserver();
+                    this._xrExperience = null;
+                    this._xrCamera = null;
+                    this._inXR = false;
+                    this._enabled = false;
+                }
+                return [2];
+            });
+        });
+    };
+    XRController.prototype._adoptProvided = function (xr) {
+        var _a;
+        try {
+            var asExperience = xr;
+            if (asExperience != null && asExperience.baseExperience != null) {
+                return {
+                    experience: asExperience,
+                    camera: this._extractCameraFromExperience(asExperience),
+                };
+            }
+            return { experience: null, camera: (_a = xr) !== null && _a !== void 0 ? _a : null };
+        }
+        catch (_b) {
+            return { experience: null, camera: null };
+        }
+    };
+    XRController.prototype._createDefaultExperience = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var scene, experience, _a;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        _b.trys.push([0, 2, , 3]);
+                        scene = this._scene;
+                        if (scene == null || typeof scene.createDefaultXRExperienceAsync !== "function") {
+                            return [2, null];
+                        }
+                        return [4, scene.createDefaultXRExperienceAsync({ disableTeleportation: true })];
+                    case 1:
+                        experience = _b.sent();
+                        return [2, experience !== null && experience !== void 0 ? experience : null];
+                    case 2:
+                        _a = _b.sent();
+                        return [2, null];
+                    case 3: return [2];
+                }
+            });
+        });
+    };
+    XRController.prototype._extractCameraFromExperience = function (experience) {
+        var _a;
+        try {
+            var base = experience === null || experience === void 0 ? void 0 : experience.baseExperience;
+            return (_a = base === null || base === void 0 ? void 0 : base.camera) !== null && _a !== void 0 ? _a : null;
+        }
+        catch (_b) {
+            return null;
+        }
+    };
+    XRController.prototype._registerStateObserver = function (experience) {
+        var _this = this;
+        var _a, _b;
+        try {
+            var observable = (_a = experience === null || experience === void 0 ? void 0 : experience.baseExperience) === null || _a === void 0 ? void 0 : _a.onStateChangedObservable;
+            if (observable == null || typeof observable.add !== "function") {
+                return null;
+            }
+            return (_b = observable.add(function (state) { return _this._onStateChanged(state); })) !== null && _b !== void 0 ? _b : null;
+        }
+        catch (_c) {
+            return null;
+        }
+    };
+    XRController.prototype._unregisterStateObserver = function () {
+        var _a, _b;
+        try {
+            var observable = (_b = (_a = this._xrExperience) === null || _a === void 0 ? void 0 : _a.baseExperience) === null || _b === void 0 ? void 0 : _b.onStateChangedObservable;
+            if (observable != null && typeof observable.remove === "function" && this._stateObserver != null) {
+                observable.remove(this._stateObserver);
+            }
+        }
+        catch (_c) {
+        }
+        finally {
+            this._stateObserver = null;
+        }
+    };
+    XRController.prototype._onStateChanged = function (state) {
+        var _a;
+        try {
+            if (state === babylonjs__WEBPACK_IMPORTED_MODULE_0__.WebXRState.IN_XR) {
+                this._inXR = true;
+                this.onSessionStart((_a = this._sessionType) !== null && _a !== void 0 ? _a : "vr");
+            }
+            else if (state === babylonjs__WEBPACK_IMPORTED_MODULE_0__.WebXRState.NOT_IN_XR) {
+                this.onSessionEnd();
+                this._inXR = false;
+            }
+        }
+        catch (_b) {
+        }
+    };
+    XRController.prototype._readNoFirstPerson = function () {
+        var _a, _b;
+        try {
+            var settings = (_b = (_a = this._cc).getSettings) === null || _b === void 0 ? void 0 : _b.call(_a);
+            return (settings === null || settings === void 0 ? void 0 : settings.noFirstPerson) === true;
+        }
+        catch (_c) {
+            return false;
+        }
+    };
+    XRController.prototype._registerInitialPoseHook = function () {
+        var _this = this;
+        var _a;
+        try {
+            var base = (_a = this._xrExperience) === null || _a === void 0 ? void 0 : _a.baseExperience;
+            var poseObservable = base === null || base === void 0 ? void 0 : base.onInitialXRPoseSetObservable;
+            if (poseObservable != null && typeof poseObservable.add === "function") {
+                var observer = poseObservable.add(function () {
+                    try {
+                        _this._seedXRCameraOntoFollowPose();
+                    }
+                    catch (_a) {
+                    }
+                    finally {
+                        _this._removeInitialPoseObserver();
+                    }
+                });
+                this._initialPoseObserver = { observable: poseObservable, observer: observer };
+                return;
+            }
+            this._seedXRCameraOntoFollowPose();
+        }
+        catch (_b) {
+        }
+    };
+    XRController.prototype._seedXRCameraOntoFollowPose = function () {
+        var _a;
+        try {
+            var xr = this._xrCamera;
+            if (xr == null) {
+                return;
+            }
+            var arc = this._camera;
+            if (typeof xr.setTransformationFromNonVRCamera === "function") {
+                xr.setTransformationFromNonVRCamera(this._camera, true);
+            }
+            var arcY = typeof ((_a = arc === null || arc === void 0 ? void 0 : arc.position) === null || _a === void 0 ? void 0 : _a.y) === "number" ? arc.position.y : 0;
+            if (xr.position != null && typeof xr.position.y === "number") {
+                xr.position.y = arcY;
+            }
+        }
+        catch (_b) {
+        }
+    };
+    XRController.prototype._removeInitialPoseObserver = function () {
+        try {
+            var entry = this._initialPoseObserver;
+            if (entry != null) {
+                var observable = entry.observable;
+                if (observable != null && typeof observable.remove === "function" && entry.observer != null) {
+                    observable.remove(entry.observer);
+                }
+            }
+        }
+        catch (_a) {
+        }
+        finally {
+            this._initialPoseObserver = null;
+        }
+    };
+    XRController.prototype.canFirstPerson = function () {
+        return this._readNoFirstPerson() === false;
+    };
+    XRController.prototype.applyLocomotionMode = function (mode) {
+        var _a, _b;
+        this._disableTeleportation();
+        try {
+            (_b = (_a = this._cc).setNoFirstPerson) === null || _b === void 0 ? void 0 : _b.call(_a, mode !== "firstPerson");
+        }
+        catch (_c) {
+        }
+    };
+    XRController.prototype.disableTeleportation = function (fm) {
+        try {
+            if (fm != null && typeof fm.disableFeature === "function") {
+                fm.disableFeature(TELEPORTATION_FEATURE_NAME);
+            }
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype._disableTeleportation = function () {
+        var _a, _b;
+        try {
+            var fm = (_b = (_a = this._xrExperience) === null || _a === void 0 ? void 0 : _a.baseExperience) === null || _b === void 0 ? void 0 : _b.featuresManager;
+            this.disableTeleportation(fm);
+        }
+        catch (_c) {
+        }
+    };
+    XRController.prototype.handleSelect = function (pick) {
+        var _a, _b;
+        try {
+            if (pick == null) {
+                return;
+            }
+            if ("hit" in pick && !pick.hit) {
+                return;
+            }
+            var point = pick.pickedPoint;
+            if (point == null) {
+                return;
+            }
+            var x = point.x, y = point.y, z = point.z;
+            if (typeof x !== "number" ||
+                typeof y !== "number" ||
+                typeof z !== "number" ||
+                !Number.isFinite(x) ||
+                !Number.isFinite(y) ||
+                !Number.isFinite(z)) {
+                return;
+            }
+            (_b = (_a = this._cc).moveTo) === null || _b === void 0 ? void 0 : _b.call(_a, point);
+        }
+        catch (_c) {
+        }
+    };
+    XRController.prototype._buildEffectiveMapping = function () {
+        try {
+            if (this._effectiveMapping == null) {
+                this._effectiveMapping = _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.DEFAULT_XR_INPUT_MAPPING;
+            }
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype._bindInputs = function (experience) {
+        try {
+            this.bindInputs(experience);
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype.bindInputs = function (experience) {
+        var _this = this;
+        try {
+            var input = experience === null || experience === void 0 ? void 0 : experience.input;
+            if (input == null) {
+                return;
+            }
+            var existing = Array.isArray(input.controllers) ? input.controllers : [];
+            for (var _i = 0, existing_1 = existing; _i < existing_1.length; _i++) {
+                var controller = existing_1[_i];
+                this._onControllerAdded(controller);
+            }
+            var observable = input.onControllerAddedObservable;
+            if (observable != null && typeof observable.add === "function") {
+                var observer = observable.add(function (controller) {
+                    try {
+                        _this._onControllerAdded(controller);
+                    }
+                    catch (_a) {
+                    }
+                });
+                this._controllerAddedObservers.push({ observable: observable, observer: observer });
+            }
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype.rebindActiveSession = function () {
+        try {
+            if (!this._inXR) {
+                return;
+            }
+            this._detachBindingObservers();
+            this._clearSessionCaptures();
+            this.bindInputs(this._xrExperience);
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype._onControllerAdded = function (controller) {
+        var _this = this;
+        try {
+            if (controller == null) {
+                return;
+            }
+            var c = controller;
+            if (c.motionController != null) {
+                this._wireController(controller, c.motionController);
+                return;
+            }
+            var observable = c.onMotionControllerInitObservable;
+            if (observable != null && typeof observable.add === "function") {
+                var observer = observable.add(function (mc) {
+                    try {
+                        _this._wireController(controller, mc);
+                    }
+                    catch (_a) {
+                    }
+                });
+                this._motionControllerInitObservers.push({ observable: observable, observer: observer });
+            }
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype._wireController = function (controller, motionController) {
+        try {
+            var handedness = this._resolveHandedness(controller, motionController);
+            if (handedness == null) {
+                return;
+            }
+            this.bindJump(motionController, handedness);
+            this.captureRightDollyButtons(motionController, handedness);
+            this._wireMoveAxes(motionController, handedness);
+            this._wireOrbitAxes(motionController, handedness);
+            this._wireFastModifier(motionController, handedness);
+            this._wireToggle(motionController, handedness, _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.BindableAction.DollyToAvatarToggle);
+            this._wireToggle(motionController, handedness, _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.BindableAction.LocomotionModeToggle);
+            try {
+                if (handedness === "left") {
+                    this.rememberLeftControllerAndHideRay(controller);
+                }
+                else if (handedness === "right") {
+                    this._rightControllerForRay = controller;
+                    this.retryRaiseRightSelectionRing();
+                }
+            }
+            catch (_a) {
+            }
+        }
+        catch (_b) {
+        }
+    };
+    XRController.prototype._resolveHandedness = function (controller, motionController) {
+        var _a;
+        try {
+            var fromMc = motionController === null || motionController === void 0 ? void 0 : motionController.handedness;
+            var fromController = (_a = controller === null || controller === void 0 ? void 0 : controller.inputSource) === null || _a === void 0 ? void 0 : _a.handedness;
+            var raw = fromMc !== null && fromMc !== void 0 ? fromMc : fromController;
+            if (raw === "left" || raw === "right") {
+                return raw;
+            }
+            return null;
+        }
+        catch (_b) {
+            return null;
+        }
+    };
+    XRController.prototype._wireMoveAxes = function (motionController, handedness) {
+        var component = this._resolveAxesComponent(motionController, handedness, _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.BindableAction.Move);
+        if (component != null) {
+            this._moveAxesComponent = component;
+        }
+    };
+    XRController.prototype._wireOrbitAxes = function (motionController, handedness) {
+        var component = this._resolveAxesComponent(motionController, handedness, _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.BindableAction.CameraOrbit);
+        if (component != null) {
+            this._orbitAxesComponent = component;
+        }
+    };
+    XRController.prototype._resolveAxesComponent = function (motionController, handedness, action) {
+        var _a, _b, _c;
+        try {
+            var boundInput = (_a = this._effectiveMapping) === null || _a === void 0 ? void 0 : _a[action];
+            if (boundInput == null) {
+                return null;
+            }
+            var resolution = _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.INPUT_RESOLUTION[boundInput];
+            if (resolution == null) {
+                return null;
+            }
+            if (resolution.handedness !== handedness || resolution.componentId !== _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.XR_COMPONENT_THUMBSTICK) {
+                return null;
+            }
+            var mc = motionController;
+            return (_c = (_b = mc === null || mc === void 0 ? void 0 : mc.getComponent) === null || _b === void 0 ? void 0 : _b.call(mc, resolution.componentId)) !== null && _c !== void 0 ? _c : null;
+        }
+        catch (_d) {
+            return null;
+        }
+    };
+    XRController.prototype._wireFastModifier = function (motionController, handedness) {
+        var _this = this;
+        var _a, _b;
+        try {
+            var boundInput = (_a = this._effectiveMapping) === null || _a === void 0 ? void 0 : _a[_XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.BindableAction.FastModifier];
+            if (boundInput == null) {
+                return;
+            }
+            var resolution = _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.INPUT_RESOLUTION[boundInput];
+            if (resolution == null) {
+                return;
+            }
+            if (resolution.handedness !== handedness || resolution.componentId !== _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.XR_COMPONENT_THUMBSTICK) {
+                return;
+            }
+            var mc = motionController;
+            var component = (_b = mc === null || mc === void 0 ? void 0 : mc.getComponent) === null || _b === void 0 ? void 0 : _b.call(mc, resolution.componentId);
+            this._fastModifierComponent = component !== null && component !== void 0 ? component : null;
+            var observable = component === null || component === void 0 ? void 0 : component.onButtonStateChangedObservable;
+            if (observable == null || typeof observable.add !== "function") {
+                return;
+            }
+            var observer = observable.add(function (changed) {
+                try {
+                    _this._fastModifierPressed = (changed === null || changed === void 0 ? void 0 : changed.pressed) === true;
+                }
+                catch (_a) {
+                }
+            });
+            this._toggleObservers.push({ observable: observable, observer: observer });
+        }
+        catch (_c) {
+        }
+    };
+    XRController.prototype._wireToggle = function (motionController, handedness, action) {
+        var _this = this;
+        var _a, _b;
+        try {
+            var boundInput = (_a = this._effectiveMapping) === null || _a === void 0 ? void 0 : _a[action];
+            if (boundInput == null) {
+                return;
+            }
+            var resolution = _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.INPUT_RESOLUTION[boundInput];
+            if (resolution == null) {
+                return;
+            }
+            if (resolution.handedness !== handedness) {
+                return;
+            }
+            var mc = motionController;
+            var component = (_b = mc === null || mc === void 0 ? void 0 : mc.getComponent) === null || _b === void 0 ? void 0 : _b.call(mc, resolution.componentId);
+            var observable = component === null || component === void 0 ? void 0 : component.onButtonStateChangedObservable;
+            if (observable == null || typeof observable.add !== "function") {
+                return;
+            }
+            var wasPressed_1 = false;
+            var observer = observable.add(function (changed) {
+                try {
+                    var pressed = (changed === null || changed === void 0 ? void 0 : changed.pressed) === true;
+                    if (pressed && !wasPressed_1) {
+                        if (action === _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.BindableAction.DollyToAvatarToggle) {
+                            _this.toggleDollyToAvatar();
+                        }
+                        else if (action === _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.BindableAction.LocomotionModeToggle) {
+                            _this._lastToggleController = motionController;
+                            _this.handleToggleRequest();
+                        }
+                    }
+                    wasPressed_1 = pressed;
+                }
+                catch (_a) {
+                }
+            });
+            this._toggleObservers.push({ observable: observable, observer: observer });
+        }
+        catch (_c) {
+        }
+    };
+    XRController.prototype.handleToggleRequest = function () {
+        try {
+            var canFirstPerson = this.canFirstPerson();
+            var result = this._locomotion.toggle(canFirstPerson);
+            if (result == null) {
+                return;
+            }
+            if (result.changed === true) {
+                this.applyLocomotionMode(result.mode);
+            }
+            if (result.blocked === true) {
+                this.emitToggleBlockedFeedback(this._lastToggleController);
+            }
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype.emitToggleBlockedFeedback = function (controller) {
+        try {
+            var haptic = controller;
+            if (haptic == null || typeof haptic.pulse !== "function") {
+                return;
+            }
+            var result = haptic.pulse(0.5, 100);
+            var thenable = result;
+            if (thenable != null && typeof thenable.then === "function") {
+                thenable.then(function () { }, function (err) {
+                    try {
+                        console.log("XRController: blocked-toggle haptic pulse failed", err);
+                    }
+                    catch (_a) {
+                    }
+                });
+            }
+        }
+        catch (err) {
+            try {
+                console.log("XRController: blocked-toggle haptic pulse unavailable", err);
+            }
+            catch (_a) {
+            }
+        }
+    };
+    XRController.prototype._detachBindingObservers = function () {
+        this._detachObserverStream(this._controllerAddedObservers);
+        this._controllerAddedObservers = [];
+        this._detachObserverStream(this._motionControllerInitObservers);
+        this._motionControllerInitObservers = [];
+        this._detachObserverStream(this._toggleObservers);
+        this._toggleObservers = [];
+        this._detachTriggerObservers();
+    };
+    XRController.prototype._detachObserverStream = function (stream) {
+        try {
+            for (var _i = 0, stream_1 = stream; _i < stream_1.length; _i++) {
+                var entry = stream_1[_i];
+                try {
+                    var observable = entry === null || entry === void 0 ? void 0 : entry.observable;
+                    if (observable != null && typeof observable.remove === "function" && entry.observer != null) {
+                        observable.remove(entry.observer);
+                    }
+                }
+                catch (_a) {
+                }
+            }
+        }
+        catch (_b) {
+        }
+    };
+    XRController.prototype.bindJump = function (motionController, handedness) {
+        var _this = this;
+        var _a, _b;
+        try {
+            var boundInput = (_a = this._effectiveMapping) === null || _a === void 0 ? void 0 : _a[_XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.BindableAction.Jump];
+            if (boundInput == null) {
+                return;
+            }
+            var resolution = _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.INPUT_RESOLUTION[boundInput];
+            if (resolution == null) {
+                return;
+            }
+            if (resolution.handedness !== handedness || resolution.componentId !== _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.XR_COMPONENT_TRIGGER) {
+                return;
+            }
+            var mc = motionController;
+            var component = (_b = mc === null || mc === void 0 ? void 0 : mc.getComponent) === null || _b === void 0 ? void 0 : _b.call(mc, resolution.componentId);
+            var observable = component === null || component === void 0 ? void 0 : component.onButtonStateChangedObservable;
+            if (observable == null || typeof observable.add !== "function") {
+                return;
+            }
+            var wasPressed_2 = false;
+            var observer = observable.add(function (changed) {
+                var _a, _b;
+                try {
+                    var pressed = (changed === null || changed === void 0 ? void 0 : changed.pressed) === true;
+                    if (pressed && !wasPressed_2) {
+                        (_b = (_a = _this._cc).jump) === null || _b === void 0 ? void 0 : _b.call(_a);
+                    }
+                    wasPressed_2 = pressed;
+                }
+                catch (_c) {
+                }
+            });
+            this._triggerObservers.push({ observable: observable, observer: observer });
+        }
+        catch (_c) {
+        }
+    };
+    XRController.prototype._detachTriggerObservers = function () {
+        try {
+            for (var _i = 0, _a = this._triggerObservers; _i < _a.length; _i++) {
+                var entry = _a[_i];
+                try {
+                    var observable = entry === null || entry === void 0 ? void 0 : entry.observable;
+                    if (observable != null && typeof observable.remove === "function" && entry.observer != null) {
+                        observable.remove(entry.observer);
+                    }
+                }
+                catch (_b) {
+                }
+            }
+        }
+        catch (_c) {
+        }
+        finally {
+            this._triggerObservers = [];
+        }
+    };
+    XRController.prototype._startRenderObserver = function () {
+        try {
+            this.startStickSampler();
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype.startStickSampler = function () {
+        var _this = this;
+        var _a, _b;
+        try {
+            this.stopStickSampler();
+            var observable = (_a = this._scene) === null || _a === void 0 ? void 0 : _a.onBeforeRenderObservable;
+            if (observable == null || typeof observable.add !== "function") {
+                return;
+            }
+            this._renderObserver =
+                (_b = observable.add(function () {
+                    _this.sampleSticks();
+                    _this._updateXRCameraFollow();
+                    _this._retryRayManagement();
+                })) !== null && _b !== void 0 ? _b : null;
+        }
+        catch (_c) {
+        }
+    };
+    XRController.prototype.stopStickSampler = function () {
+        var _a;
+        try {
+            var observable = (_a = this._scene) === null || _a === void 0 ? void 0 : _a.onBeforeRenderObservable;
+            if (observable != null && typeof observable.remove === "function" && this._renderObserver != null) {
+                observable.remove(this._renderObserver);
+            }
+        }
+        catch (_b) {
+        }
+        finally {
+            this._renderObserver = null;
+        }
+    };
+    XRController.prototype.sampleSticks = function () {
+        try {
+            var left = this._readLeftStickInput();
+            var intent = (0,_XRLocomotion__WEBPACK_IMPORTED_MODULE_1__.mapStickToIntent)(left, this._stickDeadzone);
+            var fast = this._readFastModifier();
+            this.applyIntent(intent, fast);
+            var right = this._readRightStickInput();
+            this.applyCameraOrbit(right.leftX, right.leftY);
+            this._applyButtonDolly();
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype.applyIntent = function (intent, fast) {
+        var _a;
+        try {
+            var prev = (_a = this._lastIntent) !== null && _a !== void 0 ? _a : (0,_XRLocomotion__WEBPACK_IMPORTED_MODULE_1__.neutralMoveIntent)();
+            var prevFast = this._lastFast === true;
+            this.applyMovementDirection(prev, prevFast, intent, fast);
+            this._lastIntent = {
+                walk: intent.walk === true,
+                walkBack: intent.walkBack === true,
+                strafeLeft: intent.strafeLeft === true,
+                strafeRight: intent.strafeRight === true,
+            };
+            this._lastFast = fast === true;
+        }
+        catch (_b) {
+        }
+    };
+    XRController.prototype.applyMovementDirection = function (prev, prevFast, next, nextFast) {
+        var _this = this;
+        this._edgeCall(prev.walk === true && !prevFast, next.walk === true && !nextFast, function (b) { var _a, _b; return (_b = (_a = _this._cc).walk) === null || _b === void 0 ? void 0 : _b.call(_a, b); });
+        this._edgeCall(prev.walk === true && prevFast, next.walk === true && nextFast, function (b) { var _a, _b; return (_b = (_a = _this._cc).run) === null || _b === void 0 ? void 0 : _b.call(_a, b); });
+        this._edgeCall(prev.walkBack === true && !prevFast, next.walkBack === true && !nextFast, function (b) { var _a, _b; return (_b = (_a = _this._cc).walkBack) === null || _b === void 0 ? void 0 : _b.call(_a, b); });
+        this._edgeCall(prev.walkBack === true && prevFast, next.walkBack === true && nextFast, function (b) { var _a, _b; return (_b = (_a = _this._cc).walkBackFast) === null || _b === void 0 ? void 0 : _b.call(_a, b); });
+        this._edgeCall(prev.strafeLeft === true && !prevFast, next.strafeLeft === true && !nextFast, function (b) { var _a, _b; return (_b = (_a = _this._cc).strafeLeft) === null || _b === void 0 ? void 0 : _b.call(_a, b); });
+        this._edgeCall(prev.strafeLeft === true && prevFast, next.strafeLeft === true && nextFast, function (b) { var _a, _b; return (_b = (_a = _this._cc).strafeLeftFast) === null || _b === void 0 ? void 0 : _b.call(_a, b); });
+        this._edgeCall(prev.strafeRight === true && !prevFast, next.strafeRight === true && !nextFast, function (b) { var _a, _b; return (_b = (_a = _this._cc).strafeRight) === null || _b === void 0 ? void 0 : _b.call(_a, b); });
+        this._edgeCall(prev.strafeRight === true && prevFast, next.strafeRight === true && nextFast, function (b) { var _a, _b; return (_b = (_a = _this._cc).strafeRightFast) === null || _b === void 0 ? void 0 : _b.call(_a, b); });
+    };
+    XRController.prototype._edgeCall = function (prev, next, call) {
+        if (prev === next) {
+            return;
+        }
+        try {
+            call(next);
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype.stopAllMovement = function () {
+        try {
+            this.applyIntent((0,_XRLocomotion__WEBPACK_IMPORTED_MODULE_1__.neutralMoveIntent)(), false);
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype.setStickDeadzone = function (v) {
+        try {
+            if (typeof v !== "number" || !isFinite(v)) {
+                return;
+            }
+            this._stickDeadzone = v < 0 ? 0 : v > 1 ? 1 : v;
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype.setAlphaRate = function (v) {
+        try {
+            if (typeof v !== "number" || !isFinite(v)) {
+                return;
+            }
+            this._alphaRate = v < 0 ? 0 : v > MAX_ORBIT_RATE ? MAX_ORBIT_RATE : v;
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype.setBetaRate = function (v) {
+        try {
+            if (typeof v !== "number" || !isFinite(v)) {
+                return;
+            }
+            this._betaRate = v < 0 ? 0 : v > MAX_ORBIT_RATE ? MAX_ORBIT_RATE : v;
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype.setRadiusRate = function (v) {
+        try {
+            if (typeof v !== "number" || !isFinite(v)) {
+                return;
+            }
+            this._radiusRate = v < 0 ? 0 : v > MAX_RADIUS_RATE ? MAX_RADIUS_RATE : v;
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype._stopAllMovement = function () {
+        try {
+            this.stopAllMovement();
+            this._lastIntent = null;
+            this._lastFast = false;
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype._readLeftStickInput = function () {
+        return this._readAxesComponent(this._moveAxesComponent);
+    };
+    XRController.prototype._readAxesComponent = function (component) {
+        try {
+            var axes = component === null || component === void 0 ? void 0 : component.axes;
+            var x = typeof (axes === null || axes === void 0 ? void 0 : axes.x) === "number" && isFinite(axes.x) ? axes.x : 0;
+            var y = typeof (axes === null || axes === void 0 ? void 0 : axes.y) === "number" && isFinite(axes.y) ? axes.y : 0;
+            return { leftX: x, leftY: y };
+        }
+        catch (_a) {
+            return { leftX: 0, leftY: 0 };
+        }
+    };
+    XRController.prototype._readRightStickInput = function () {
+        return this._readAxesComponent(this._orbitAxesComponent);
+    };
+    XRController.prototype._readFastModifier = function () {
+        try {
+            return this._fastModifierPressed === true;
+        }
+        catch (_a) {
+            return false;
+        }
+    };
+    XRController.prototype.applyCameraOrbit = function (rightX, rightY) {
+        try {
+            var arc = this._camera;
+            if (arc == null) {
+                return;
+            }
+            var x = typeof rightX === "number" && isFinite(rightX) ? rightX : 0;
+            var y = typeof rightY === "number" && isFinite(rightY) ? rightY : 0;
+            var dz = this._stickDeadzone;
+            var alphaWins = Math.abs(x) >= Math.abs(y);
+            var changed = false;
+            if (alphaWins) {
+                if (Math.abs(x) > dz && typeof arc.alpha === "number") {
+                    arc.alpha += this._alphaRate * x;
+                    changed = true;
+                }
+            }
+            else {
+                if (Math.abs(y) > dz && typeof arc.beta === "number") {
+                    arc.beta += this._betaRate * y;
+                    this.clampBeta();
+                    changed = true;
+                }
+            }
+            if (changed && typeof arc.computeWorldMatrix === "function") {
+                arc.computeWorldMatrix(true);
+            }
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype.clampBeta = function () {
+        try {
+            var arc = this._camera;
+            if (arc == null || typeof arc.beta !== "number") {
+                return;
+            }
+            var lower = typeof arc.lowerBetaLimit === "number" && isFinite(arc.lowerBetaLimit)
+                ? arc.lowerBetaLimit
+                : BETA_MIN_FALLBACK;
+            var upper = typeof arc.upperBetaLimit === "number" && isFinite(arc.upperBetaLimit)
+                ? arc.upperBetaLimit
+                : BETA_MAX_FALLBACK;
+            if (arc.beta < lower) {
+                arc.beta = lower;
+            }
+            else if (arc.beta > upper) {
+                arc.beta = upper;
+            }
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype._applyButtonDolly = function () {
+        try {
+            var arc = this._camera;
+            if (arc == null || typeof arc.radius !== "number") {
+                return;
+            }
+            var dollyInHeld = this._isComponentPressed(this._dollyInComponent);
+            var dollyOutHeld = this._isComponentPressed(this._dollyOutComponent);
+            var changed = false;
+            if (dollyInHeld) {
+                arc.radius -= this._radiusRate;
+                changed = true;
+            }
+            if (dollyOutHeld) {
+                arc.radius += this._radiusRate;
+                changed = true;
+            }
+            if (changed) {
+                if (typeof arc.lowerRadiusLimit === "number" &&
+                    isFinite(arc.lowerRadiusLimit) &&
+                    arc.radius < arc.lowerRadiusLimit) {
+                    arc.radius = arc.lowerRadiusLimit;
+                }
+                if (typeof arc.upperRadiusLimit === "number" &&
+                    isFinite(arc.upperRadiusLimit) &&
+                    arc.radius > arc.upperRadiusLimit) {
+                    arc.radius = arc.upperRadiusLimit;
+                }
+                if (typeof arc.computeWorldMatrix === "function") {
+                    arc.computeWorldMatrix(true);
+                }
+            }
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype._isComponentPressed = function (component) {
+        try {
+            return (component === null || component === void 0 ? void 0 : component.pressed) === true;
+        }
+        catch (_a) {
+            return false;
+        }
+    };
+    XRController.prototype.toggleDollyToAvatar = function () {
+        try {
+            var arc = this._camera;
+            if (arc == null || typeof arc.radius !== "number") {
+                return;
+            }
+            if (!this._dollyToAvatarActive) {
+                this._dollyToAvatarPriorRadius = arc.radius;
+                var lower = typeof arc.lowerRadiusLimit === "number" && isFinite(arc.lowerRadiusLimit)
+                    ? arc.lowerRadiusLimit
+                    : 0;
+                arc.radius = lower;
+                this._dollyToAvatarActive = true;
+            }
+            else {
+                arc.radius = this._dollyToAvatarPriorRadius;
+                this._dollyToAvatarActive = false;
+            }
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype.captureRightDollyButtons = function (motionController, handedness) {
+        try {
+            if (handedness !== "right") {
+                return;
+            }
+            var mc = motionController;
+            if (mc == null || typeof mc.getComponent !== "function") {
+                return;
+            }
+            this._dollyInComponent = this._resolveRightDollyComponent(mc, _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.BindableAction.CameraDollyIn);
+            this._dollyOutComponent = this._resolveRightDollyComponent(mc, _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.BindableAction.CameraDollyOut);
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype._resolveRightDollyComponent = function (mc, action) {
+        var _a, _b, _c;
+        try {
+            var boundInput = (_a = this._effectiveMapping) === null || _a === void 0 ? void 0 : _a[action];
+            if (boundInput == null) {
+                return null;
+            }
+            var resolution = _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.INPUT_RESOLUTION[boundInput];
+            if (resolution == null) {
+                return null;
+            }
+            if (resolution.handedness !== "right" ||
+                (resolution.componentId !== _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.XR_COMPONENT_A_BUTTON &&
+                    resolution.componentId !== _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.XR_COMPONENT_B_BUTTON)) {
+                return null;
+            }
+            return (_c = (_b = mc.getComponent) === null || _b === void 0 ? void 0 : _b.call(mc, resolution.componentId)) !== null && _c !== void 0 ? _c : null;
+        }
+        catch (_d) {
+            return null;
+        }
+    };
+    XRController.prototype._retryRayManagement = function () {
+        try {
+            this.retryHideLeftControllerRay();
+            this.retryRaiseRightSelectionRing();
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype._resolvePointerSelection = function () {
+        var _a, _b;
+        try {
+            var exp = this._xrExperience;
+            if (exp == null) {
+                return null;
+            }
+            var fm = (_a = exp.baseExperience) === null || _a === void 0 ? void 0 : _a.featuresManager;
+            if (fm != null && typeof fm.getEnabledFeature === "function") {
+                try {
+                    var feature = fm.getEnabledFeature(POINTER_SELECTION_FEATURE_NAME);
+                    if (feature != null) {
+                        return feature;
+                    }
+                }
+                catch (_c) {
+                }
+            }
+            return (_b = exp.pointerSelection) !== null && _b !== void 0 ? _b : null;
+        }
+        catch (_d) {
+            return null;
+        }
+    };
+    XRController.prototype._findControllerEntry = function (feature, controller) {
+        try {
+            if (feature == null || controller == null) {
+                return null;
+            }
+            var controllersMap = feature === null || feature === void 0 ? void 0 : feature._controllers;
+            if (controllersMap == null || typeof controllersMap !== "object") {
+                return null;
+            }
+            var uniqueId = controller === null || controller === void 0 ? void 0 : controller.uniqueId;
+            if (uniqueId != null) {
+                var byKey = controllersMap[String(uniqueId)];
+                if (byKey != null) {
+                    return byKey;
+                }
+            }
+            for (var _i = 0, _a = Object.keys(controllersMap); _i < _a.length; _i++) {
+                var key = _a[_i];
+                var entry = controllersMap[key];
+                var xrController = entry === null || entry === void 0 ? void 0 : entry.xrController;
+                if (xrController != null && xrController === controller) {
+                    return entry;
+                }
+            }
+            return null;
+        }
+        catch (_b) {
+            return null;
+        }
+    };
+    XRController.prototype._entryMeshes = function (entry) {
+        var meshes = [];
+        try {
+            var e = entry;
+            if (e == null) {
+                return meshes;
+            }
+            if (e.selectionMesh != null) {
+                meshes.push(e.selectionMesh);
+            }
+            if (e.laserPointer != null) {
+                meshes.push(e.laserPointer);
+            }
+        }
+        catch (_a) {
+        }
+        return meshes;
+    };
+    XRController.prototype.rememberLeftControllerAndHideRay = function (controller) {
+        try {
+            this._leftControllerForRay = controller;
+            this.retryHideLeftControllerRay();
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype.retryHideLeftControllerRay = function () {
+        try {
+            if (this._leftRayHidden === true) {
+                return;
+            }
+            if (this.hideLeftControllerRay()) {
+                this._leftRayHidden = true;
+            }
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype.hideLeftControllerRay = function () {
+        try {
+            var controller = this._leftControllerForRay;
+            if (controller == null) {
+                return false;
+            }
+            var feature = this._resolvePointerSelection();
+            if (feature == null) {
+                return false;
+            }
+            var entry = this._findControllerEntry(feature, controller);
+            if (entry == null) {
+                return false;
+            }
+            var meshes = this._entryMeshes(entry);
+            if (meshes.length === 0) {
+                return false;
+            }
+            var hidAny = false;
+            for (var _i = 0, meshes_1 = meshes; _i < meshes_1.length; _i++) {
+                var mesh = meshes_1[_i];
+                if (this._hideMesh(mesh)) {
+                    hidAny = true;
+                }
+            }
+            return hidAny;
+        }
+        catch (_a) {
+            return false;
+        }
+    };
+    XRController.prototype._hideMesh = function (mesh) {
+        try {
+            var m = mesh;
+            if (m == null) {
+                return false;
+            }
+            var applied = false;
+            if ("isVisible" in m) {
+                m.isVisible = false;
+                applied = true;
+            }
+            if (typeof m.setEnabled === "function") {
+                m.setEnabled(false);
+                applied = true;
+            }
+            return applied;
+        }
+        catch (_a) {
+            return false;
+        }
+    };
+    XRController.prototype.retryRaiseRightSelectionRing = function () {
+        try {
+            if (this._rightRingRaised === true) {
+                return;
+            }
+            if (this.raiseRightSelectionRingRenderingGroup()) {
+                this._rightRingRaised = true;
+            }
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype.raiseRightSelectionRingRenderingGroup = function () {
+        try {
+            var controller = this._rightControllerForRay;
+            if (controller == null) {
+                return false;
+            }
+            var feature = this._resolvePointerSelection();
+            if (feature == null) {
+                return false;
+            }
+            var entry = this._findControllerEntry(feature, controller);
+            if (entry == null) {
+                return false;
+            }
+            var meshes = this._entryMeshes(entry);
+            if (meshes.length === 0) {
+                return false;
+            }
+            var raisedAny = false;
+            for (var _i = 0, meshes_2 = meshes; _i < meshes_2.length; _i++) {
+                var mesh = meshes_2[_i];
+                if (this._raiseMesh(mesh)) {
+                    raisedAny = true;
+                }
+            }
+            return raisedAny;
+        }
+        catch (_a) {
+            return false;
+        }
+    };
+    XRController.prototype._raiseMesh = function (mesh) {
+        try {
+            var m = mesh;
+            if (m == null) {
+                return false;
+            }
+            if ("renderingGroupId" in m) {
+                m.renderingGroupId = RIGHT_RAY_RENDERING_GROUP;
+                return true;
+            }
+            return false;
+        }
+        catch (_a) {
+            return false;
+        }
+    };
+    XRController.prototype.resetRayState = function () {
+        try {
+            this._leftRayHidden = false;
+            this._rightRingRaised = false;
+            this._leftControllerForRay = null;
+            this._rightControllerForRay = null;
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype.getXRCamera = function () {
+        return this._xrCamera;
+    };
+    XRController.prototype._updateXRCameraFollow = function () {
+        var _a, _b, _c, _d, _e, _f, _g;
+        try {
+            var xr = this._xrCamera;
+            if (xr == null) {
+                return;
+            }
+            var arc = this._camera;
+            var captureEntryPose = this._entryBlendFrame === 0;
+            var entryX = captureEntryPose && typeof ((_a = xr.position) === null || _a === void 0 ? void 0 : _a.x) === "number" ? xr.position.x : 0;
+            var entryY = captureEntryPose && typeof ((_b = xr.position) === null || _b === void 0 ? void 0 : _b.y) === "number" ? xr.position.y : 0;
+            var entryZ = captureEntryPose && typeof ((_c = xr.position) === null || _c === void 0 ? void 0 : _c.z) === "number" ? xr.position.z : 0;
+            if (typeof xr.setTransformationFromNonVRCamera === "function") {
+                xr.setTransformationFromNonVRCamera(this._camera, true);
+            }
+            var arcY = typeof ((_d = arc === null || arc === void 0 ? void 0 : arc.position) === null || _d === void 0 ? void 0 : _d.y) === "number" ? arc.position.y : 0;
+            if (xr.position != null && typeof xr.position.y === "number") {
+                xr.position.y = arcY;
+            }
+            if (this._entryBlendFrame >= ENTRY_BLEND_FRAMES) {
+                return;
+            }
+            var targetX = typeof ((_e = xr.position) === null || _e === void 0 ? void 0 : _e.x) === "number" ? xr.position.x : 0;
+            var targetY = typeof ((_f = xr.position) === null || _f === void 0 ? void 0 : _f.y) === "number" ? xr.position.y : 0;
+            var targetZ = typeof ((_g = xr.position) === null || _g === void 0 ? void 0 : _g.z) === "number" ? xr.position.z : 0;
+            if (captureEntryPose) {
+                this._entryBlendOffsetX = entryX - targetX;
+                this._entryBlendOffsetY = entryY - targetY;
+                this._entryBlendOffsetZ = entryZ - targetZ;
+            }
+            var progress = (this._entryBlendFrame + 1) / ENTRY_BLEND_FRAMES;
+            var ease = this._smoothstep(1 - progress);
+            if (xr.position != null) {
+                if (typeof xr.position.x === "number") {
+                    xr.position.x = targetX + this._entryBlendOffsetX * ease;
+                }
+                if (typeof xr.position.y === "number") {
+                    xr.position.y = targetY + this._entryBlendOffsetY * ease;
+                }
+                if (typeof xr.position.z === "number") {
+                    xr.position.z = targetZ + this._entryBlendOffsetZ * ease;
+                }
+            }
+            this._entryBlendFrame += 1;
+        }
+        catch (_h) {
+        }
+    };
+    XRController.prototype._smoothstep = function (t) {
+        var x = typeof t === "number" && isFinite(t) ? (t < 0 ? 0 : t > 1 ? 1 : t) : 0;
+        return x * x * (3 - 2 * x);
+    };
+    XRController.prototype.detachSessionObservers = function () {
+        this._detachSessionObservers();
+    };
+    XRController.prototype._detachSessionObservers = function () {
+        try {
+            this.stopStickSampler();
+            this._detachBindingObservers();
+            this._removeInitialPoseObserver();
+            this.resetRayState();
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype._clearSessionCaptures = function () {
+        try {
+            this._dollyInComponent = null;
+            this._dollyOutComponent = null;
+            this._moveAxesComponent = null;
+            this._orbitAxesComponent = null;
+            this._fastModifierComponent = null;
+            this._lastToggleController = null;
+            this._dollyToAvatarActive = false;
+            this._dollyToAvatarPriorRadius = 0;
+        }
+        catch (_a) {
+        }
+    };
+    XRController.prototype.restoreArcRotateMode = function () {
+        this._restoreArcRotateMode();
+    };
+    XRController.prototype._restoreArcRotateMode = function () {
+        var _a, _b, _c;
+        try {
+            var scene = this._scene;
+            if (scene == null || this._camera == null) {
+                return;
+            }
+            scene.activeCamera = this._camera;
+            var attach = this._camera.attachControl;
+            if (typeof attach === "function") {
+                var canvas = (_c = (_a = scene.getEngine) === null || _a === void 0 ? void 0 : (_b = _a.call(scene)).getRenderingCanvas) === null || _c === void 0 ? void 0 : _c.call(_b);
+                attach.call(this._camera, canvas, true);
+            }
+        }
+        catch (_d) {
+        }
+    };
+    return XRController;
+}());
+
+
+
+/***/ }),
+
+/***/ "./src/xr/XRInputMapping.ts":
+/*!**********************************!*\
+  !*** ./src/xr/XRInputMapping.ts ***!
+  \**********************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "AXIS_ACTIONS": () => (/* binding */ AXIS_ACTIONS),
+/* harmony export */   "AXIS_INPUTS": () => (/* binding */ AXIS_INPUTS),
+/* harmony export */   "BindableAction": () => (/* binding */ BindableAction),
+/* harmony export */   "BindableInput": () => (/* binding */ BindableInput),
+/* harmony export */   "DEFAULT_XR_INPUT_MAPPING": () => (/* binding */ DEFAULT_XR_INPUT_MAPPING),
+/* harmony export */   "INPUT_RESOLUTION": () => (/* binding */ INPUT_RESOLUTION),
+/* harmony export */   "XR_COMPONENT_A_BUTTON": () => (/* binding */ XR_COMPONENT_A_BUTTON),
+/* harmony export */   "XR_COMPONENT_B_BUTTON": () => (/* binding */ XR_COMPONENT_B_BUTTON),
+/* harmony export */   "XR_COMPONENT_SQUEEZE": () => (/* binding */ XR_COMPONENT_SQUEEZE),
+/* harmony export */   "XR_COMPONENT_THUMBSTICK": () => (/* binding */ XR_COMPONENT_THUMBSTICK),
+/* harmony export */   "XR_COMPONENT_TRIGGER": () => (/* binding */ XR_COMPONENT_TRIGGER),
+/* harmony export */   "XR_COMPONENT_X_BUTTON": () => (/* binding */ XR_COMPONENT_X_BUTTON),
+/* harmony export */   "XR_COMPONENT_Y_BUTTON": () => (/* binding */ XR_COMPONENT_Y_BUTTON),
+/* harmony export */   "isAxisAction": () => (/* binding */ isAxisAction),
+/* harmony export */   "isAxisInput": () => (/* binding */ isAxisInput),
+/* harmony export */   "mergeXRInputMapping": () => (/* binding */ mergeXRInputMapping),
+/* harmony export */   "validateXRInputMapping": () => (/* binding */ validateXRInputMapping)
+/* harmony export */ });
+var __assign = (undefined && undefined.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
+var _a, _b;
+var BindableAction;
+(function (BindableAction) {
+    BindableAction["Move"] = "Move";
+    BindableAction["FastModifier"] = "FastModifier";
+    BindableAction["Jump"] = "Jump";
+    BindableAction["CameraOrbit"] = "CameraOrbit";
+    BindableAction["CameraDollyIn"] = "CameraDollyIn";
+    BindableAction["CameraDollyOut"] = "CameraDollyOut";
+    BindableAction["DollyToAvatarToggle"] = "DollyToAvatarToggle";
+    BindableAction["LocomotionModeToggle"] = "LocomotionModeToggle";
+    BindableAction["Teleport"] = "Teleport";
+})(BindableAction || (BindableAction = {}));
+var BindableInput;
+(function (BindableInput) {
+    BindableInput["LeftThumbstickAxes"] = "left-thumbstick-axes";
+    BindableInput["RightThumbstickAxes"] = "right-thumbstick-axes";
+    BindableInput["LeftThumbstickPress"] = "left-thumbstick-press";
+    BindableInput["RightThumbstickPress"] = "right-thumbstick-press";
+    BindableInput["LeftTrigger"] = "left-trigger";
+    BindableInput["RightTrigger"] = "right-trigger";
+    BindableInput["LeftGrip"] = "left-grip";
+    BindableInput["RightGrip"] = "right-grip";
+    BindableInput["LeftAButton"] = "left-a-button";
+    BindableInput["LeftBButton"] = "left-b-button";
+    BindableInput["LeftXButton"] = "left-x-button";
+    BindableInput["LeftYButton"] = "left-y-button";
+    BindableInput["RightAButton"] = "right-a-button";
+    BindableInput["RightBButton"] = "right-b-button";
+    BindableInput["RightXButton"] = "right-x-button";
+    BindableInput["RightYButton"] = "right-y-button";
+})(BindableInput || (BindableInput = {}));
+var AXIS_INPUTS = new Set([
+    BindableInput.LeftThumbstickAxes,
+    BindableInput.RightThumbstickAxes,
+]);
+function isAxisInput(input) {
+    return AXIS_INPUTS.has(input);
+}
+var AXIS_ACTIONS = new Set([
+    BindableAction.Move,
+    BindableAction.CameraOrbit,
+]);
+function isAxisAction(action) {
+    return AXIS_ACTIONS.has(action);
+}
+var DEFAULT_XR_INPUT_MAPPING = (_a = {},
+    _a[BindableAction.Move] = BindableInput.LeftThumbstickAxes,
+    _a[BindableAction.FastModifier] = BindableInput.LeftThumbstickPress,
+    _a[BindableAction.Jump] = BindableInput.LeftTrigger,
+    _a[BindableAction.CameraOrbit] = BindableInput.RightThumbstickAxes,
+    _a[BindableAction.CameraDollyIn] = BindableInput.RightBButton,
+    _a[BindableAction.CameraDollyOut] = BindableInput.RightAButton,
+    _a[BindableAction.DollyToAvatarToggle] = BindableInput.LeftXButton,
+    _a[BindableAction.LocomotionModeToggle] = BindableInput.LeftAButton,
+    _a[BindableAction.Teleport] = null,
+    _a);
+var XR_COMPONENT_THUMBSTICK = "xr-standard-thumbstick";
+var XR_COMPONENT_TRIGGER = "xr-standard-trigger";
+var XR_COMPONENT_SQUEEZE = "xr-standard-squeeze";
+var XR_COMPONENT_A_BUTTON = "a-button";
+var XR_COMPONENT_B_BUTTON = "b-button";
+var XR_COMPONENT_X_BUTTON = "x-button";
+var XR_COMPONENT_Y_BUTTON = "y-button";
+var INPUT_RESOLUTION = (_b = {},
+    _b[BindableInput.LeftThumbstickAxes] = { handedness: "left", componentId: XR_COMPONENT_THUMBSTICK },
+    _b[BindableInput.LeftThumbstickPress] = { handedness: "left", componentId: XR_COMPONENT_THUMBSTICK },
+    _b[BindableInput.RightThumbstickAxes] = { handedness: "right", componentId: XR_COMPONENT_THUMBSTICK },
+    _b[BindableInput.RightThumbstickPress] = { handedness: "right", componentId: XR_COMPONENT_THUMBSTICK },
+    _b[BindableInput.LeftTrigger] = { handedness: "left", componentId: XR_COMPONENT_TRIGGER },
+    _b[BindableInput.RightTrigger] = { handedness: "right", componentId: XR_COMPONENT_TRIGGER },
+    _b[BindableInput.LeftGrip] = { handedness: "left", componentId: XR_COMPONENT_SQUEEZE },
+    _b[BindableInput.RightGrip] = { handedness: "right", componentId: XR_COMPONENT_SQUEEZE },
+    _b[BindableInput.LeftAButton] = { handedness: "left", componentId: XR_COMPONENT_A_BUTTON },
+    _b[BindableInput.LeftBButton] = { handedness: "left", componentId: XR_COMPONENT_B_BUTTON },
+    _b[BindableInput.LeftXButton] = { handedness: "left", componentId: XR_COMPONENT_X_BUTTON },
+    _b[BindableInput.LeftYButton] = { handedness: "left", componentId: XR_COMPONENT_Y_BUTTON },
+    _b[BindableInput.RightAButton] = { handedness: "right", componentId: XR_COMPONENT_A_BUTTON },
+    _b[BindableInput.RightBButton] = { handedness: "right", componentId: XR_COMPONENT_B_BUTTON },
+    _b[BindableInput.RightXButton] = { handedness: "right", componentId: XR_COMPONENT_X_BUTTON },
+    _b[BindableInput.RightYButton] = { handedness: "right", componentId: XR_COMPONENT_Y_BUTTON },
+    _b);
+function mergeXRInputMapping(partial) {
+    var merged = __assign({}, DEFAULT_XR_INPUT_MAPPING);
+    if (partial) {
+        for (var _i = 0, _a = Object.keys(partial); _i < _a.length; _i++) {
+            var key = _a[_i];
+            if (Object.prototype.hasOwnProperty.call(partial, key)) {
+                merged[key] = partial[key];
+            }
+        }
+    }
+    return merged;
+}
+var ALL_ACTIONS = new Set(Object.values(BindableAction));
+var ALL_INPUTS = new Set(Object.values(BindableInput));
+function validateXRInputMapping(mapping) {
+    if (mapping == null || typeof mapping !== "object") {
+        return { applied: false, rejected: true, reason: "Mapping must be an object" };
+    }
+    var seen = {};
+    for (var _i = 0, _a = Object.keys(mapping); _i < _a.length; _i++) {
+        var key = _a[_i];
+        if (!ALL_ACTIONS.has(key)) {
+            return { applied: false, rejected: true, reason: "Unknown action: ".concat(String(key)) };
+        }
+        var input = mapping[key];
+        if (input === null || input === undefined) {
+            continue;
+        }
+        if (!ALL_INPUTS.has(input)) {
+            return { applied: false, rejected: true, reason: "Unknown input for action ".concat(key, ": ").concat(String(input)) };
+        }
+        var actionIsAxis = isAxisAction(key);
+        var inputIsAxis = isAxisInput(input);
+        if (actionIsAxis && !inputIsAxis) {
+            return {
+                applied: false,
+                rejected: true,
+                reason: "Axis action ".concat(key, " cannot be bound to button input ").concat(input),
+            };
+        }
+        if (!actionIsAxis && inputIsAxis) {
+            return {
+                applied: false,
+                rejected: true,
+                reason: "Button action ".concat(key, " cannot be bound to axis input ").concat(input),
+            };
+        }
+        var priorAction = seen[input];
+        if (priorAction !== undefined) {
+            return {
+                applied: false,
+                rejected: true,
+                reason: "Input ".concat(input, " is bound to conflicting actions ").concat(priorAction, " and ").concat(key),
+            };
+        }
+        seen[input] = key;
+    }
+    return { applied: true, rejected: false };
+}
+
+
+/***/ }),
+
+/***/ "./src/xr/XRLocomotion.ts":
+/*!********************************!*\
+  !*** ./src/xr/XRLocomotion.ts ***!
+  \********************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "DEFAULT_STICK_DEADZONE": () => (/* binding */ DEFAULT_STICK_DEADZONE),
+/* harmony export */   "XRLocomotion": () => (/* binding */ XRLocomotion),
+/* harmony export */   "mapStickToIntent": () => (/* binding */ mapStickToIntent),
+/* harmony export */   "neutralMoveIntent": () => (/* binding */ neutralMoveIntent)
+/* harmony export */ });
+var XRLocomotion = (function () {
+    function XRLocomotion(initial) {
+        this._mode = initial !== null && initial !== void 0 ? initial : "thirdPerson";
+    }
+    XRLocomotion.prototype.getMode = function () {
+        return this._mode;
+    };
+    XRLocomotion.prototype.setMode = function (mode, canFirstPerson) {
+        var prior = this._mode;
+        if (mode === "firstPerson" && canFirstPerson !== true) {
+            return { mode: prior, changed: false, blocked: true };
+        }
+        this._mode = mode;
+        return { mode: this._mode, changed: this._mode !== prior, blocked: false };
+    };
+    XRLocomotion.prototype.toggle = function (canFirstPerson) {
+        var target = this._mode === "thirdPerson" ? "firstPerson" : "thirdPerson";
+        return this.setMode(target, canFirstPerson);
+    };
+    return XRLocomotion;
+}());
+
+var DEFAULT_STICK_DEADZONE = 0.15;
+function neutralMoveIntent() {
+    return { walk: false, walkBack: false, strafeLeft: false, strafeRight: false };
+}
+function mapStickToIntent(input, deadzone) {
+    if (deadzone === void 0) { deadzone = DEFAULT_STICK_DEADZONE; }
+    var leftX = input.leftX, leftY = input.leftY;
+    var forwardBackWins = Math.abs(leftY) >= Math.abs(leftX);
+    if (forwardBackWins) {
+        if (Math.abs(leftY) <= deadzone) {
+            return neutralMoveIntent();
+        }
+        return {
+            walk: leftY < -deadzone,
+            walkBack: leftY > deadzone,
+            strafeLeft: false,
+            strafeRight: false,
+        };
+    }
+    if (Math.abs(leftX) <= deadzone) {
+        return neutralMoveIntent();
+    }
+    return {
+        walk: false,
+        walkBack: false,
+        strafeLeft: leftX < -deadzone,
+        strafeRight: leftX > deadzone,
+    };
+}
+
+
+/***/ }),
+
+/***/ "./src/xr/XRSupport.ts":
+/*!*****************************!*\
+  !*** ./src/xr/XRSupport.ts ***!
+  \*****************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "computeXRSupportResult": () => (/* binding */ computeXRSupportResult),
+/* harmony export */   "detectXRSupport": () => (/* binding */ detectXRSupport)
+/* harmony export */ });
+/* harmony import */ var babylonjs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! babylonjs */ "babylonjs");
+/* harmony import */ var babylonjs__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(babylonjs__WEBPACK_IMPORTED_MODULE_0__);
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __generator = (undefined && undefined.__generator) || function (thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
+    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (g && (g = 0, op[0] && (_ = 0)), _) try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+    }
+};
+
+function computeXRSupportResult(vr, ar) {
+    return {
+        vrSupported: vr === true,
+        arSupported: ar === true,
+    };
+}
+function probeSession(mode) {
+    return __awaiter(this, void 0, void 0, function () {
+        var supported, _a;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
+                case 0:
+                    _b.trys.push([0, 2, , 3]);
+                    return [4, babylonjs__WEBPACK_IMPORTED_MODULE_0__.WebXRSessionManager.IsSessionSupportedAsync(mode)];
+                case 1:
+                    supported = _b.sent();
+                    return [2, supported === true];
+                case 2:
+                    _a = _b.sent();
+                    return [2, "error"];
+                case 3: return [2];
+            }
+        });
+    });
+}
+function detectXRSupport() {
+    return __awaiter(this, void 0, void 0, function () {
+        var nav, hasXR, _a, vr, ar;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
+                case 0:
+                    nav = typeof navigator !== "undefined" ? navigator : undefined;
+                    hasXR = !!nav && !!nav.xr;
+                    if (!hasXR) {
+                        return [2, computeXRSupportResult(false, false)];
+                    }
+                    return [4, Promise.all([probeSession("immersive-vr"), probeSession("immersive-ar")])];
+                case 1:
+                    _a = _b.sent(), vr = _a[0], ar = _a[1];
+                    return [2, computeXRSupportResult(vr, ar)];
+            }
+        });
+    });
+}
+
+
+/***/ }),
+
 /***/ "babylonjs":
 /*!****************************************************************************************************!*\
   !*** external {"commonjs":"babylonjs","commonjs2":"babylonjs","amd":"babylonjs","root":"BABYLON"} ***!
@@ -101,11 +2017,76 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "ActionData": () => (/* binding */ ActionData),
 /* harmony export */   "ActionMap": () => (/* binding */ ActionMap),
 /* harmony export */   "Actions": () => (/* binding */ Actions),
+/* harmony export */   "BindableAction": () => (/* reexport safe */ _xr_XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.BindableAction),
+/* harmony export */   "BindableInput": () => (/* reexport safe */ _xr_XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.BindableInput),
 /* harmony export */   "CCSettings": () => (/* binding */ CCSettings),
-/* harmony export */   "CharacterController": () => (/* binding */ CharacterController)
+/* harmony export */   "CharacterController": () => (/* binding */ CharacterController),
+/* harmony export */   "DEFAULT_XR_INPUT_MAPPING": () => (/* reexport safe */ _xr_XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.DEFAULT_XR_INPUT_MAPPING),
+/* harmony export */   "XRLocomotion": () => (/* reexport safe */ _xr_XRLocomotion__WEBPACK_IMPORTED_MODULE_3__.XRLocomotion),
+/* harmony export */   "detectXRSupport": () => (/* reexport safe */ _xr_XRSupport__WEBPACK_IMPORTED_MODULE_4__.detectXRSupport),
+/* harmony export */   "mapStickToIntent": () => (/* reexport safe */ _xr_XRLocomotion__WEBPACK_IMPORTED_MODULE_3__.mapStickToIntent),
+/* harmony export */   "mergeXRInputMapping": () => (/* reexport safe */ _xr_XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.mergeXRInputMapping),
+/* harmony export */   "validateXRInputMapping": () => (/* reexport safe */ _xr_XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.validateXRInputMapping)
 /* harmony export */ });
 /* harmony import */ var babylonjs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! babylonjs */ "babylonjs");
 /* harmony import */ var babylonjs__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(babylonjs__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _xr_XRController__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./xr/XRController */ "./src/xr/XRController.ts");
+/* harmony import */ var _xr_XRInputMapping__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./xr/XRInputMapping */ "./src/xr/XRInputMapping.ts");
+/* harmony import */ var _xr_XRLocomotion__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./xr/XRLocomotion */ "./src/xr/XRLocomotion.ts");
+/* harmony import */ var _xr_XRSupport__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./xr/XRSupport */ "./src/xr/XRSupport.ts");
+var __assign = (undefined && undefined.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __generator = (undefined && undefined.__generator) || function (thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
+    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (g && (g = 0, op[0] && (_ = 0)), _) try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+    }
+};
+
+
+
+
+
+
 
 function horizontalDistance(a, b) {
     var dx = a.x - b.x;
@@ -156,6 +2137,8 @@ var CharacterController = (function () {
         var _this = this;
         this._avatar = null;
         this._skeleton = null;
+        this._xr = null;
+        this._xrEffectiveMapping = __assign({}, _xr_XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.DEFAULT_XR_INPUT_MAPPING);
         this._gravity = 9.8;
         this._minSlopeLimit = 30;
         this._maxSlopeLimit = 45;
@@ -175,6 +2158,7 @@ var CharacterController = (function () {
         this._started = false;
         this._stopAnim = false;
         this._prevActData = null;
+        this._activeActData = null;
         this._avStartPos = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Zero();
         this._prevPickY = 0;
         this._grounded = false;
@@ -257,9 +2241,9 @@ var CharacterController = (function () {
             this.setMode(1);
         }
         this._scene = scene;
-        var success = this.setAvatar(avatar, faceForward);
+        var success = this.setCharacter(avatar, faceForward);
         if (!success) {
-            console.error("unable to set avatar");
+            console.error("unable to set character");
         }
         var dataType = null;
         if (actionMap != null) {
@@ -404,6 +2388,33 @@ var CharacterController = (function () {
             return "ag";
         else
             return "ar";
+    };
+    CharacterController.prototype.getActiveActions = function () {
+        var actions = [];
+        var fast = this._act._speedMod;
+        if (this._act._jump)
+            actions.push(Actions.IDLEJUMP);
+        if (this._act._walk)
+            actions.push(fast ? Actions.RUN : Actions.WALK);
+        if (this._act._walkback)
+            actions.push(fast ? Actions.WALKBACKFAST : Actions.WALKBACK);
+        if (this._act._turnLeft)
+            actions.push(fast ? Actions.TURNLEFTFAST : Actions.TURNLEFT);
+        if (this._act._turnRight)
+            actions.push(fast ? Actions.TURNRIGHTFAST : Actions.TURNRIGHT);
+        if (this._act._stepLeft)
+            actions.push(fast ? Actions.STRAFELEFTFAST : Actions.STRAFELEFT);
+        if (this._act._stepRight)
+            actions.push(fast ? Actions.STRAFERIGHTFAST : Actions.STRAFERIGHT);
+        if (this._activeActData != null) {
+            var id = this._activeActData.id;
+            if ((id === Actions.FALL || id === Actions.SLIDEBACK) && actions.indexOf(id) < 0) {
+                actions.push(id);
+            }
+        }
+        if (actions.length === 0)
+            actions.push(Actions.IDLE);
+        return actions;
     };
     CharacterController.prototype.getActionMap = function () {
         var map = new ActionMap();
@@ -950,6 +2961,7 @@ var CharacterController = (function () {
         else if (!this._inFreeFall) {
             actData = this._doIdle(dt);
         }
+        this._activeActData = actData;
         if (!this._stopAnim && this._hasAnims && actData != null) {
             if (this._prevActData !== actData) {
                 if (actData.exist) {
@@ -2138,26 +4150,22 @@ var CharacterController = (function () {
         this._act._speedMod = b;
     };
     CharacterController.prototype.turnLeft = function (b) {
-        this._act.reset();
         this._act._turnLeft = b;
         if (!b)
             this._isTurning = b;
     };
     CharacterController.prototype.turnLeftFast = function (b) {
-        this._act.reset();
         this._act._turnLeft = b;
         if (!b)
             this._isTurning = b;
         this._act._speedMod = b;
     };
     CharacterController.prototype.turnRight = function (b) {
-        this._act.reset();
         this._act._turnRight = b;
         if (!b)
             this._isTurning = b;
     };
     CharacterController.prototype.turnRightFast = function (b) {
-        this._act.reset();
         this._act._turnRight = b;
         if (!b)
             this._isTurning = b;
@@ -2186,11 +4194,9 @@ var CharacterController = (function () {
             return;
         if (this._inFreeFall)
             return;
-        this._act.reset();
         this._act._jump = true;
     };
     CharacterController.prototype.fall = function () {
-        this._act.reset();
         this._grounded = false;
     };
     CharacterController.prototype.idle = function () {
@@ -2483,9 +4489,9 @@ var CharacterController = (function () {
         }, false);
         return ms;
     };
-    CharacterController.prototype.setAvatar = function (avatar, faceForward) {
+    CharacterController.prototype.setCharacter = function (character, faceForward) {
         if (faceForward === void 0) { faceForward = false; }
-        var rootNode = this._root(avatar);
+        var rootNode = this._root(character);
         if (rootNode instanceof babylonjs__WEBPACK_IMPORTED_MODULE_0__.Mesh) {
             this._avatar = rootNode;
         }
@@ -2494,14 +4500,18 @@ var CharacterController = (function () {
             return false;
         }
         this._avChildren = this._getAbstractMeshChildren(rootNode);
-        this._skeleton = this._findSkel(avatar);
-        this._isAG = this._containsAG(avatar, this._scene.animationGroups, true);
+        this._skeleton = this._findSkel(character);
+        this._isAG = this._containsAG(character, this._scene.animationGroups, true);
         this._actionMap.reset();
         if (!this._isAG && this._skeleton != null)
             this._checkAnimRanges(this._skeleton);
-        this._setRHS(avatar);
+        this._setRHS(character);
         this.setFaceForward(faceForward);
         return true;
+    };
+    CharacterController.prototype.setAvatar = function (avatar, faceForward) {
+        if (faceForward === void 0) { faceForward = false; }
+        return this.setCharacter(avatar, faceForward);
     };
     CharacterController.prototype.showEllipsoid = function (show) {
         if (!show) {
@@ -2540,10 +4550,13 @@ var CharacterController = (function () {
         ellipsoid.position = this._avatar.ellipsoidOffset;
         this._ellipsoid = ellipsoid;
     };
-    CharacterController.prototype.getAvatar = function () {
+    CharacterController.prototype.getCharacter = function () {
         return this._avatar;
     };
-    CharacterController.prototype.setAvatarSkeleton = function (skeleton) {
+    CharacterController.prototype.getAvatar = function () {
+        return this.getCharacter();
+    };
+    CharacterController.prototype.setCharacterSkeleton = function (skeleton) {
         this._skeleton = skeleton;
         if (this._skeleton != null && this._skelDrivenByAG(skeleton))
             this._isAG = true;
@@ -2552,12 +4565,165 @@ var CharacterController = (function () {
         if (!this._isAG && this._skeleton != null)
             this._checkAnimRanges(this._skeleton);
     };
+    CharacterController.prototype.setAvatarSkeleton = function (skeleton) {
+        this.setCharacterSkeleton(skeleton);
+    };
     CharacterController.prototype._skelDrivenByAG = function (skeleton) {
         var _this = this;
         return skeleton.animations.some(function (sa) { return _this._scene.animationGroups.some(function (ag) { return ag.children.some(function (ta) { return ta.animation == sa; }); }); });
     };
     CharacterController.prototype.getSkeleton = function () {
         return this._skeleton;
+    };
+    CharacterController.prototype.enableXR = function (xr) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                if (this._xr == null) {
+                    this._xr = new _xr_XRController__WEBPACK_IMPORTED_MODULE_1__.XRController(this, this._camera, this._scene);
+                    this._applyXRMappingToController(this._xrEffectiveMapping);
+                }
+                return [2, this._xr.enable(xr)];
+            });
+        });
+    };
+    CharacterController.prototype.disableXR = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        if (this._xr == null) {
+                            return [2];
+                        }
+                        return [4, this._xr.disable()];
+                    case 1:
+                        _a.sent();
+                        return [2];
+                }
+            });
+        });
+    };
+    CharacterController.prototype.enterXR = function (type) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        if (this._xr == null) {
+                            return [2];
+                        }
+                        return [4, this._xr.enter(type)];
+                    case 1:
+                        _a.sent();
+                        return [2];
+                }
+            });
+        });
+    };
+    CharacterController.prototype.exitXR = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        if (this._xr == null) {
+                            return [2];
+                        }
+                        return [4, this._xr.exit()];
+                    case 1:
+                        _a.sent();
+                        return [2];
+                }
+            });
+        });
+    };
+    CharacterController.prototype.isInXR = function () {
+        if (this._xr == null) {
+            return false;
+        }
+        return this._xr.isInXR();
+    };
+    CharacterController.prototype.isXRSupported = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var xr, _a;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        if (this._xr == null) {
+                            return [2, { vrSupported: false, arSupported: false }];
+                        }
+                        xr = this._xr;
+                        _b.label = 1;
+                    case 1:
+                        _b.trys.push([1, 4, , 5]);
+                        if (!(typeof xr.isXRSupported === "function")) return [3, 3];
+                        return [4, xr.isXRSupported()];
+                    case 2: return [2, _b.sent()];
+                    case 3: return [3, 5];
+                    case 4:
+                        _a = _b.sent();
+                        return [3, 5];
+                    case 5: return [2, { vrSupported: false, arSupported: false }];
+                }
+            });
+        });
+    };
+    CharacterController.prototype.setXRStickDeadzone = function (v) {
+        if (this._xr == null) {
+            return;
+        }
+        this._xr.setStickDeadzone(v);
+    };
+    CharacterController.prototype.setXROrbitAlphaRate = function (v) {
+        this._callXRSetter("setAlphaRate", v);
+    };
+    CharacterController.prototype.setXROrbitBetaRate = function (v) {
+        this._callXRSetter("setBetaRate", v);
+    };
+    CharacterController.prototype.setXRDollyRate = function (v) {
+        this._callXRSetter("setRadiusRate", v);
+    };
+    CharacterController.prototype.setXRInputMapping = function (mapping) {
+        var merged = (0,_xr_XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.mergeXRInputMapping)(mapping);
+        var result = (0,_xr_XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.validateXRInputMapping)(merged);
+        if (result.applied) {
+            this._xrEffectiveMapping = merged;
+            this._applyXRMappingToController(merged);
+        }
+        return result;
+    };
+    CharacterController.prototype.getDefaultXRInputMapping = function () {
+        return __assign({}, _xr_XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.DEFAULT_XR_INPUT_MAPPING);
+    };
+    CharacterController.prototype.getEffectiveXRInputMapping = function () {
+        return __assign({}, this._xrEffectiveMapping);
+    };
+    CharacterController.prototype._applyXRMappingToController = function (mapping) {
+        if (this._xr == null) {
+            return;
+        }
+        var xr = this._xr;
+        try {
+            if (typeof xr.setInputMapping === "function") {
+                xr.setInputMapping(mapping);
+                if (typeof xr.rebindActiveSession === "function") {
+                    xr.rebindActiveSession();
+                }
+            }
+        }
+        catch (_a) {
+        }
+    };
+    CharacterController.prototype._callXRSetter = function (method, v) {
+        if (this._xr == null) {
+            return;
+        }
+        var xr = this._xr;
+        try {
+            var fn = xr[method];
+            if (typeof fn === "function") {
+                fn.call(this._xr, v);
+            }
+        }
+        catch (_a) {
+        }
     };
     return CharacterController;
 }());
