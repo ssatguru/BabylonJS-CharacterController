@@ -27,6 +27,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _XRLocomotion__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./XRLocomotion */ "./src/xr/XRLocomotion.ts");
 /* harmony import */ var _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./XRInputMapping */ "./src/xr/XRInputMapping.ts");
 /* harmony import */ var _XRSupport__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./XRSupport */ "./src/xr/XRSupport.ts");
+/* harmony import */ var _XROrientationSync__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./XROrientationSync */ "./src/xr/XROrientationSync.ts");
 var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -63,6 +64,7 @@ var __generator = (undefined && undefined.__generator) || function (thisArg, bod
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+
 
 
 
@@ -157,7 +159,7 @@ var XRController = (function () {
                         }
                         this._sessionType = type;
                         sessionMode = type === "ar" ? "immersive-ar" : "immersive-vr";
-                        return [4, base.enterXRAsync(sessionMode, "local-floor")];
+                        return [4, base.enterXRAsync(sessionMode, "local")];
                     case 3:
                         _c.sent();
                         return [3, 5];
@@ -479,8 +481,9 @@ var XRController = (function () {
                 xr.setTransformationFromNonVRCamera(this._camera, true);
             }
             var arcY = typeof ((_a = arc === null || arc === void 0 ? void 0 : arc.position) === null || _a === void 0 ? void 0 : _a.y) === "number" ? arc.position.y : 0;
+            var rwh = typeof xr.realWorldHeight === "number" && isFinite(xr.realWorldHeight) ? xr.realWorldHeight : 0;
             if (xr.position != null && typeof xr.position.y === "number") {
-                xr.position.y = arcY;
+                xr.position.y = arcY - rwh;
             }
         }
         catch (_b) {
@@ -504,6 +507,79 @@ var XRController = (function () {
     };
     XRController.prototype.canFirstPerson = function () {
         return this._readNoFirstPerson() === false;
+    };
+    XRController.prototype._xrFirstPersonCoupled = function () {
+        try {
+            return this.isInXR() && this.canFirstPerson() && this._readInFirstPerson();
+        }
+        catch (_a) {
+            return false;
+        }
+    };
+    XRController.prototype._syncArcFromXRCamera = function () {
+        try {
+            if (!this._xrFirstPersonCoupled()) {
+                return;
+            }
+            var xr = this._xrCamera;
+            if (xr == null) {
+                return;
+            }
+            var orientation_1 = this._readHeadsetOrientation(xr);
+            if (orientation_1 == null) {
+                return;
+            }
+            var arc = this._camera;
+            if (arc == null) {
+                return;
+            }
+            var limits = this._resolveBetaLimits(arc);
+            var _a = (0,_XROrientationSync__WEBPACK_IMPORTED_MODULE_4__.deriveArcAngles)(orientation_1, limits), alpha = _a.alpha, beta = _a.beta;
+            arc.alpha = alpha;
+            arc.beta = beta;
+        }
+        catch (_b) {
+        }
+    };
+    XRController.prototype._readInFirstPerson = function () {
+        var _a, _b;
+        try {
+            return ((_b = (_a = this._cc).isInFirstPerson) === null || _b === void 0 ? void 0 : _b.call(_a)) === true;
+        }
+        catch (_c) {
+            return false;
+        }
+    };
+    XRController.prototype._readHeadsetOrientation = function (xr) {
+        try {
+            var cam = xr;
+            var quat = cam === null || cam === void 0 ? void 0 : cam.rotationQuaternion;
+            if (quat == null || typeof quat.toEulerAngles !== "function") {
+                return null;
+            }
+            var euler = quat.toEulerAngles();
+            if (euler == null) {
+                return null;
+            }
+            var yaw = euler.y;
+            var pitch = euler.x;
+            if (typeof yaw !== "number" || typeof pitch !== "number") {
+                return null;
+            }
+            return { yaw: yaw, pitch: pitch };
+        }
+        catch (_a) {
+            return null;
+        }
+    };
+    XRController.prototype._resolveBetaLimits = function (arc) {
+        var lower = typeof arc.lowerBetaLimit === "number" && isFinite(arc.lowerBetaLimit)
+            ? arc.lowerBetaLimit
+            : BETA_MIN_FALLBACK;
+        var upper = typeof arc.upperBetaLimit === "number" && isFinite(arc.upperBetaLimit)
+            ? arc.upperBetaLimit
+            : BETA_MAX_FALLBACK;
+        return { lower: lower, upper: upper };
     };
     XRController.prototype.applyLocomotionMode = function (mode) {
         var _a, _b;
@@ -941,7 +1017,12 @@ var XRController = (function () {
             this._renderObserver =
                 (_b = observable.add(function () {
                     _this.sampleSticks();
-                    _this._updateXRCameraFollow();
+                    if (_this._xrFirstPersonCoupled() && !_this._anyStickActive() && !_this._dollyActive()) {
+                        _this._syncArcFromXRCamera();
+                    }
+                    else {
+                        _this._updateXRCameraFollow();
+                    }
                     _this._retryRayManagement();
                 })) !== null && _b !== void 0 ? _b : null;
         }
@@ -1085,6 +1166,32 @@ var XRController = (function () {
     };
     XRController.prototype._readRightStickInput = function () {
         return this._readAxesComponent(this._orbitAxesComponent);
+    };
+    XRController.prototype._anyStickActive = function () {
+        try {
+            var dz = this._stickDeadzone;
+            var dz2 = dz * dz;
+            var left = this._readLeftStickInput();
+            if (left.leftX * left.leftX + left.leftY * left.leftY > dz2) {
+                return true;
+            }
+            var right = this._readRightStickInput();
+            if (right.leftX * right.leftX + right.leftY * right.leftY > dz2) {
+                return true;
+            }
+            return false;
+        }
+        catch (_a) {
+            return false;
+        }
+    };
+    XRController.prototype._dollyActive = function () {
+        try {
+            return this._isComponentPressed(this._dollyInComponent) || this._isComponentPressed(this._dollyOutComponent);
+        }
+        catch (_a) {
+            return false;
+        }
     };
     XRController.prototype._readFastModifier = function () {
         try {
@@ -1490,8 +1597,9 @@ var XRController = (function () {
                 xr.setTransformationFromNonVRCamera(this._camera, true);
             }
             var arcY = typeof ((_d = arc === null || arc === void 0 ? void 0 : arc.position) === null || _d === void 0 ? void 0 : _d.y) === "number" ? arc.position.y : 0;
+            var rwh = typeof xr.realWorldHeight === "number" && isFinite(xr.realWorldHeight) ? xr.realWorldHeight : 0;
             if (xr.position != null && typeof xr.position.y === "number") {
-                xr.position.y = arcY;
+                xr.position.y = arcY - rwh;
             }
             if (this._entryBlendFrame >= ENTRY_BLEND_FRAMES) {
                 return;
@@ -1830,6 +1938,47 @@ function mapStickToIntent(input, deadzone) {
 
 /***/ }),
 
+/***/ "./src/xr/XROrientationSync.ts":
+/*!*************************************!*\
+  !*** ./src/xr/XROrientationSync.ts ***!
+  \*************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "clampBetaValue": () => (/* binding */ clampBetaValue),
+/* harmony export */   "deriveArcAngles": () => (/* binding */ deriveArcAngles),
+/* harmony export */   "deriveAvatarYaw": () => (/* binding */ deriveAvatarYaw)
+/* harmony export */ });
+function deriveArcAngles(orientation, limits) {
+    var alpha = deriveAlphaFromYaw(orientation.yaw);
+    var rawBeta = deriveBetaFromPitch(orientation.pitch);
+    var beta = clampBetaValue(rawBeta, limits);
+    return { alpha: alpha, beta: beta };
+}
+function clampBetaValue(beta, limits) {
+    if (!(beta >= limits.lower))
+        return limits.lower;
+    if (beta > limits.upper)
+        return limits.upper;
+    return beta;
+}
+function deriveAvatarYaw(alpha, facingOffset) {
+    return facingOffset - alpha;
+}
+function normalizeAngle(angle) {
+    return Math.atan2(Math.sin(angle), Math.cos(angle));
+}
+function deriveAlphaFromYaw(yaw) {
+    return normalizeAngle(-yaw + Math.PI / 2);
+}
+function deriveBetaFromPitch(pitch) {
+    return pitch + Math.PI / 2;
+}
+
+
+/***/ }),
+
 /***/ "./src/xr/XRSupport.ts":
 /*!*****************************!*\
   !*** ./src/xr/XRSupport.ts ***!
@@ -2022,9 +2171,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "CCSettings": () => (/* binding */ CCSettings),
 /* harmony export */   "CharacterController": () => (/* binding */ CharacterController),
 /* harmony export */   "DEFAULT_XR_INPUT_MAPPING": () => (/* reexport safe */ _xr_XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.DEFAULT_XR_INPUT_MAPPING),
-/* harmony export */   "XRLocomotion": () => (/* reexport safe */ _xr_XRLocomotion__WEBPACK_IMPORTED_MODULE_3__.XRLocomotion),
-/* harmony export */   "detectXRSupport": () => (/* reexport safe */ _xr_XRSupport__WEBPACK_IMPORTED_MODULE_4__.detectXRSupport),
-/* harmony export */   "mapStickToIntent": () => (/* reexport safe */ _xr_XRLocomotion__WEBPACK_IMPORTED_MODULE_3__.mapStickToIntent),
+/* harmony export */   "XRLocomotion": () => (/* reexport safe */ _xr_XRLocomotion__WEBPACK_IMPORTED_MODULE_4__.XRLocomotion),
+/* harmony export */   "detectXRSupport": () => (/* reexport safe */ _xr_XRSupport__WEBPACK_IMPORTED_MODULE_5__.detectXRSupport),
+/* harmony export */   "mapStickToIntent": () => (/* reexport safe */ _xr_XRLocomotion__WEBPACK_IMPORTED_MODULE_4__.mapStickToIntent),
 /* harmony export */   "mergeXRInputMapping": () => (/* reexport safe */ _xr_XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.mergeXRInputMapping),
 /* harmony export */   "validateXRInputMapping": () => (/* reexport safe */ _xr_XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.validateXRInputMapping)
 /* harmony export */ });
@@ -2032,8 +2181,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var babylonjs__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(babylonjs__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var _xr_XRController__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./xr/XRController */ "./src/xr/XRController.ts");
 /* harmony import */ var _xr_XRInputMapping__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./xr/XRInputMapping */ "./src/xr/XRInputMapping.ts");
-/* harmony import */ var _xr_XRLocomotion__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./xr/XRLocomotion */ "./src/xr/XRLocomotion.ts");
-/* harmony import */ var _xr_XRSupport__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./xr/XRSupport */ "./src/xr/XRSupport.ts");
+/* harmony import */ var _xr_XROrientationSync__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./xr/XROrientationSync */ "./src/xr/XROrientationSync.ts");
+/* harmony import */ var _xr_XRLocomotion__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./xr/XRLocomotion */ "./src/xr/XRLocomotion.ts");
+/* harmony import */ var _xr_XRSupport__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./xr/XRSupport */ "./src/xr/XRSupport.ts");
 var __assign = (undefined && undefined.__assign) || function () {
     __assign = Object.assign || function(t) {
         for (var s, i = 1, n = arguments.length; i < n; i++) {
@@ -2088,6 +2238,8 @@ var __generator = (undefined && undefined.__generator) || function (thisArg, bod
 
 
 
+
+var FP_MIN_RADIUS = 0.01;
 function horizontalDistance(a, b) {
     var dx = a.x - b.x;
     var dz = a.z - b.z;
@@ -2192,6 +2344,9 @@ var CharacterController = (function () {
         this._groundFrameMax = 10;
         this._savedCameraCollision = true;
         this._inFP = false;
+        this._fpSavedRadius = null;
+        this._fpSavedLowerRadiusLimit = null;
+        this._fpExitThreshold = null;
         this._visiblityMap = new Map();
         this._ray = new babylonjs__WEBPACK_IMPORTED_MODULE_0__.Ray(babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Zero(), babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.One(), 1);
         this._rayDir = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Zero();
@@ -2992,6 +3147,7 @@ var CharacterController = (function () {
             }
         }
         this._updateTargetValue();
+        this._followArcInFirstPerson();
         return;
     };
     CharacterController.prototype._doJump = function (dt) {
@@ -3673,11 +3829,12 @@ var CharacterController = (function () {
                 this._expectedRadius = this._camera.radius;
             }
         }
-        if (this._camera.radius > this._camera.lowerRadiusLimit) {
+        var fpThreshold = (this._inFP && this._fpExitThreshold !== null) ? this._fpExitThreshold : this._camera.lowerRadiusLimit;
+        if (this._camera.radius > fpThreshold) {
             if (this._cameraElastic || this._makeInvisible)
                 this._handleObstruction();
         }
-        if (this._camera.radius <= this._camera.lowerRadiusLimit) {
+        if (this._camera.radius <= fpThreshold) {
             if (!this._noFirstPerson && !this._inFP) {
                 this._makeMeshInvisible(this._avatar);
                 this._camera.checkCollisions = false;
@@ -3686,10 +3843,16 @@ var CharacterController = (function () {
                 this._mode = 0;
                 this._smoothTurnSpeed = 0;
                 this._inFP = true;
+                this._fpSavedRadius = this._camera.radius;
+                this._fpSavedLowerRadiusLimit = this._camera.lowerRadiusLimit;
+                this._fpExitThreshold = this._camera.lowerRadiusLimit;
+                this._camera.lowerRadiusLimit = FP_MIN_RADIUS;
+                this._camera.radius = FP_MIN_RADIUS;
+                this._expectedRadius = this._camera.radius;
             }
             if (this._inFP && fpHoldPos !== null) {
                 var distToTarget = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Distance(fpHoldPos, this._camera.target);
-                if (distToTarget > this._camera.lowerRadiusLimit) {
+                if (distToTarget > fpThreshold) {
                     if (distToTarget >= this._originalRadius) {
                         this._originalRadius = null;
                         this._originalAlpha = null;
@@ -3714,6 +3877,12 @@ var CharacterController = (function () {
                 this._smoothTurnSpeed = this._saveSmoothTurnSpeed;
                 this._restoreVisiblity(this._avatar);
                 this._camera.checkCollisions = this._savedCameraCollision;
+                if (this._fpSavedLowerRadiusLimit !== null) {
+                    this._camera.lowerRadiusLimit = this._fpSavedLowerRadiusLimit;
+                }
+                this._fpSavedLowerRadiusLimit = null;
+                this._fpExitThreshold = null;
+                this._fpSavedRadius = null;
                 this._expectedRadius = this._camera.radius;
             }
         }
@@ -4085,6 +4254,18 @@ var CharacterController = (function () {
     };
     CharacterController.prototype.isKeyBoardEnabled = function () {
         return this._ekb;
+    };
+    CharacterController.prototype.isInFirstPerson = function () {
+        return this._inFP;
+    };
+    CharacterController.prototype._followArcInFirstPerson = function () {
+        if (!this._inFP)
+            return;
+        if (this._mode == 1)
+            return;
+        if (!this._hasCam || this._camera == null)
+            return;
+        this._setAvatarRotationY((0,_xr_XROrientationSync__WEBPACK_IMPORTED_MODULE_3__.deriveAvatarYaw)(this._camera.alpha, this._av2cam));
     };
     CharacterController.prototype.enableKeyBoard = function (b) {
         this._ekb = b;
@@ -4639,6 +4820,12 @@ var CharacterController = (function () {
             return false;
         }
         return this._xr.isInXR();
+    };
+    CharacterController.prototype.getXRCamera = function () {
+        if (this._xr == null) {
+            return null;
+        }
+        return this._xr.getXRCamera();
     };
     CharacterController.prototype.isXRSupported = function () {
         return __awaiter(this, void 0, void 0, function () {

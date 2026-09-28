@@ -490,6 +490,30 @@ function detectXRSupport() {
     });
 }
 
+;// CONCATENATED MODULE: ./src/xr/XROrientationSync.ts
+function deriveArcAngles(orientation, limits) {
+    var alpha = deriveAlphaFromYaw(orientation.yaw);
+    var rawBeta = deriveBetaFromPitch(orientation.pitch);
+    var beta = clampBetaValue(rawBeta, limits);
+    return { alpha: alpha, beta: beta };
+}
+function clampBetaValue(beta, limits) {
+    if (!(beta >= limits.lower))
+        return limits.lower;
+    if (beta > limits.upper)
+        return limits.upper;
+    return beta;
+}
+function deriveAvatarYaw(alpha, facingOffset) {
+    return facingOffset - alpha;
+}
+function deriveAlphaFromYaw(yaw) {
+    return yaw;
+}
+function deriveBetaFromPitch(pitch) {
+    return Math.PI / 2 - pitch;
+}
+
 ;// CONCATENATED MODULE: ./src/xr/XRController.ts
 var XRController_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -527,6 +551,7 @@ var XRController_generator = (undefined && undefined.__generator) || function (t
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+
 
 
 
@@ -969,6 +994,71 @@ var XRController = (function () {
     XRController.prototype.canFirstPerson = function () {
         return this._readNoFirstPerson() === false;
     };
+    XRController.prototype._syncArcFromXRCamera = function () {
+        try {
+            if (!this.isInXR() || !this.canFirstPerson() || !this._readInFirstPerson()) {
+                return;
+            }
+            var xr = this._xrCamera;
+            if (xr == null) {
+                return;
+            }
+            var orientation_1 = this._readHeadsetOrientation(xr);
+            if (orientation_1 == null) {
+                return;
+            }
+            var arc = this._camera;
+            if (arc == null) {
+                return;
+            }
+            var limits = this._resolveBetaLimits(arc);
+            var _a = deriveArcAngles(orientation_1, limits), alpha = _a.alpha, beta = _a.beta;
+            arc.alpha = alpha;
+            arc.beta = beta;
+        }
+        catch (_b) {
+        }
+    };
+    XRController.prototype._readInFirstPerson = function () {
+        var _a, _b;
+        try {
+            return ((_b = (_a = this._cc).isInFirstPerson) === null || _b === void 0 ? void 0 : _b.call(_a)) === true;
+        }
+        catch (_c) {
+            return false;
+        }
+    };
+    XRController.prototype._readHeadsetOrientation = function (xr) {
+        try {
+            var cam = xr;
+            var quat = cam === null || cam === void 0 ? void 0 : cam.rotationQuaternion;
+            if (quat == null || typeof quat.toEulerAngles !== "function") {
+                return null;
+            }
+            var euler = quat.toEulerAngles();
+            if (euler == null) {
+                return null;
+            }
+            var yaw = euler.y;
+            var pitch = euler.x;
+            if (typeof yaw !== "number" || typeof pitch !== "number") {
+                return null;
+            }
+            return { yaw: yaw, pitch: pitch };
+        }
+        catch (_a) {
+            return null;
+        }
+    };
+    XRController.prototype._resolveBetaLimits = function (arc) {
+        var lower = typeof arc.lowerBetaLimit === "number" && isFinite(arc.lowerBetaLimit)
+            ? arc.lowerBetaLimit
+            : BETA_MIN_FALLBACK;
+        var upper = typeof arc.upperBetaLimit === "number" && isFinite(arc.upperBetaLimit)
+            ? arc.upperBetaLimit
+            : BETA_MAX_FALLBACK;
+        return { lower: lower, upper: upper };
+    };
     XRController.prototype.applyLocomotionMode = function (mode) {
         var _a, _b;
         this._disableTeleportation();
@@ -1405,7 +1495,7 @@ var XRController = (function () {
             this._renderObserver =
                 (_b = observable.add(function () {
                     _this.sampleSticks();
-                    _this._updateXRCameraFollow();
+                    _this._syncArcFromXRCamera();
                     _this._retryRayManagement();
                 })) !== null && _b !== void 0 ? _b : null;
         }
@@ -2089,6 +2179,7 @@ var CharacterController_generator = (undefined && undefined.__generator) || func
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+
 
 
 
@@ -3000,6 +3091,7 @@ var CharacterController = (function () {
             }
         }
         this._updateTargetValue();
+        this._followArcInFirstPerson();
         return;
     };
     CharacterController.prototype._doJump = function (dt) {
@@ -4093,6 +4185,18 @@ var CharacterController = (function () {
     };
     CharacterController.prototype.isKeyBoardEnabled = function () {
         return this._ekb;
+    };
+    CharacterController.prototype.isInFirstPerson = function () {
+        return this._inFP;
+    };
+    CharacterController.prototype._followArcInFirstPerson = function () {
+        if (!this._inFP)
+            return;
+        if (this._mode == 1)
+            return;
+        if (!this._hasCam || this._camera == null)
+            return;
+        this._setAvatarRotationY(deriveAvatarYaw(this._camera.alpha, this._av2cam));
     };
     CharacterController.prototype.enableKeyBoard = function (b) {
         this._ekb = b;

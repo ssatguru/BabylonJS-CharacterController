@@ -67,6 +67,11 @@ export declare class XRController {
     private _seedXRCameraOntoFollowPose;
     private _removeInitialPoseObserver;
     canFirstPerson(): boolean;
+    private _xrFirstPersonCoupled;
+    private _syncArcFromXRCamera;
+    private _readInFirstPerson;
+    private _readHeadsetOrientation;
+    private _resolveBetaLimits;
     applyLocomotionMode(mode: LocomotionMode): void;
     disableTeleportation(fm: {
         disableFeature?: (feature: unknown) => unknown;
@@ -114,6 +119,8 @@ export declare class XRController {
     private _readLeftStickInput;
     private _readAxesComponent;
     private _readRightStickInput;
+    private _anyStickActive;
+    private _dollyActive;
     private _readFastModifier;
     applyCameraOrbit(rightX: number, rightY: number): void;
     clampBeta(): void;

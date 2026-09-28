@@ -344,22 +344,22 @@ describe("Feature: webxr-support - XRController.enter", () => {
         expect(experience!.baseExperience.enterXRAsync).toHaveBeenCalledTimes(2);
     });
 
-    it("enters with 'immersive-vr' and the 'local-floor' reference space for a vr session (R2.2)", async () => {
+    it("enters with 'immersive-vr' and the 'local' reference space for a vr session (R2.2)", async () => {
         const { controller, experience } = makeController();
         await controller.enable(experience as any);
 
         await controller.enter("vr");
 
-        expect(experience!.baseExperience.enterXRAsync).toHaveBeenCalledWith("immersive-vr", "local-floor");
+        expect(experience!.baseExperience.enterXRAsync).toHaveBeenCalledWith("immersive-vr", "local");
     });
 
-    it("enters with 'immersive-ar' and the 'local-floor' reference space for an ar session (R2.2)", async () => {
+    it("enters with 'immersive-ar' and the 'local' reference space for an ar session (R2.2)", async () => {
         const { controller, experience } = makeController();
         await controller.enable(experience as any);
 
         await controller.enter("ar");
 
-        expect(experience!.baseExperience.enterXRAsync).toHaveBeenCalledWith("immersive-ar", "local-floor");
+        expect(experience!.baseExperience.enterXRAsync).toHaveBeenCalledWith("immersive-ar", "local");
     });
 
     it("does not enter when the requested session type is unsupported", async () => {
@@ -371,7 +371,7 @@ describe("Feature: webxr-support - XRController.enter", () => {
         expect(experience!.baseExperience.enterXRAsync).not.toHaveBeenCalled();
 
         await controller.enter("ar"); // ar supported
-        expect(experience!.baseExperience.enterXRAsync).toHaveBeenCalledWith("immersive-ar", "local-floor");
+        expect(experience!.baseExperience.enterXRAsync).toHaveBeenCalledWith("immersive-ar", "local");
     });
 
     it("re-enters after an exit without recreating the experience (R2.6)", async () => {

@@ -1,0 +1,188 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Implement `src/xr/XROrientationSync.ts`": [
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790552853332
+      },
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790552861247
+      },
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790552957154
+      }
+    ],
+    "2.1 Add the lightweight `_inFP` query on `CharacterController`": [
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790552853399
+      },
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790552862428
+      },
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790552957925
+      }
+    ],
+    "3.1 Add `_syncArcFromXRCamera()` replacing the arc→XR orientation mirror direction": [
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790552853480
+      },
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790552961962
+      },
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790553086540
+      }
+    ],
+    "3.2 Wire `_syncArcFromXRCamera()` into the render observer after `sampleSticks()`": [
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790552853546
+      },
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790553098977
+      },
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790553210622
+      }
+    ],
+    "4.1 Add `_followArcInFirstPerson()`": [
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790552853610
+      },
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790552962867
+      },
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790553087595
+      }
+    ],
+    "4.2 Wire `_followArcInFirstPerson()` into `_moveAVandCamera`": [
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790552853675
+      },
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790553097835
+      },
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790553211731
+      }
+    ],
+    "5. Checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790552853748
+      },
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790553215667
+      },
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790553604126
+      }
+    ],
+    "6.2 Run the full verification pass": [
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790552853799
+      },
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790553605134
+      },
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790553652635
+      }
+    ],
+    "7. Final checkpoint - Ensure all tests pass and the build succeeds": [
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790552853863
+      },
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790553655882
+      }
+    ],
+    "1. Create the pure orientation-sync module and its tests": [
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790552957220
+      }
+    ],
+    "2. Add the CharacterController `_inFP` query seam": [
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790552957988
+      }
+    ],
+    "3. Implement the XR→arc synchronization in XRController": [
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790553210733
+      }
+    ],
+    "4. Implement the continuous first-person avatar follow in CharacterController": [
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790553211829
+      }
+    ],
+    "6. Integrate and verify the XR+FP composition": [
+      {
+        "executionId": "e35673e1-8f9b-48dd-b633-4eafd8f65871",
+        "chatSessionId": "sess_2adc8f1e-1cc5-4f8f-a2bc-e2684731baf0",
+        "timestamp": 1790553652705
+      }
+    ]
+  }
+}

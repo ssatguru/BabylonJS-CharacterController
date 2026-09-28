@@ -38,6 +38,7 @@ import {
     mergeXRInputMapping,
     validateXRInputMapping
 } from "./xr/XRInputMapping";
+import { deriveAvatarYaw } from "./xr/XROrientationSync";
 
 // --- Public WebXR API re-exports (task 20.2) ---
 // Re-export the public XR types/enums/functions so consumers import them from
@@ -54,6 +55,12 @@ export type { LocomotionMode, ToggleResult, MoveIntent, StickInput } from "./xr/
 // Re-export identifiers already imported above (referencing local names):
 export { DEFAULT_XR_INPUT_MAPPING, mergeXRInputMapping, validateXRInputMapping };
 export type { XRSessionType, XRSupportState, XRInputMapping, MappingResult };
+
+
+// Minimum camera radius used when snapping the eye to the target in first person.
+// ArcRotateCamera degenerates at radius 0 (loses a stable up/orientation frame),
+// so we use a tiny non-zero epsilon to place the eye effectively AT the target.
+const FP_MIN_RADIUS = 0.01;
 
 
 // --- Navigation helper functions (pure, standalone) ---
@@ -1172,6 +1179,10 @@ export class CharacterController {
             }
         }
         this._updateTargetValue();
+        //continuous first-person avatar-follow. runs after _updateTargetValue()
+        //(where _inFP is entered/exited) and after the frame's alpha is settled,
+        //so the follow reads the same-frame alpha (R5.4).
+        this._followArcInFirstPerson();
         return;
     }
 
@@ -2019,6 +2030,16 @@ export class CharacterController {
 
     private _savedCameraCollision: boolean = true;
     private _inFP = false;
+    // Radius remembered on first-person entry, so it can be restored on exit if needed.
+    private _fpSavedRadius: number | null = null;
+    // lowerRadiusLimit remembered on first-person entry. ArcRotateCamera clamps radius
+    // to lowerRadiusLimit, so to let the eye reach the target we lower the limit during
+    // FP and restore this original value on exit.
+    private _fpSavedLowerRadiusLimit: number | null = null;
+    // The ORIGINAL lowerRadiusLimit captured on FP entry. FP is exited when the radius
+    // rises back above THIS threshold (a meaningful dolly-out), NOT above the lowered
+    // limit (~FP_MIN_RADIUS) that is active while in FP.
+    private _fpExitThreshold: number | null = null;
     private _updateTargetValue() {
         if (!this._hasCam) return;
 
@@ -2126,10 +2147,17 @@ export class CharacterController {
             // If newDist <= current radius, avatar moved toward camera or sideways — don't adjust
         }
 
-        if (this._camera.radius > this._camera.lowerRadiusLimit) { if (this._cameraElastic || this._makeInvisible) this._handleObstruction(); }
+        // Effective FP entry/exit threshold. While in FP we lower lowerRadiusLimit to
+        // ~FP_MIN_RADIUS (so the small radius is not clamped up), which would make the
+        // raw lowerRadiusLimit comparison trip the exit branch on any tiny dolly-out.
+        // So while in FP compare against the SAVED original limit (_fpExitThreshold);
+        // before FP it equals the real lowerRadiusLimit, preserving entry behavior.
+        const fpThreshold: number = (this._inFP && this._fpExitThreshold !== null) ? this._fpExitThreshold : this._camera.lowerRadiusLimit;
+
+        if (this._camera.radius > fpThreshold) { if (this._cameraElastic || this._makeInvisible) this._handleObstruction(); }
 
         //if user so desire, make the AV invisible if camera comes close to it
-        if (this._camera.radius <= this._camera.lowerRadiusLimit) {
+        if (this._camera.radius <= fpThreshold) {
             if (!this._noFirstPerson && !this._inFP) {
                 this._makeMeshInvisible(this._avatar);
                 this._camera.checkCollisions = false;
@@ -2138,12 +2166,35 @@ export class CharacterController {
                 this._mode = 0;
                 this._smoothTurnSpeed = 0;
                 this._inFP = true;
+                // One-time radius snap on FP entry: place the eye AT the target
+                // (avatar head) instead of leaving it lowerRadiusLimit units away.
+                // This runs only on the entry transition (guarded by !this._inFP
+                // above). While already in FP we must NOT re-snap, otherwise a
+                // dolly-out could never raise the radius past the exit threshold to
+                // trigger the exit path.
+                //
+                // Capture BEFORE mutating: remember both the radius and the original
+                // lowerRadiusLimit (the latter also serves as the FP-exit threshold).
+                this._fpSavedRadius = this._camera.radius;
+                this._fpSavedLowerRadiusLimit = this._camera.lowerRadiusLimit;
+                this._fpExitThreshold = this._camera.lowerRadiusLimit;
+                // Lowering lowerRadiusLimit is REQUIRED: ArcRotateCamera clamps radius
+                // to lowerRadiusLimit, so without this the radius = FP_MIN_RADIUS snap
+                // below would be undone (the eye would stay lowerRadiusLimit units from
+                // the head). Use FP_MIN_RADIUS (not literal 0) to avoid a zero limit.
+                this._camera.lowerRadiusLimit = FP_MIN_RADIUS;
+                this._camera.radius = FP_MIN_RADIUS;
+                // Keep user-scroll/spring detection from misfiring on this
+                // programmatic change (a radius drop vs _expectedRadius is treated
+                // as a user scroll elsewhere), so sync expected to the new radius.
+                this._expectedRadius = this._camera.radius;
             }
             // If we're in first-person due to elastic push-in, hold camera position
             // while avatar moves away. Use the position saved before target update.
             if (this._inFP && fpHoldPos !== null) {
                 const distToTarget: number = Vector3.Distance(fpHoldPos, this._camera.target);
-                if (distToTarget > this._camera.lowerRadiusLimit) {
+                // Compare against the original (saved) limit, not the lowered one active in FP.
+                if (distToTarget > fpThreshold) {
                     // Avatar moved away enough to exit first-person
                     if (distToTarget >= this._originalRadius) {
                         this._originalRadius = null;
@@ -2167,6 +2218,23 @@ export class CharacterController {
                 this._smoothTurnSpeed = this._saveSmoothTurnSpeed;
                 this._restoreVisiblity(this._avatar);
                 this._camera.checkCollisions = this._savedCameraCollision;
+                // Restore the original lowerRadiusLimit that we lowered on FP entry.
+                // The exit was triggered by radius rising above the ORIGINAL threshold
+                // (_fpExitThreshold, e.g. 2), so the radius is already >= the restored
+                // limit — no clamp fights the user's dolly-out.
+                if (this._fpSavedLowerRadiusLimit !== null) {
+                    this._camera.lowerRadiusLimit = this._fpSavedLowerRadiusLimit;
+                }
+                this._fpSavedLowerRadiusLimit = null;
+                this._fpExitThreshold = null;
+                // On entry we snapped radius to ~FP_MIN_RADIUS; the user exits FP by
+                // dollying out, which raised radius past the original threshold (that rise
+                // is exactly what triggered this exit branch). So the radius already
+                // reflects the user's intent — do NOT overwrite it with _fpSavedRadius,
+                // which would undo the dolly-out. We just clear the saved value.
+                // (_fpSavedRadius is retained only in case a future non-dolly exit path
+                // needs it; for now we clear it.)
+                this._fpSavedRadius = null;
                 // Reset expected radius so user-change detection doesn't misfire
                 // after exiting first-person. This preserves _originalRadius for springback.
                 this._expectedRadius = this._camera.radius;
@@ -2641,6 +2709,40 @@ export class CharacterController {
     private _ekb: boolean = true;
     public isKeyBoardEnabled(): boolean {
         return this._ekb;
+    }
+
+    /**
+     * Report whether the controller is currently in first-person mode (`_inFP`).
+     *
+     * Lightweight, side-effect-free query consumed by the XR glue via the guarded
+     * `XRController._readInFirstPerson()` seam. Combined with `isInXR()` and
+     * `XRController.canFirstPerson()` this forms the XR_First_Person_Coupling
+     * condition that gates the XR→arc orientation sync. Kept minimal so it can be
+     * stubbed under mocks.
+     */
+    public isInFirstPerson(): boolean {
+        return this._inFP;
+    }
+
+    /**
+     * Continuous first-person avatar-follow. While `_inFP`, align the avatar's
+     * yaw to the arc camera `alpha` EVERY frame (independent of movement keys),
+     * using the pure `deriveAvatarYaw` helper. Intended to be called after the
+     * frame's `alpha` has been settled (in XR, after the XR->arc sync; in
+     * non-XR, after the camera controls) so the yaw reflects the same-frame
+     * `alpha` (R5.4).
+     *
+     * Guarded so an absent arc camera never throws and leaves the yaw unchanged
+     * (R5.2). While `!_inFP` (or in camera mode 1) this is a no-op, preserving
+     * all non-first-person, third-person, and mode-1 behavior (R4.3, R4.4).
+     *
+     * _Requirements: 3.1, 3.2, 3.3, 3.4, 4.3, 4.4, 5.2_
+     */
+    private _followArcInFirstPerson(): void {
+        if (!this._inFP) return;                            // R4.3, R4.4: gate re-checked each frame.
+        if (this._mode == 1) return;                        // mode-1 unchanged (R4 scope).
+        if (!this._hasCam || this._camera == null) return;  // R5.2: absent arc camera -> no throw, no change.
+        this._setAvatarRotationY(deriveAvatarYaw(this._camera.alpha, this._av2cam)); // R3.1..R3.4
     }
     public enableKeyBoard(b: boolean) {
         this._ekb = b;
@@ -3458,6 +3560,17 @@ export class CharacterController {
             return false;
         }
         return this._xr.isInXR();
+    }
+
+    /**
+     * The rendered `WebXRCamera` for the active session, or `null` when XR was
+     * never enabled / no session is active.
+     */
+    public getXRCamera(): WebXRCamera | null {
+        if (this._xr == null) {
+            return null;
+        }
+        return this._xr.getXRCamera();
     }
 
     /**

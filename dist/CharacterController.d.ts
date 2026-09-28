@@ -186,6 +186,9 @@ export declare class CharacterController {
     private _unGroundIt;
     private _savedCameraCollision;
     private _inFP;
+    private _fpSavedRadius;
+    private _fpSavedLowerRadiusLimit;
+    private _fpExitThreshold;
     private _updateTargetValue;
     private _makeMeshInvisible;
     private _visiblityMap;
@@ -216,6 +219,8 @@ export declare class CharacterController {
     private _onKeyUp;
     private _ekb;
     isKeyBoardEnabled(): boolean;
+    isInFirstPerson(): boolean;
+    private _followArcInFirstPerson;
     enableKeyBoard(b: boolean): void;
     private _addkeylistener;
     private _removekeylistener;
@@ -295,6 +300,7 @@ export declare class CharacterController {
     enterXR(type: XRSessionType): Promise<void>;
     exitXR(): Promise<void>;
     isInXR(): boolean;
+    getXRCamera(): WebXRCamera | null;
     isXRSupported(): Promise<XRSupportState>;
     setXRStickDeadzone(v: number): void;
     setXROrbitAlphaRate(v: number): void;

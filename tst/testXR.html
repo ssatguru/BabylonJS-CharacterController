@@ -73,6 +73,14 @@
   -->
   <script src="/node_modules/babylonjs/babylon.max.js"></script>
   <script src="/node_modules/babylonjs-loaders/babylonjs.loaders.min.js"></script>
+  <!--
+    babylon.max.js does NOT include the GUI namespace, so load babylonjs-gui
+    separately. This provides BABYLON.GUI.AdvancedDynamicTexture / TextBlock used
+    by the OPT-IN in-VR debug panel in testXR.js (only created with ?debug=1).
+    Must load after babylon.max.js (it depends on the core BABYLON global) and
+    before testXR.js.
+  -->
+  <script src="/node_modules/babylonjs-gui/babylon.gui.min.js"></script>
   <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
 
   <script src="/dist/CharacterController.max.js"></script>

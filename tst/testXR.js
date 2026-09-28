@@ -34,6 +34,69 @@ let cc;
 let scene;
 let inXR = false;
 
+// -----------------------------------------------------------------------------
+// DESKTOP-VISIBLE self-diagnostics mirror.
+//
+// A developer wearing a Meta Quest 3 has no browser console, and the in-VR panel
+// itself may be invisible (which is exactly what we're diagnosing). So we mirror
+// the same status/values onto the DESKTOP monitor via an on-page element
+// (`#xrDebugMirror`, a <pre> appended to the #controls div) as well as the
+// console. This lets us confirm which failure mode we're in — "?debug=1 not
+// set", "GUI MISSING", "created OK" + live values, or "not in XR" — just by
+// looking at the desktop screen. Every DOM write is guarded so it can never
+// throw into the render loop or setup path.
+// -----------------------------------------------------------------------------
+
+// Create the on-page mirror element once (idempotent). Appended to the #controls
+// div, styled small monospace so it doesn't dominate the page. Guarded: any DOM
+// failure is swallowed.
+function ensureDbgMirrorEl()
+{
+  try
+  {
+    let el = document.getElementById("xrDebugMirror");
+    if (el) return el;
+    let controls = document.getElementById("controls");
+    if (!controls) return null;
+    el = document.createElement("pre");
+    el.id = "xrDebugMirror";
+    el.style.fontSize = "11px";
+    el.style.whiteSpace = "pre";
+    el.style.maxWidth = "260px";
+    el.style.background = "rgba(255, 255, 255, 0.85)";
+    el.style.padding = "4px";
+    el.style.margin = "4px 0 0 0";
+    el.style.overflow = "auto";
+    controls.appendChild(el);
+    return el;
+  }
+  catch (e)
+  {
+    return null;
+  }
+}
+
+// Write a status string to BOTH the on-page mirror element and the console.
+// Fully guarded — never throws.
+function dbgMirror(msg)
+{
+  try
+  {
+    let el = document.getElementById("xrDebugMirror");
+    if (!el) el = ensureDbgMirrorEl();
+    if (el) el.textContent = msg;
+  }
+  catch (e)
+  {
+    /* never throw from a diagnostic write */
+  }
+  try
+  {
+    console.log("[XR debug] " + msg);
+  }
+  catch (e) { }
+}
+
 function setUI(ar)
 {
   let animType = document.getElementById("animType");
@@ -194,12 +257,281 @@ async function main(ar)
   //enable WebXR on the character controller and probe support.
   await setupXR(cc);
 
+  // ALWAYS-ON diagnostic panel (see setupXRDebugPanel). The panel is now created
+  // unconditionally so it renders in front of the DESKTOP ArcRotateCamera on a
+  // plain browser load (no ?debug, no headset) — this proves the GUI / plane /
+  // material / text code works before ever entering XR. When an XR session
+  // starts, the same panel re-anchors to the XR head camera.
+  setupXRDebugPanel(cc, arcRotateCamera, player);
+
   engine.runRenderLoop(function ()
   {
     scene.render();
   });
 
   canvas.focus();
+}
+
+// -----------------------------------------------------------------------------
+// TEMPORARY in-VR debug panel.
+//
+// A developer wearing a Meta Quest 3 has no browser console, so this draws a
+// world-space heads-up panel that prints live camera values every frame. Its
+// purpose is to diagnose the "XR camera targets a point above the avatar head"
+// issue by letting us compare, in-headset:
+//   - the ArcRotateCamera follow eye (position/target/radius),
+//   - the XR camera rig base (xrCam.position),
+//   - the actual rendered eye (xrCam.globalPosition), and
+//   - the derived head offset (globalPosition - position, "eye-base").
+// against the avatar's own position.
+//
+// PROVEN APPROACH (mirrors Vishva's XRManager.positionPlaneInFront, which shows
+// a working in-headset HUD on a Quest 3): the panel is an UNPARENTED top-level
+// world-space plane, repositioned + reoriented every frame from the TRUE LIVE
+// head pose carried by the RIG (per-eye) cameras `xrCam.rigCameras[0]`.
+//
+// Why NOT parent to the WebXR camera: parenting follows head POSITION but not
+// head ROTATION, and the base WebXR camera transform is OVERWRITTEN every frame
+// by setTransformationFromNonVRCamera(arc, true) (the follow mirror), which also
+// grounds position.y to 0. A parented / base-camera-read plane therefore gets a
+// wrong/grounded pose and appears missing or misplaced. The rig cameras carry
+// the true head transform regardless, so we read from rigCameras[0].
+//
+// This is purely additive test-harness scaffolding and can be deleted once the
+// camera-offset investigation is done.
+// -----------------------------------------------------------------------------
+function setupXRDebugPanel(cc, arcRotateCamera, player)
+{
+  // FAIL-SAFE: the entire setup is wrapped in try/catch. This panel is
+  // diagnostic scaffolding suspected of blacking out the XR view, so any
+  // failure here (GUI namespace missing, mesh/material/texture creation error)
+  // must never prevent engine.runRenderLoop or blank the scene. On any error we
+  // console.warn and return, leaving the scene untouched.
+  // DESKTOP milestone: record that setup was actually called (before the GUI
+  // guard) so we can confirm the code path from the desktop monitor.
+  dbgMirror("panel: setup called");
+
+  try
+  {
+    // Guard that the GUI namespace is actually loaded before using it.
+    if (!BABYLON.GUI || !BABYLON.GUI.AdvancedDynamicTexture)
+    {
+      console.warn("[XR debug] BABYLON.GUI.AdvancedDynamicTexture unavailable; skipping debug panel.");
+      dbgMirror("panel: GUI MISSING (BABYLON.GUI undefined)");
+      return;
+    }
+
+    // Number/vector formatting helpers: never throw on null/undefined.
+    const f = (n) => (typeof n === "number" ? n.toFixed(2) : "?");
+    const v = (p) => p ? `(${f(p.x)}, ${f(p.y)}, ${f(p.z)})` : "null";
+
+    // UNPARENTED top-level world-space plane. Created ONCE. It is NOT parented
+    // to the XR camera (see header) — it is repositioned per frame from the rig
+    // head pose. DOUBLESIDE so it is visible regardless of facing ambiguity.
+    const dbgPlane = BABYLON.MeshBuilder.CreatePlane(
+      "xrDebugPlane",
+      { width: 1.4, height: 1.0, sideOrientation: BABYLON.Mesh.DOUBLESIDE },
+      scene
+    );
+    dbgPlane.isPickable = false;
+    // PROVEN DETAIL #1 from Vishva's working HUD (createDiagHud): render the
+    // panel in rendering group 1. We had removed this earlier on a misdiagnosis
+    // — the earlier black screen was actually caused by the plane being parented
+    // on the eyes at z=1.6, not by the rendering group. Do NOT parent it to
+    // anything (per-frame head-locked placement stays below).
+    dbgPlane.renderingGroupId = 1;
+
+    // Emissive unlit material so the panel is readable regardless of scene
+    // lighting: white emissive, lighting disabled, no back-face culling.
+    const dbgMat = new BABYLON.StandardMaterial("xrDebugMat", scene);
+    dbgMat.emissiveColor = new BABYLON.Color3(1, 1, 1);
+    dbgMat.disableLighting = true;
+    dbgMat.backFaceCulling = false;
+    dbgPlane.material = dbgMat;
+
+    // GUI drawn ONTO the world-space plane (CreateForMesh, exactly like Vishva —
+    // NOT CreateFullscreenUI). Semi-transparent dark background + a white
+    // top-left TextBlock.
+    const dbgTex = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(dbgPlane, 1024, 768);
+
+    // PROVEN DETAIL #2 from Vishva's working HUD (createDiagHud): use a solid
+    // GUI Rectangle added to the ADT as the panel background (rather than
+    // setting adt.background), and put the TextBlock INSIDE that Rectangle.
+    const dbgPanel = new BABYLON.GUI.Rectangle("xrDebugRect");
+    dbgPanel.width = 1;
+    dbgPanel.height = 1;
+    dbgPanel.thickness = 0;
+    dbgPanel.background = "black";
+    dbgPanel.alpha = 0.4;
+    dbgPanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    dbgPanel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    dbgTex.addControl(dbgPanel);
+
+    const dbgText = new BABYLON.GUI.TextBlock();
+    dbgText.text = "XR debug";
+    dbgText.color = "white";
+    dbgText.fontSize = 30;
+    dbgText.textWrapping = true;
+    dbgText.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    dbgText.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    dbgText.paddingLeft = "24px";
+    dbgText.paddingTop = "24px";
+    // TextBlock goes INTO the Rectangle (not directly on the ADT).
+    dbgPanel.addControl(dbgText);
+
+    // DESKTOP milestone: plane + ADT + text all created without throwing.
+    dbgMirror("panel: created OK");
+
+    // Per-frame update. Registered ONCE; the whole observer body is wrapped in
+    // try/catch so it can NEVER throw out of the render loop (a throw here would
+    // blank the scene). It does BOTH placement and text update each frame.
+    scene.onBeforeRenderObservable.add(() =>
+    {
+      try
+      {
+        // (a) ALWAYS keep the plane enabled — it is a diagnostic and must render
+        // both on the desktop and in XR. Never setEnabled(false).
+        dbgPlane.setEnabled(true);
+
+        // (b) Choose the anchor camera. In XR, use the live XR head camera; on
+        // the plain desktop (no XR session / no XR camera) fall back to the
+        // ArcRotateCamera so the panel floats in front of the browser view.
+        const sessionActive = !!(cc && typeof cc.isInXR === "function" && cc.isInXR());
+        const xrCam = (sessionActive && cc && typeof cc.getXRCamera === "function") ? cc.getXRCamera() : null;
+        const inXR = !!(sessionActive && xrCam);
+
+        // (c) HEAD POSE. In XR, read from the RIG camera (mirrors
+        // Vishva.positionPlaneInFront): rigCameras[0] carries the TRUE live head
+        // pose; the base camera is clobbered by the follow mirror. On desktop,
+        // the ArcRotateCamera is the head camera — it also supports
+        // getFrontPosition/getDirection/globalPosition/computeWorldMatrix, so the
+        // same placement code path below works unchanged.
+        let headCam;
+        let rig = null;
+        if (inXR)
+        {
+          rig = xrCam.rigCameras;
+          headCam = (Array.isArray(rig) && rig.length > 0) ? rig[0] : xrCam;
+        }
+        else
+        {
+          headCam = arcRotateCamera;
+        }
+        if (!headCam) return;
+
+        // A value is a finite Vector3 only when x/y/z are all finite numbers.
+        // Rejects NaN/undefined poses that would fling the panel out of view.
+        const isFiniteVec = (vec) =>
+          !!vec &&
+          Number.isFinite(vec.x) &&
+          Number.isFinite(vec.y) &&
+          Number.isFinite(vec.z);
+
+        // Force the head camera's world matrix current so getFrontPosition /
+        // getDirection / globalPosition reflect THIS frame's transform.
+        if (typeof headCam.computeWorldMatrix === "function")
+        {
+          headCam.computeWorldMatrix(true);
+        }
+
+        // Head world position: prefer globalPosition when finite, else local.
+        let headPos = headCam.globalPosition;
+        if (!isFiniteVec(headPos)) headPos = headCam.position;
+
+        // Placement constants (world-space meters — top-level, not parented).
+        const DISTANCE = 3;                 // meters ahead of the head
+        const UP_OFFSET = inXR ? -0.5 : 0;  // XR: sit slightly down; desktop: centered
+        const LEFT_OFFSET = 0;              // centered horizontally
+
+        // Preferred anchor: a world-space point DISTANCE meters directly in
+        // front of the head. getFrontPosition avoids forward-sign mistakes.
+        let pos = null;
+        if (typeof headCam.getFrontPosition === "function")
+        {
+          const front = headCam.getFrontPosition(DISTANCE);
+          let up = (typeof headCam.getDirection === "function")
+            ? headCam.getDirection(BABYLON.Vector3.Up())
+            : BABYLON.Vector3.Up();
+          let right = (typeof headCam.getDirection === "function")
+            ? headCam.getDirection(BABYLON.Vector3.Right())
+            : BABYLON.Vector3.Right();
+          if (isFiniteVec(front) && isFiniteVec(up) && isFiniteVec(right))
+          {
+            pos = front.add(up.scale(UP_OFFSET)).add(right.scale(-LEFT_OFFSET));
+          }
+        }
+        else if (typeof headCam.getDirection === "function" && isFiniteVec(headPos))
+        {
+          // Fallback: build the anchor from head position + forward*DISTANCE and
+          // the up/right offset, all via getDirection.
+          const forward = headCam.getDirection(BABYLON.Vector3.Forward());
+          const up = headCam.getDirection(BABYLON.Vector3.Up());
+          const right = headCam.getDirection(BABYLON.Vector3.Right());
+          if (isFiniteVec(forward) && isFiniteVec(up) && isFiniteVec(right))
+          {
+            pos = headPos
+              .add(forward.scale(DISTANCE))
+              .add(up.scale(UP_OFFSET))
+              .add(right.scale(-LEFT_OFFSET));
+          }
+        }
+
+        // No usable / finite pose: do NOT move the plane this frame (leave it at
+        // its last good position, never fling to NaN), but still update text.
+        if (pos != null && isFiniteVec(pos))
+        {
+          dbgPlane.position.copyFrom(pos);
+          // Orient to FACE the head each frame (only toward a finite head pose).
+          if (isFiniteVec(headPos) && typeof dbgPlane.lookAt === "function")
+          {
+            dbgPlane.lookAt(headPos);
+          }
+        }
+
+        // (e) TEXT: updated every frame regardless of XR. XR-only fields read
+        // "n/a" on the desktop where there is no XR camera.
+        // Derived head offset: rendered eye minus rig base (XR only).
+        let eyeBase = null;
+        if (inXR && isFiniteVec(xrCam.globalPosition) && isFiniteVec(xrCam.position))
+        {
+          eyeBase = xrCam.globalPosition.subtract(xrCam.position);
+        }
+
+        const avatar = (player && player.position) ? player.position : arcRotateCamera.target;
+        const rigCount = (rig && rig.length) ? rig.length : 0;
+
+        const fieldText =
+          "mode: " + (inXR ? "XR" : "desktop") + "\n" +
+          "arc.pos    = " + v(arcRotateCamera.position) + "\n" +
+          "arc.tgt    = " + v(arcRotateCamera.target) + "\n" +
+          "arc.radius = " + f(arcRotateCamera.radius) + "\n" +
+          "xr.pos     = " + (inXR ? v(xrCam.position) : "n/a") + "\n" +
+          "xr.global  = " + (inXR ? v(xrCam.globalPosition) : "n/a") + "\n" +
+          "eye-base   = " + (inXR ? v(eyeBase) : "n/a") + "\n" +
+          "avatar     = " + v(avatar) + "\n" +
+          "head.pos   = " + v(headPos) + "\n" +
+          "rig        = " + rigCount;
+
+        // In-scene panel text.
+        dbgText.text = fieldText;
+
+        // ALSO mirror the same live values to the DESKTOP monitor every frame so
+        // they're readable even if the in-scene plane is invisible. Prefixed so
+        // the milestone context is clear on the desktop box. Guarded via dbgMirror.
+        dbgMirror("panel: " + (inXR ? "in XR" : "desktop") + " (live)\n" + fieldText);
+      }
+      catch (frameErr)
+      {
+        // Never let a per-frame error escape into the render loop.
+        console.warn("[XR debug] per-frame update failed.", frameErr);
+      }
+    });
+  }
+  catch (err)
+  {
+    console.warn("[XR debug] setup failed; debug panel skipped (rendering unaffected).", err);
+    return;
+  }
 }
 
 // Enable XR on the CharacterController and probe immersive VR/AR support.
@@ -428,7 +760,7 @@ function setCharacterController(cc, scene, ar)
   );
 
   cc.enableBlending(0.05);
-  cc.setCameraElasticity(true);
+  cc.setCameraElasticity(false); // TEMP DIAGNOSTIC: testing whether camera elastic/springback causes the first-person dolly-out pause. Revert to true afterward.
   cc.makeObstructionInvisible(false);
   cc.showEllipsoid(true);
   cc.setGravity(9.8);
