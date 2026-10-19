@@ -1926,11 +1926,22 @@ export class CharacterController {
             } else {
                 a = 1;
                 if (this._act._turnLeft) {
-                    if (this._act._walkback) a = -1;
-                    if (!moving) anim = (this._rhsSign > 0) ? this._actionMap.turnLeft : this._actionMap.turnRight;
+                    if (!moving){
+                        if (this._isAG){
+                            anim = this._actionMap.turnLeft;
+                        }else{
+                            anim = (this._rhsSign > 0 ) ? this._actionMap.turnLeft : this._actionMap.turnRight;
+                        }
+                    }
                 } else {
-                    if (this._act._walk) a = -1;
-                    if (!moving) { a = -1; anim = (this._rhsSign > 0) ? this._actionMap.turnRight : this._actionMap.turnLeft; }
+                    if (!moving){
+                        a = -1;
+                        if (this._isAG){
+                            anim = this._actionMap.turnRight;
+                        }else{
+                            anim = (this._rhsSign > 0 ) ? this._actionMap.turnRight : this._actionMap.turnLeft;
+                        }
+                    }
                 }
                 if (this._hasCam)
                     this._camera.alpha = this._camera.alpha + this._rhsSign * turnAngle * a;
@@ -2630,38 +2641,38 @@ export class CharacterController {
             case "arrowup":
             case this._actionMap.walk.key:
                 // console.log("walk");
-                if (this._jumpStage === JumpStage.PRE_JUMP || this._jumpStage === JumpStage.POST_JUMP) break;
+                if (this._act._jump) break;
                 this._act._walk = true;
                 break;
             case "left":
             case "arrowleft":
             case this._actionMap.turnLeft.key:
                 // console.log("turn left");
-                if (this._jumpStage === JumpStage.PRE_JUMP || this._jumpStage === JumpStage.POST_JUMP) break;
+                if (this._act._jump) break;
                 this._act._turnLeft = true;
                 break;
             case "right":
             case "arrowright":
             case this._actionMap.turnRight.key:
                 // console.log("turn right");
-                if (this._jumpStage === JumpStage.PRE_JUMP || this._jumpStage === JumpStage.POST_JUMP) break;
+                if (this._act._jump) break;
                 this._act._turnRight = true;
                 break;
             case "down":
             case "arrowdown":
             case this._actionMap.walkBack.key:
                 // console.log("walk back");
-                if (this._jumpStage === JumpStage.PRE_JUMP || this._jumpStage === JumpStage.POST_JUMP) break;
+                if (this._act._jump) break;
                 this._act._walkback = true;
                 break;
             case this._actionMap.strafeLeft.key:
                 // console.log("strafe left");
-                if (this._jumpStage === JumpStage.PRE_JUMP || this._jumpStage === JumpStage.POST_JUMP) break;
+                if (this._act._jump) break;
                 this._act._stepLeft = true;
                 break;
             case this._actionMap.strafeRight.key:
                 // console.log("strafe right");
-                if (this._jumpStage === JumpStage.PRE_JUMP || this._jumpStage === JumpStage.POST_JUMP) break;
+                if (this._act._jump) break;
                 this._act._stepRight = true;
                 break;
         }
@@ -2799,65 +2810,79 @@ export class CharacterController {
 
     // control movement by commands rather than keyboard.
     public walk(b: boolean) {
+        if (b && this._act._jump) return;
         this._act.reset();
         this._act._walk = b;
     }
     public walkBack(b: boolean) {
+        if (b && this._act._jump) return;
         this._act.reset();
         this._act._walkback = b;
     }
     public walkBackFast(b: boolean) {
+        if (b && this._act._jump) return;
         this._act.reset();
         this._act._walkback = b;
         this._act._speedMod = b;
     }
     public run(b: boolean) {
+        if (b && this._act._jump) return;
         this._act.reset();
         this._act._walk = b;
         this._act._speedMod = b;
     }
     public turnLeft(b: boolean) {
+        if (b && this._act._jump) return;
         //this._act.reset();
         this._act._turnLeft = b;
         if (!b) this._isTurning = b;
     }
     public turnLeftFast(b: boolean) {
+        if (b && this._act._jump) return;
         //this._act.reset();
         this._act._turnLeft = b;
         if (!b) this._isTurning = b;
         this._act._speedMod = b;
     }
     public turnRight(b: boolean) {
+        if (b && this._act._jump) return;
         //this._act.reset();
         this._act._turnRight = b;
         if (!b) this._isTurning = b;
     }
     public turnRightFast(b: boolean) {
+        if (b && this._act._jump) return;
         //this._act.reset();
         this._act._turnRight = b;
         if (!b) this._isTurning = b;
         this._act._speedMod = b;
     }
     public strafeLeft(b: boolean) {
+        if (b && this._act._jump) return;
         this._act.reset();
         this._act._stepLeft = b;
     }
     public strafeLeftFast(b: boolean) {
+        if (b && this._act._jump) return;
         this._act.reset();
         this._act._stepLeft = b;
         this._act._speedMod = b;
     }
     public strafeRight(b: boolean) {
+        if (b && this._act._jump) return;
         this._act.reset();
         this._act._stepRight = b;
     }
     public strafeRightFast(b: boolean) {
+        if (b && this._act._jump) return;
         this._act.reset();
         this._act._stepRight = b;
         this._act._speedMod = b;
     }
     public jump() {
-        if (this._jumpStage !== JumpStage.NONE) return;
+        console.log(this._jumpStage);
+        if (this._act._jump) return;
+        //if (this._jumpStage !== JumpStage.NONE) return;
         if (this._inFreeFall) return;
         //this._act.reset();
         this._act._jump = true;
@@ -2873,6 +2898,7 @@ export class CharacterController {
     }
 
     public turnTo(target: Vector3 | TransformNode | number | null | undefined, options?: TurnToOptions): void {
+        if (this._act._jump) return;
         // 1. Ignore null/undefined
         if (target == null) return;
 
@@ -3174,6 +3200,7 @@ export class CharacterController {
      * @param options Optional parameters: run, arrivalDistance, obstructionThreshold
      */
     public moveTo(target: Vector3 | TransformNode, options?: MoveToOptions): void {
+        if (this._act._jump) return;
         // 1. Extract and clamp options
         const run = options?.run ?? false;
         const arrivalDist = clampPositive(options?.arrivalDistance ?? 0.5, 0.5);

@@ -18,6 +18,15 @@
 //   (anything else / omitted) -> load the .glb avatar and use AnimationGroups
 
 let ar;
+let debug = false;
+let player;
+let cc;
+let arcRotateCamera;
+let animPaused = false;
+let ellipsoid = false;
+let scene;
+let inXR = false;
+
 window.onload = function ()
 {
   const queryString = this.document.location.search;
@@ -27,12 +36,6 @@ window.onload = function ()
   setUI(ar);
   main(ar);
 };
-
-let animPaused = false;
-let ellipsoid = true;
-let cc;
-let scene;
-let inXR = false;
 
 // -----------------------------------------------------------------------------
 // DESKTOP-VISIBLE self-diagnostics mirror.
@@ -109,6 +112,7 @@ function setUI(ar)
   let moveToButton = document.getElementById("moveTo");
   let pauseButton = document.getElementById("pause");
   let ellButton = document.getElementById("ell");
+  let dbgCheckBox = document.getElementById("debug");
   let helpButton = document.getElementById("help");
   let closeButton = document.getElementById("closehelp");
 
@@ -156,6 +160,20 @@ function setUI(ar)
     ellipsoid = !ellipsoid;
     cc.showEllipsoid(ellipsoid);
   };
+
+  dbgCheckBox.addEventListener('change', (event) => {
+    if (event.target.checked) {
+      debug = true;
+       // ALWAYS-ON diagnostic panel (see setupXRDebugPanel). The panel is now created
+      // unconditionally so it renders in front of the DESKTOP ArcRotateCamera on a
+      // plain browser load (no ?debug, no headset) — this proves the GUI / plane /
+      // material / text code works before ever entering XR. When an XR session
+      // starts, the same panel re-anchors to the XR head camera.
+      setupXRDebugPanel(cc, arcRotateCamera, player);
+    } else {
+      debug = false;
+    }
+  });
 
   pauseButton.onclick = () =>
   {
@@ -230,12 +248,12 @@ async function main(ar)
     console.log("loading glb");
     result = await BABYLON.ImportMeshAsync("player/Vincent-frontFacing.glb", scene);
   }
-
-  let player = result.meshes[0];
+  
+  player = result.meshes[0];
   setPlayer(player);
 
   //create and set the camera
-  let arcRotateCamera = createCamera(player, scene);
+  arcRotateCamera = createCamera(player, scene);
   arcRotateCamera.attachControl(canvas, false);
 
   //create a CharacterController and set it
@@ -262,7 +280,7 @@ async function main(ar)
   // plain browser load (no ?debug, no headset) — this proves the GUI / plane /
   // material / text code works before ever entering XR. When an XR session
   // starts, the same panel re-anchors to the XR head camera.
-  setupXRDebugPanel(cc, arcRotateCamera, player);
+  if (debug) setupXRDebugPanel(cc, arcRotateCamera, player);
 
   engine.runRenderLoop(function ()
   {
@@ -762,7 +780,6 @@ function setCharacterController(cc, scene, ar)
   cc.enableBlending(0.05);
   cc.setCameraElasticity(false); // TEMP DIAGNOSTIC: testing whether camera elastic/springback causes the first-person dolly-out pause. Revert to true afterward.
   cc.makeObstructionInvisible(false);
-  cc.showEllipsoid(true);
   cc.setGravity(9.8);
 }
 

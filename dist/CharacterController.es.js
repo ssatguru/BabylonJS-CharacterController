@@ -313,7 +313,7 @@ function isAxisAction(action) {
 }
 var DEFAULT_XR_INPUT_MAPPING = (_a = {},
     _a[BindableAction.Move] = BindableInput.LeftThumbstickAxes,
-    _a[BindableAction.FastModifier] = BindableInput.LeftThumbstickPress,
+    _a[BindableAction.FastModifier] = BindableInput.LeftGrip,
     _a[BindableAction.Jump] = BindableInput.LeftTrigger,
     _a[BindableAction.CameraOrbit] = BindableInput.RightThumbstickAxes,
     _a[BindableAction.CameraDollyIn] = BindableInput.RightBButton,
@@ -507,11 +507,14 @@ function clampBetaValue(beta, limits) {
 function deriveAvatarYaw(alpha, facingOffset) {
     return facingOffset - alpha;
 }
+function normalizeAngle(angle) {
+    return Math.atan2(Math.sin(angle), Math.cos(angle));
+}
 function deriveAlphaFromYaw(yaw) {
-    return yaw;
+    return normalizeAngle(-yaw + Math.PI / 2);
 }
 function deriveBetaFromPitch(pitch) {
-    return Math.PI / 2 - pitch;
+    return pitch + Math.PI / 2;
 }
 
 ;// CONCATENATED MODULE: ./src/xr/XRController.ts
@@ -646,7 +649,7 @@ var XRController = (function () {
                         }
                         this._sessionType = type;
                         sessionMode = type === "ar" ? "immersive-ar" : "immersive-vr";
-                        return [4, base.enterXRAsync(sessionMode, "local-floor")];
+                        return [4, base.enterXRAsync(sessionMode, "local")];
                     case 3:
                         _c.sent();
                         return [3, 5];
@@ -968,8 +971,9 @@ var XRController = (function () {
                 xr.setTransformationFromNonVRCamera(this._camera, true);
             }
             var arcY = typeof ((_a = arc === null || arc === void 0 ? void 0 : arc.position) === null || _a === void 0 ? void 0 : _a.y) === "number" ? arc.position.y : 0;
+            var rwh = typeof xr.realWorldHeight === "number" && isFinite(xr.realWorldHeight) ? xr.realWorldHeight : 0;
             if (xr.position != null && typeof xr.position.y === "number") {
-                xr.position.y = arcY;
+                xr.position.y = arcY - rwh;
             }
         }
         catch (_b) {
@@ -994,9 +998,17 @@ var XRController = (function () {
     XRController.prototype.canFirstPerson = function () {
         return this._readNoFirstPerson() === false;
     };
+    XRController.prototype._xrFirstPersonCoupled = function () {
+        try {
+            return this.isInXR() && this.canFirstPerson() && this._readInFirstPerson();
+        }
+        catch (_a) {
+            return false;
+        }
+    };
     XRController.prototype._syncArcFromXRCamera = function () {
         try {
-            if (!this.isInXR() || !this.canFirstPerson() || !this._readInFirstPerson()) {
+            if (!this._xrFirstPersonCoupled()) {
                 return;
             }
             var xr = this._xrCamera;
@@ -1282,7 +1294,7 @@ var XRController = (function () {
             if (resolution == null) {
                 return;
             }
-            if (resolution.handedness !== handedness || resolution.componentId !== XR_COMPONENT_THUMBSTICK) {
+            if (resolution.handedness !== handedness || resolution.componentId !== XR_COMPONENT_SQUEEZE) {
                 return;
             }
             var mc = motionController;
@@ -1419,42 +1431,27 @@ var XRController = (function () {
     };
     XRController.prototype.bindJump = function (motionController, handedness) {
         var _this = this;
-        var _a, _b;
-        try {
-            var boundInput = (_a = this._effectiveMapping) === null || _a === void 0 ? void 0 : _a[BindableAction.Jump];
-            if (boundInput == null) {
-                return;
-            }
-            var resolution = INPUT_RESOLUTION[boundInput];
-            if (resolution == null) {
-                return;
-            }
-            if (resolution.handedness !== handedness || resolution.componentId !== XR_COMPONENT_TRIGGER) {
-                return;
-            }
-            var mc = motionController;
-            var component = (_b = mc === null || mc === void 0 ? void 0 : mc.getComponent) === null || _b === void 0 ? void 0 : _b.call(mc, resolution.componentId);
-            var observable = component === null || component === void 0 ? void 0 : component.onButtonStateChangedObservable;
-            if (observable == null || typeof observable.add !== "function") {
-                return;
-            }
-            var wasPressed_2 = false;
-            var observer = observable.add(function (changed) {
-                var _a, _b;
-                try {
-                    var pressed = (changed === null || changed === void 0 ? void 0 : changed.pressed) === true;
-                    if (pressed && !wasPressed_2) {
-                        (_b = (_a = _this._cc).jump) === null || _b === void 0 ? void 0 : _b.call(_a);
-                    }
-                    wasPressed_2 = pressed;
-                }
-                catch (_c) {
-                }
-            });
-            this._triggerObservers.push({ observable: observable, observer: observer });
+        var _a;
+        var boundInput = (_a = this._effectiveMapping) === null || _a === void 0 ? void 0 : _a[BindableAction.Jump];
+        if (boundInput == null) {
+            return;
         }
-        catch (_c) {
+        var resolution = INPUT_RESOLUTION[boundInput];
+        if (resolution == null ||
+            resolution.handedness !== handedness ||
+            resolution.componentId !== XR_COMPONENT_TRIGGER) {
+            return;
         }
+        var component = motionController.getComponent(resolution.componentId);
+        if (component == null) {
+            return;
+        }
+        component.onButtonStateChangedObservable.add(function (changed) {
+            var pressed = changed.pressed;
+            if (pressed) {
+                _this._cc.jump();
+            }
+        });
     };
     XRController.prototype._detachTriggerObservers = function () {
         try {
@@ -1495,7 +1492,12 @@ var XRController = (function () {
             this._renderObserver =
                 (_b = observable.add(function () {
                     _this.sampleSticks();
-                    _this._syncArcFromXRCamera();
+                    if (_this._xrFirstPersonCoupled() && !_this._anyStickActive() && !_this._dollyActive()) {
+                        _this._updateXRCameraFollow();
+                    }
+                    else {
+                        _this._updateXRCameraFollow();
+                    }
                     _this._retryRayManagement();
                 })) !== null && _b !== void 0 ? _b : null;
         }
@@ -1548,8 +1550,8 @@ var XRController = (function () {
     };
     XRController.prototype.applyMovementDirection = function (prev, prevFast, next, nextFast) {
         var _this = this;
-        this._edgeCall(prev.walk === true && !prevFast, next.walk === true && !nextFast, function (b) { var _a, _b; return (_b = (_a = _this._cc).walk) === null || _b === void 0 ? void 0 : _b.call(_a, b); });
-        this._edgeCall(prev.walk === true && prevFast, next.walk === true && nextFast, function (b) { var _a, _b; return (_b = (_a = _this._cc).run) === null || _b === void 0 ? void 0 : _b.call(_a, b); });
+        this._edgeCall(prev.walk === true && !prevFast, next.walk === true && !nextFast, function (b) { return _this._cc.walk(b); });
+        this._edgeCall(prev.walk === true && prevFast, next.walk === true && nextFast, function (b) { return _this._cc.run(b); });
         this._edgeCall(prev.walkBack === true && !prevFast, next.walkBack === true && !nextFast, function (b) { var _a, _b; return (_b = (_a = _this._cc).walkBack) === null || _b === void 0 ? void 0 : _b.call(_a, b); });
         this._edgeCall(prev.walkBack === true && prevFast, next.walkBack === true && nextFast, function (b) { var _a, _b; return (_b = (_a = _this._cc).walkBackFast) === null || _b === void 0 ? void 0 : _b.call(_a, b); });
         this._edgeCall(prev.strafeLeft === true && !prevFast, next.strafeLeft === true && !nextFast, function (b) { var _a, _b; return (_b = (_a = _this._cc).strafeLeft) === null || _b === void 0 ? void 0 : _b.call(_a, b); });
@@ -1639,6 +1641,32 @@ var XRController = (function () {
     };
     XRController.prototype._readRightStickInput = function () {
         return this._readAxesComponent(this._orbitAxesComponent);
+    };
+    XRController.prototype._anyStickActive = function () {
+        try {
+            var dz = this._stickDeadzone;
+            var dz2 = dz * dz;
+            var left = this._readLeftStickInput();
+            if (left.leftX * left.leftX + left.leftY * left.leftY > dz2) {
+                return true;
+            }
+            var right = this._readRightStickInput();
+            if (right.leftX * right.leftX + right.leftY * right.leftY > dz2) {
+                return true;
+            }
+            return false;
+        }
+        catch (_a) {
+            return false;
+        }
+    };
+    XRController.prototype._dollyActive = function () {
+        try {
+            return this._isComponentPressed(this._dollyInComponent) || this._isComponentPressed(this._dollyOutComponent);
+        }
+        catch (_a) {
+            return false;
+        }
     };
     XRController.prototype._readFastModifier = function () {
         try {
@@ -2044,8 +2072,9 @@ var XRController = (function () {
                 xr.setTransformationFromNonVRCamera(this._camera, true);
             }
             var arcY = typeof ((_d = arc === null || arc === void 0 ? void 0 : arc.position) === null || _d === void 0 ? void 0 : _d.y) === "number" ? arc.position.y : 0;
+            var rwh = typeof xr.realWorldHeight === "number" && isFinite(xr.realWorldHeight) ? xr.realWorldHeight : 0;
             if (xr.position != null && typeof xr.position.y === "number") {
-                xr.position.y = arcY;
+                xr.position.y = arcY - rwh;
             }
             if (this._entryBlendFrame >= ENTRY_BLEND_FRAMES) {
                 return;
@@ -2187,6 +2216,7 @@ var CharacterController_generator = (undefined && undefined.__generator) || func
 
 
 
+var FP_MIN_RADIUS = 0.01;
 function horizontalDistance(a, b) {
     var dx = a.x - b.x;
     var dz = a.z - b.z;
@@ -2291,6 +2321,9 @@ var CharacterController = (function () {
         this._groundFrameMax = 10;
         this._savedCameraCollision = true;
         this._inFP = false;
+        this._fpSavedRadius = null;
+        this._fpSavedLowerRadiusLimit = null;
+        this._fpExitThreshold = null;
         this._visiblityMap = new Map();
         this._ray = new ray_namespaceObject.Ray(math_vector_namespaceObject.Vector3.Zero(), math_vector_namespaceObject.Vector3.One(), 1);
         this._rayDir = math_vector_namespaceObject.Vector3.Zero();
@@ -3607,17 +3640,24 @@ var CharacterController = (function () {
             else {
                 a = 1;
                 if (this._act._turnLeft) {
-                    if (this._act._walkback)
-                        a = -1;
-                    if (!moving)
-                        anim = (this._rhsSign > 0) ? this._actionMap.turnLeft : this._actionMap.turnRight;
+                    if (!moving) {
+                        if (this._isAG) {
+                            anim = this._actionMap.turnLeft;
+                        }
+                        else {
+                            anim = (this._rhsSign > 0) ? this._actionMap.turnLeft : this._actionMap.turnRight;
+                        }
+                    }
                 }
                 else {
-                    if (this._act._walk)
-                        a = -1;
                     if (!moving) {
                         a = -1;
-                        anim = (this._rhsSign > 0) ? this._actionMap.turnRight : this._actionMap.turnLeft;
+                        if (this._isAG) {
+                            anim = this._actionMap.turnRight;
+                        }
+                        else {
+                            anim = (this._rhsSign > 0) ? this._actionMap.turnRight : this._actionMap.turnLeft;
+                        }
                     }
                 }
                 if (this._hasCam)
@@ -3773,11 +3813,12 @@ var CharacterController = (function () {
                 this._expectedRadius = this._camera.radius;
             }
         }
-        if (this._camera.radius > this._camera.lowerRadiusLimit) {
+        var fpThreshold = (this._inFP && this._fpExitThreshold !== null) ? this._fpExitThreshold : this._camera.lowerRadiusLimit;
+        if (this._camera.radius > fpThreshold) {
             if (this._cameraElastic || this._makeInvisible)
                 this._handleObstruction();
         }
-        if (this._camera.radius <= this._camera.lowerRadiusLimit) {
+        if (this._camera.radius <= fpThreshold) {
             if (!this._noFirstPerson && !this._inFP) {
                 this._makeMeshInvisible(this._avatar);
                 this._camera.checkCollisions = false;
@@ -3786,10 +3827,16 @@ var CharacterController = (function () {
                 this._mode = 0;
                 this._smoothTurnSpeed = 0;
                 this._inFP = true;
+                this._fpSavedRadius = this._camera.radius;
+                this._fpSavedLowerRadiusLimit = this._camera.lowerRadiusLimit;
+                this._fpExitThreshold = this._camera.lowerRadiusLimit;
+                this._camera.lowerRadiusLimit = FP_MIN_RADIUS;
+                this._camera.radius = FP_MIN_RADIUS;
+                this._expectedRadius = this._camera.radius;
             }
             if (this._inFP && fpHoldPos !== null) {
                 var distToTarget = math_vector_namespaceObject.Vector3.Distance(fpHoldPos, this._camera.target);
-                if (distToTarget > this._camera.lowerRadiusLimit) {
+                if (distToTarget > fpThreshold) {
                     if (distToTarget >= this._originalRadius) {
                         this._originalRadius = null;
                         this._originalAlpha = null;
@@ -3814,6 +3861,12 @@ var CharacterController = (function () {
                 this._smoothTurnSpeed = this._saveSmoothTurnSpeed;
                 this._restoreVisiblity(this._avatar);
                 this._camera.checkCollisions = this._savedCameraCollision;
+                if (this._fpSavedLowerRadiusLimit !== null) {
+                    this._camera.lowerRadiusLimit = this._fpSavedLowerRadiusLimit;
+                }
+                this._fpSavedLowerRadiusLimit = null;
+                this._fpExitThreshold = null;
+                this._fpSavedRadius = null;
                 this._expectedRadius = this._camera.radius;
             }
         }
@@ -4107,38 +4160,38 @@ var CharacterController = (function () {
             case "up":
             case "arrowup":
             case this._actionMap.walk.key:
-                if (this._jumpStage === 1 || this._jumpStage === 3)
+                if (this._act._jump)
                     break;
                 this._act._walk = true;
                 break;
             case "left":
             case "arrowleft":
             case this._actionMap.turnLeft.key:
-                if (this._jumpStage === 1 || this._jumpStage === 3)
+                if (this._act._jump)
                     break;
                 this._act._turnLeft = true;
                 break;
             case "right":
             case "arrowright":
             case this._actionMap.turnRight.key:
-                if (this._jumpStage === 1 || this._jumpStage === 3)
+                if (this._act._jump)
                     break;
                 this._act._turnRight = true;
                 break;
             case "down":
             case "arrowdown":
             case this._actionMap.walkBack.key:
-                if (this._jumpStage === 1 || this._jumpStage === 3)
+                if (this._act._jump)
                     break;
                 this._act._walkback = true;
                 break;
             case this._actionMap.strafeLeft.key:
-                if (this._jumpStage === 1 || this._jumpStage === 3)
+                if (this._act._jump)
                     break;
                 this._act._stepLeft = true;
                 break;
             case this._actionMap.strafeRight.key:
-                if (this._jumpStage === 1 || this._jumpStage === 3)
+                if (this._act._jump)
                     break;
                 this._act._stepRight = true;
                 break;
@@ -4244,65 +4297,90 @@ var CharacterController = (function () {
         this._stopNavRenderer();
     };
     CharacterController.prototype.walk = function (b) {
+        if (b && this._act._jump)
+            return;
         this._act.reset();
         this._act._walk = b;
     };
     CharacterController.prototype.walkBack = function (b) {
+        if (b && this._act._jump)
+            return;
         this._act.reset();
         this._act._walkback = b;
     };
     CharacterController.prototype.walkBackFast = function (b) {
+        if (b && this._act._jump)
+            return;
         this._act.reset();
         this._act._walkback = b;
         this._act._speedMod = b;
     };
     CharacterController.prototype.run = function (b) {
+        if (b && this._act._jump)
+            return;
         this._act.reset();
         this._act._walk = b;
         this._act._speedMod = b;
     };
     CharacterController.prototype.turnLeft = function (b) {
+        if (b && this._act._jump)
+            return;
         this._act._turnLeft = b;
         if (!b)
             this._isTurning = b;
     };
     CharacterController.prototype.turnLeftFast = function (b) {
+        if (b && this._act._jump)
+            return;
         this._act._turnLeft = b;
         if (!b)
             this._isTurning = b;
         this._act._speedMod = b;
     };
     CharacterController.prototype.turnRight = function (b) {
+        if (b && this._act._jump)
+            return;
         this._act._turnRight = b;
         if (!b)
             this._isTurning = b;
     };
     CharacterController.prototype.turnRightFast = function (b) {
+        if (b && this._act._jump)
+            return;
         this._act._turnRight = b;
         if (!b)
             this._isTurning = b;
         this._act._speedMod = b;
     };
     CharacterController.prototype.strafeLeft = function (b) {
+        if (b && this._act._jump)
+            return;
         this._act.reset();
         this._act._stepLeft = b;
     };
     CharacterController.prototype.strafeLeftFast = function (b) {
+        if (b && this._act._jump)
+            return;
         this._act.reset();
         this._act._stepLeft = b;
         this._act._speedMod = b;
     };
     CharacterController.prototype.strafeRight = function (b) {
+        if (b && this._act._jump)
+            return;
         this._act.reset();
         this._act._stepRight = b;
     };
     CharacterController.prototype.strafeRightFast = function (b) {
+        if (b && this._act._jump)
+            return;
         this._act.reset();
         this._act._stepRight = b;
         this._act._speedMod = b;
     };
     CharacterController.prototype.jump = function () {
-        if (this._jumpStage !== 0)
+        console.log(this._jumpStage);
+        if (this._act._jump)
             return;
         if (this._inFreeFall)
             return;
@@ -4316,6 +4394,8 @@ var CharacterController = (function () {
     };
     CharacterController.prototype.turnTo = function (target, options) {
         var _a, _b, _c;
+        if (this._act._jump)
+            return;
         if (target == null)
             return;
         var fast = (_a = options === null || options === void 0 ? void 0 : options.fast) !== null && _a !== void 0 ? _a : false;
@@ -4518,6 +4598,8 @@ var CharacterController = (function () {
     };
     CharacterController.prototype.moveTo = function (target, options) {
         var _a, _b, _c, _d;
+        if (this._act._jump)
+            return;
         var run = (_a = options === null || options === void 0 ? void 0 : options.run) !== null && _a !== void 0 ? _a : false;
         var arrivalDist = clampPositive((_b = options === null || options === void 0 ? void 0 : options.arrivalDistance) !== null && _b !== void 0 ? _b : 0.5, 0.5);
         var obstructionThreshold = clampPositive((_c = options === null || options === void 0 ? void 0 : options.obstructionThreshold) !== null && _c !== void 0 ? _c : 0.001, 0.001);
@@ -4751,6 +4833,12 @@ var CharacterController = (function () {
             return false;
         }
         return this._xr.isInXR();
+    };
+    CharacterController.prototype.getXRCamera = function () {
+        if (this._xr == null) {
+            return null;
+        }
+        return this._xr.getXRCamera();
     };
     CharacterController.prototype.isXRSupported = function () {
         return CharacterController_awaiter(this, void 0, void 0, function () {

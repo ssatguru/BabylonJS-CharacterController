@@ -111,7 +111,7 @@ export function isAxisAction(action: BindableAction): boolean {
  */
 export const DEFAULT_XR_INPUT_MAPPING: XRInputMapping = {
     [BindableAction.Move]: BindableInput.LeftThumbstickAxes,
-    [BindableAction.FastModifier]: BindableInput.LeftThumbstickPress,
+    [BindableAction.FastModifier]: BindableInput.LeftGrip,
     [BindableAction.Jump]: BindableInput.LeftTrigger,
     [BindableAction.CameraOrbit]: BindableInput.RightThumbstickAxes,
     [BindableAction.CameraDollyIn]: BindableInput.RightBButton,

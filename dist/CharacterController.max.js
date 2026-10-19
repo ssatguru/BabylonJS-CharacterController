@@ -804,7 +804,7 @@ var XRController = (function () {
             if (resolution == null) {
                 return;
             }
-            if (resolution.handedness !== handedness || resolution.componentId !== _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.XR_COMPONENT_THUMBSTICK) {
+            if (resolution.handedness !== handedness || resolution.componentId !== _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.XR_COMPONENT_SQUEEZE) {
                 return;
             }
             var mc = motionController;
@@ -941,42 +941,27 @@ var XRController = (function () {
     };
     XRController.prototype.bindJump = function (motionController, handedness) {
         var _this = this;
-        var _a, _b;
-        try {
-            var boundInput = (_a = this._effectiveMapping) === null || _a === void 0 ? void 0 : _a[_XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.BindableAction.Jump];
-            if (boundInput == null) {
-                return;
-            }
-            var resolution = _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.INPUT_RESOLUTION[boundInput];
-            if (resolution == null) {
-                return;
-            }
-            if (resolution.handedness !== handedness || resolution.componentId !== _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.XR_COMPONENT_TRIGGER) {
-                return;
-            }
-            var mc = motionController;
-            var component = (_b = mc === null || mc === void 0 ? void 0 : mc.getComponent) === null || _b === void 0 ? void 0 : _b.call(mc, resolution.componentId);
-            var observable = component === null || component === void 0 ? void 0 : component.onButtonStateChangedObservable;
-            if (observable == null || typeof observable.add !== "function") {
-                return;
-            }
-            var wasPressed_2 = false;
-            var observer = observable.add(function (changed) {
-                var _a, _b;
-                try {
-                    var pressed = (changed === null || changed === void 0 ? void 0 : changed.pressed) === true;
-                    if (pressed && !wasPressed_2) {
-                        (_b = (_a = _this._cc).jump) === null || _b === void 0 ? void 0 : _b.call(_a);
-                    }
-                    wasPressed_2 = pressed;
-                }
-                catch (_c) {
-                }
-            });
-            this._triggerObservers.push({ observable: observable, observer: observer });
+        var _a;
+        var boundInput = (_a = this._effectiveMapping) === null || _a === void 0 ? void 0 : _a[_XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.BindableAction.Jump];
+        if (boundInput == null) {
+            return;
         }
-        catch (_c) {
+        var resolution = _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.INPUT_RESOLUTION[boundInput];
+        if (resolution == null ||
+            resolution.handedness !== handedness ||
+            resolution.componentId !== _XRInputMapping__WEBPACK_IMPORTED_MODULE_2__.XR_COMPONENT_TRIGGER) {
+            return;
         }
+        var component = motionController.getComponent(resolution.componentId);
+        if (component == null) {
+            return;
+        }
+        component.onButtonStateChangedObservable.add(function (changed) {
+            var pressed = changed.pressed;
+            if (pressed) {
+                _this._cc.jump();
+            }
+        });
     };
     XRController.prototype._detachTriggerObservers = function () {
         try {
@@ -1018,7 +1003,7 @@ var XRController = (function () {
                 (_b = observable.add(function () {
                     _this.sampleSticks();
                     if (_this._xrFirstPersonCoupled() && !_this._anyStickActive() && !_this._dollyActive()) {
-                        _this._syncArcFromXRCamera();
+                        _this._updateXRCameraFollow();
                     }
                     else {
                         _this._updateXRCameraFollow();
@@ -1075,8 +1060,8 @@ var XRController = (function () {
     };
     XRController.prototype.applyMovementDirection = function (prev, prevFast, next, nextFast) {
         var _this = this;
-        this._edgeCall(prev.walk === true && !prevFast, next.walk === true && !nextFast, function (b) { var _a, _b; return (_b = (_a = _this._cc).walk) === null || _b === void 0 ? void 0 : _b.call(_a, b); });
-        this._edgeCall(prev.walk === true && prevFast, next.walk === true && nextFast, function (b) { var _a, _b; return (_b = (_a = _this._cc).run) === null || _b === void 0 ? void 0 : _b.call(_a, b); });
+        this._edgeCall(prev.walk === true && !prevFast, next.walk === true && !nextFast, function (b) { return _this._cc.walk(b); });
+        this._edgeCall(prev.walk === true && prevFast, next.walk === true && nextFast, function (b) { return _this._cc.run(b); });
         this._edgeCall(prev.walkBack === true && !prevFast, next.walkBack === true && !nextFast, function (b) { var _a, _b; return (_b = (_a = _this._cc).walkBack) === null || _b === void 0 ? void 0 : _b.call(_a, b); });
         this._edgeCall(prev.walkBack === true && prevFast, next.walkBack === true && nextFast, function (b) { var _a, _b; return (_b = (_a = _this._cc).walkBackFast) === null || _b === void 0 ? void 0 : _b.call(_a, b); });
         this._edgeCall(prev.strafeLeft === true && !prevFast, next.strafeLeft === true && !nextFast, function (b) { var _a, _b; return (_b = (_a = _this._cc).strafeLeft) === null || _b === void 0 ? void 0 : _b.call(_a, b); });
@@ -1773,7 +1758,7 @@ function isAxisAction(action) {
 }
 var DEFAULT_XR_INPUT_MAPPING = (_a = {},
     _a[BindableAction.Move] = BindableInput.LeftThumbstickAxes,
-    _a[BindableAction.FastModifier] = BindableInput.LeftThumbstickPress,
+    _a[BindableAction.FastModifier] = BindableInput.LeftGrip,
     _a[BindableAction.Jump] = BindableInput.LeftTrigger,
     _a[BindableAction.CameraOrbit] = BindableInput.RightThumbstickAxes,
     _a[BindableAction.CameraDollyIn] = BindableInput.RightBButton,
@@ -3663,17 +3648,24 @@ var CharacterController = (function () {
             else {
                 a = 1;
                 if (this._act._turnLeft) {
-                    if (this._act._walkback)
-                        a = -1;
-                    if (!moving)
-                        anim = (this._rhsSign > 0) ? this._actionMap.turnLeft : this._actionMap.turnRight;
+                    if (!moving) {
+                        if (this._isAG) {
+                            anim = this._actionMap.turnLeft;
+                        }
+                        else {
+                            anim = (this._rhsSign > 0) ? this._actionMap.turnLeft : this._actionMap.turnRight;
+                        }
+                    }
                 }
                 else {
-                    if (this._act._walk)
-                        a = -1;
                     if (!moving) {
                         a = -1;
-                        anim = (this._rhsSign > 0) ? this._actionMap.turnRight : this._actionMap.turnLeft;
+                        if (this._isAG) {
+                            anim = this._actionMap.turnRight;
+                        }
+                        else {
+                            anim = (this._rhsSign > 0) ? this._actionMap.turnRight : this._actionMap.turnLeft;
+                        }
                     }
                 }
                 if (this._hasCam)
@@ -4176,38 +4168,38 @@ var CharacterController = (function () {
             case "up":
             case "arrowup":
             case this._actionMap.walk.key:
-                if (this._jumpStage === 1 || this._jumpStage === 3)
+                if (this._act._jump)
                     break;
                 this._act._walk = true;
                 break;
             case "left":
             case "arrowleft":
             case this._actionMap.turnLeft.key:
-                if (this._jumpStage === 1 || this._jumpStage === 3)
+                if (this._act._jump)
                     break;
                 this._act._turnLeft = true;
                 break;
             case "right":
             case "arrowright":
             case this._actionMap.turnRight.key:
-                if (this._jumpStage === 1 || this._jumpStage === 3)
+                if (this._act._jump)
                     break;
                 this._act._turnRight = true;
                 break;
             case "down":
             case "arrowdown":
             case this._actionMap.walkBack.key:
-                if (this._jumpStage === 1 || this._jumpStage === 3)
+                if (this._act._jump)
                     break;
                 this._act._walkback = true;
                 break;
             case this._actionMap.strafeLeft.key:
-                if (this._jumpStage === 1 || this._jumpStage === 3)
+                if (this._act._jump)
                     break;
                 this._act._stepLeft = true;
                 break;
             case this._actionMap.strafeRight.key:
-                if (this._jumpStage === 1 || this._jumpStage === 3)
+                if (this._act._jump)
                     break;
                 this._act._stepRight = true;
                 break;
@@ -4313,65 +4305,90 @@ var CharacterController = (function () {
         this._stopNavRenderer();
     };
     CharacterController.prototype.walk = function (b) {
+        if (b && this._act._jump)
+            return;
         this._act.reset();
         this._act._walk = b;
     };
     CharacterController.prototype.walkBack = function (b) {
+        if (b && this._act._jump)
+            return;
         this._act.reset();
         this._act._walkback = b;
     };
     CharacterController.prototype.walkBackFast = function (b) {
+        if (b && this._act._jump)
+            return;
         this._act.reset();
         this._act._walkback = b;
         this._act._speedMod = b;
     };
     CharacterController.prototype.run = function (b) {
+        if (b && this._act._jump)
+            return;
         this._act.reset();
         this._act._walk = b;
         this._act._speedMod = b;
     };
     CharacterController.prototype.turnLeft = function (b) {
+        if (b && this._act._jump)
+            return;
         this._act._turnLeft = b;
         if (!b)
             this._isTurning = b;
     };
     CharacterController.prototype.turnLeftFast = function (b) {
+        if (b && this._act._jump)
+            return;
         this._act._turnLeft = b;
         if (!b)
             this._isTurning = b;
         this._act._speedMod = b;
     };
     CharacterController.prototype.turnRight = function (b) {
+        if (b && this._act._jump)
+            return;
         this._act._turnRight = b;
         if (!b)
             this._isTurning = b;
     };
     CharacterController.prototype.turnRightFast = function (b) {
+        if (b && this._act._jump)
+            return;
         this._act._turnRight = b;
         if (!b)
             this._isTurning = b;
         this._act._speedMod = b;
     };
     CharacterController.prototype.strafeLeft = function (b) {
+        if (b && this._act._jump)
+            return;
         this._act.reset();
         this._act._stepLeft = b;
     };
     CharacterController.prototype.strafeLeftFast = function (b) {
+        if (b && this._act._jump)
+            return;
         this._act.reset();
         this._act._stepLeft = b;
         this._act._speedMod = b;
     };
     CharacterController.prototype.strafeRight = function (b) {
+        if (b && this._act._jump)
+            return;
         this._act.reset();
         this._act._stepRight = b;
     };
     CharacterController.prototype.strafeRightFast = function (b) {
+        if (b && this._act._jump)
+            return;
         this._act.reset();
         this._act._stepRight = b;
         this._act._speedMod = b;
     };
     CharacterController.prototype.jump = function () {
-        if (this._jumpStage !== 0)
+        console.log(this._jumpStage);
+        if (this._act._jump)
             return;
         if (this._inFreeFall)
             return;
@@ -4385,6 +4402,8 @@ var CharacterController = (function () {
     };
     CharacterController.prototype.turnTo = function (target, options) {
         var _a, _b, _c;
+        if (this._act._jump)
+            return;
         if (target == null)
             return;
         var fast = (_a = options === null || options === void 0 ? void 0 : options.fast) !== null && _a !== void 0 ? _a : false;
@@ -4587,6 +4606,8 @@ var CharacterController = (function () {
     };
     CharacterController.prototype.moveTo = function (target, options) {
         var _a, _b, _c, _d;
+        if (this._act._jump)
+            return;
         var run = (_a = options === null || options === void 0 ? void 0 : options.run) !== null && _a !== void 0 ? _a : false;
         var arrivalDist = clampPositive((_b = options === null || options === void 0 ? void 0 : options.arrivalDistance) !== null && _b !== void 0 ? _b : 0.5, 0.5);
         var obstructionThreshold = clampPositive((_c = options === null || options === void 0 ? void 0 : options.obstructionThreshold) !== null && _c !== void 0 ? _c : 0.001, 0.001);

@@ -402,7 +402,6 @@ function toggleClass(e, action)
   {
     makeAllInactive();
     cc[action](!cc.getActiveActions().includes(action));
-    console.log(cc.getActiveActions());
     cc.getActiveActions().forEach((act)=>{
         ele = document.getElementById(act);
         if (ele) ele.classList.add(activeClass); 
@@ -462,11 +461,15 @@ function setControls()
 
   Actions.getAll().forEach((action) =>
   {
-    ele = document.getElementById(action);
+    console.log(action);
+    let ele = document.getElementById(action);
     if (ele) ele.onclick = function (e){toggleClass(e, action);};
     
   })
  
+  let ele = document.getElementById("jump");
+  if (ele) ele.onclick = function (e){toggleClass(e, "jump");};
+
   document.getElementById("mvt").onclick = function (e)
   {
     if (mvt)

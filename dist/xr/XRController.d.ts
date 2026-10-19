@@ -3,6 +3,7 @@ import type { CharacterController } from "../CharacterController";
 import { LocomotionMode, MoveIntent } from "./XRLocomotion";
 import { Handedness } from "./XRInputMapping";
 import type { XRSessionType } from "./XRSessionType";
+import { WebXRAbstractMotionController } from "babylonjs/XR/motionController/webXRAbstractMotionController";
 export declare class XRController {
     private _cc;
     private _camera;
@@ -101,7 +102,7 @@ export declare class XRController {
     emitToggleBlockedFeedback(controller: unknown): void;
     private _detachBindingObservers;
     private _detachObserverStream;
-    bindJump(motionController: unknown, handedness: Handedness): void;
+    bindJump(motionController: WebXRAbstractMotionController, handedness: Handedness): void;
     private _detachTriggerObservers;
     private _startRenderObserver;
     startStickSampler(): void;

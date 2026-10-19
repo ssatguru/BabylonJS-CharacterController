@@ -1,3 +1,18 @@
+## 10/19/2026 0.5.0-2
+- In WebXR the left squeeze/grab button rather than the left thumstick press now results in fast action
+- In WebXR turning head when in first person mode , no longer rotates the avatar. Avatar can only be turned using controller thumbstick. This leads to better user experience and prevents other issues. 
+- TODO We still need to center the scene to where the user is lookin. So when user turns their head to look at another direction , we need to provide a controller button, pressing which would instantly rotate the avatar to this direction.
+- fixed issue where jump() action command would break when another action command say walk() is executed before jump got completed
+- fixed jumb button in testCommandControl
+- added debug checkbox in testXR. 
+- TODO Fix issue where in once debug is on , we can't turnit off
+- fixed issue where turn key would result in the wrong turn animation. Example turn right key resulting in turn left animation
+- TODO turnTo() action command still results in wrong animation
+- simplified some AI generated overly defensive code
+- TODO In WebXR 
+  - add teleportation in first person mode
+  - add rotation in discrete angle rather than continuously
+
 ## 09/28/2026 0.5.0
 
 ### WebXR support (immersive VR/AR)

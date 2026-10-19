@@ -57,10 +57,12 @@ import {
     XR_COMPONENT_A_BUTTON,
     XR_COMPONENT_B_BUTTON,
     Handedness,
+    XR_COMPONENT_SQUEEZE,
 } from "./XRInputMapping";
 import { detectXRSupport } from "./XRSupport";
 import type { XRSessionType } from "./XRSessionType";
 import { deriveArcAngles, HeadsetOrientation, BetaLimits } from "./XROrientationSync";
+import { WebXRAbstractMotionController } from "babylonjs/XR/motionController/webXRAbstractMotionController";
 
 /**
  * Default orbit/dolly sensitivity rates (radians-per-frame at full deflection
@@ -1663,7 +1665,7 @@ export class XRController {
             //  - Jump: left-trigger rising edge -> cc.jump() (task 9.1).
             //  - Right dolly buttons: capture live components for the per-frame
             //    button-dolly sampler (task 11.1).
-            this.bindJump(motionController, handedness);
+            this.bindJump(motionController as WebXRAbstractMotionController, handedness);
             this.captureRightDollyButtons(motionController, handedness);
 
             // Axis + press + toggle handlers wired here by walking the mapping.
@@ -1797,7 +1799,7 @@ export class XRController {
             }
             // FastModifier default is the left thumbstick PRESS (the thumbstick
             // component's pressed state). Only wire on the matching hand + stick.
-            if (resolution.handedness !== handedness || resolution.componentId !== XR_COMPONENT_THUMBSTICK) {
+            if (resolution.handedness !== handedness || resolution.componentId !== XR_COMPONENT_SQUEEZE) {
                 return;
             }
 
@@ -2077,62 +2079,36 @@ export class XRController {
      *
      * _Requirements: 8.1, 8.2, 8.3_
      */
-    bindJump(motionController: unknown, handedness: Handedness): void {
-        try {
-            // Look up the input bound to Jump; skip entirely when unbound (R18.10).
-            const boundInput = this._effectiveMapping?.[BindableAction.Jump];
-            if (boundInput == null) {
-                return;
-            }
-
-            // Resolve the bound input to (handedness, componentId).
-            const resolution = INPUT_RESOLUTION[boundInput];
-            if (resolution == null) {
-                return;
-            }
-
-            // R8.2: only bind on the controller whose handedness matches the
-            // bound input, and only when the bound component is the trigger. The
-            // default binds Jump to the LEFT trigger, so a right-hand controller
-            // (or a non-trigger component) never wires a jump handler here.
-            if (resolution.handedness !== handedness || resolution.componentId !== XR_COMPONENT_TRIGGER) {
-                return;
-            }
-
-            const mc = motionController as {
-                getComponent?: (id: string) => {
-                    onButtonStateChangedObservable?: {
-                        add?: (cb: (component: { pressed?: boolean }) => void) => unknown;
-                    };
-                } | null | undefined;
-            } | null | undefined;
-
-            const component = mc?.getComponent?.(resolution.componentId);
-            const observable = component?.onButtonStateChangedObservable;
-            if (observable == null || typeof observable.add !== "function") {
-                return;
-            }
-
-            // Rising-edge detector: fire jump() once on false -> true.
-            let wasPressed = false;
-            const observer = observable.add((changed: { pressed?: boolean }) => {
-                try {
-                    const pressed = changed?.pressed === true;
-                    if (pressed && !wasPressed) {
-                        // R8.1: rising edge -> exactly one jump().
-                        this._cc.jump?.();
-                    }
-                    wasPressed = pressed;
-                } catch {
-                    // D9: swallow inside the per-event handler.
-                }
-            });
-
-            // Track the observer in its per-stream array for teardown (R8.3).
-            this._triggerObservers.push({ observable, observer });
-        } catch {
-            // D9: swallow.
+    
+    bindJump(motionController: WebXRAbstractMotionController, handedness: Handedness): void {
+        const boundInput = this._effectiveMapping?.[BindableAction.Jump];
+        if (boundInput == null) {
+            return;
         }
+
+        const resolution = INPUT_RESOLUTION[boundInput];
+        if (
+            resolution == null ||
+            resolution.handedness !== handedness ||
+            resolution.componentId !== XR_COMPONENT_TRIGGER
+        ) {
+            return;
+        }
+
+        const component = motionController.getComponent(resolution.componentId);
+        if (component == null) {
+            return;
+        }
+
+        //let wasPressed = false;
+        component.onButtonStateChangedObservable.add((changed) => {
+            const pressed = changed.pressed;
+            // if (pressed && !wasPressed) {
+            if (pressed) {
+                this._cc.jump();
+            }
+            //wasPressed = pressed;
+        });
     }
 
     /**
@@ -2247,7 +2223,8 @@ export class XRController {
                         // camera `alpha`/`beta` (first-person look). The full arc ->
                         // XR mirror is intentionally NOT run this frame: it would
                         // fight the headset orientation.
-                        this._syncArcFromXRCamera();
+                        //this._syncArcFromXRCamera();
+                        this._updateXRCameraFollow();
                     } else {
                         // Either third person, or first person with a stick
                         // moving OR a dolly button held: run the arc -> XR position
@@ -2255,8 +2232,8 @@ export class XRController {
                         // pose. In first person this lets left-stick travel move the
                         // camera with the avatar, right-stick orbit take effect, and
                         // a held dolly button move the XR camera with the dollying
-                        // arc camera (otherwise the orientation-only sync branch
-                        // would freeze the XR camera position during a button-dolly
+                        // arc camera (otherwise the orientation-only sync branch would
+                        // freeze the XR camera position during a button-dolly
                         // - the dolly-out "pause") instead of being overwritten by
                         // the headset sync; in third person it behaves exactly as
                         // before this feature.
@@ -2398,8 +2375,8 @@ export class XRController {
      */
     applyMovementDirection(prev: MoveIntent, prevFast: boolean, next: MoveIntent, nextFast: boolean): void {
         // Forward (walk / run).
-        this._edgeCall(prev.walk === true && !prevFast, next.walk === true && !nextFast, (b) => this._cc.walk?.(b));
-        this._edgeCall(prev.walk === true && prevFast, next.walk === true && nextFast, (b) => this._cc.run?.(b));
+        this._edgeCall(prev.walk === true && !prevFast, next.walk === true && !nextFast, (b) => this._cc.walk(b));
+        this._edgeCall(prev.walk === true && prevFast, next.walk === true && nextFast, (b) => this._cc.run(b));
 
         // Backward (walkBack / walkBackFast).
         this._edgeCall(
@@ -3585,7 +3562,7 @@ export class XRController {
             this._detachBindingObservers();
 
             // D15 (task 12.3): tear down the one-shot initial-pose observer(s) if
-            // the session ends before either ever fired, so enter/exit cycles
+            // the session ended before either ever fired, so enter/exit cycles
             // never accumulate initial-pose hooks.
             this._removeInitialPoseObserver();
 
