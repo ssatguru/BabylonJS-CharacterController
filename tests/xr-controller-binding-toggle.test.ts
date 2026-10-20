@@ -13,6 +13,7 @@ import {
     XR_COMPONENT_TRIGGER,
     XR_COMPONENT_THUMBSTICK,
     XR_COMPONENT_B_BUTTON,
+    XR_COMPONENT_Y_BUTTON,
 } from "../src/xr/XRInputMapping";
 import type { XRInputMapping } from "../src/xr/XRInputMapping";
 
@@ -125,6 +126,7 @@ function makeFakeMotionController(handedness: "left" | "right") {
     const aButton = makeFakeButtonComponent();
     const xButton = makeFakeButtonComponent();
     const bButton = makeFakeButtonComponent();
+    const yButton = makeFakeButtonComponent();
     const trigger = makeFakeButtonComponent();
     const thumbstick = { axes: { x: 0, y: 0 }, pressed: false, onButtonStateChangedObservable: new FakeObservable<{ pressed?: boolean }>() };
 
@@ -136,6 +138,8 @@ function makeFakeMotionController(handedness: "left" | "right") {
                 return xButton.component;
             case XR_COMPONENT_B_BUTTON:
                 return bButton.component;
+            case XR_COMPONENT_Y_BUTTON:
+                return yButton.component;
             case XR_COMPONENT_TRIGGER:
                 return trigger.component;
             case XR_COMPONENT_THUMBSTICK:
@@ -148,7 +152,7 @@ function makeFakeMotionController(handedness: "left" | "right") {
     const pulse = vi.fn(async () => undefined);
 
     const motionController = { handedness, getComponent, pulse };
-    return { motionController, aButton, xButton, bButton, trigger, thumbstick, getComponent, pulse };
+    return { motionController, aButton, xButton, bButton, yButton, trigger, thumbstick, getComponent, pulse };
 }
 
 /**
@@ -591,5 +595,101 @@ describe("Feature: webxr-support - an unbound (null) action wires no handler and
         // Teleport is null in the default mapping (retained, never enabled).
         expect(effectiveMapping(controller)[BindableAction.Teleport]).toBeNull();
         expect(INPUT_RESOLUTION).toBeDefined();
+    });
+});
+
+// ---------------------------------------------------------------------------
+// HudToggle - left-Y rising edge surfaces to the consumer callback
+// ---------------------------------------------------------------------------
+
+describe("Feature: webxr-support - HudToggle surfaces the LEFT-Y rising edge to a consumer callback", () => {
+    it("the documented default binds HudToggle to the LEFT Y button", () => {
+        expect(DEFAULT_XR_INPUT_MAPPING[BindableAction.HudToggle]).toBe(BindableInput.LeftYButton);
+    });
+
+    it("a LEFT-Y rising edge invokes the registered callback once per press", () => {
+        const { controller } = makeController(false);
+        const hud = vi.fn();
+        controller.setHudToggleCallback(hud);
+
+        const { controller: left, yButton } = makeFakeController("left");
+        (controller as any)._onControllerAdded(left);
+
+        // The Y-button observable was subscribed (HudToggle handler attached).
+        expect(yButton.observable.add).toHaveBeenCalled();
+
+        yButton.press(); // rising edge -> one callback
+        expect(hud).toHaveBeenCalledTimes(1);
+
+        // Held (no new rising edge) does not repeat.
+        yButton.press();
+        expect(hud).toHaveBeenCalledTimes(1);
+
+        // Release then press again -> a second rising edge.
+        yButton.release();
+        yButton.press();
+        expect(hud).toHaveBeenCalledTimes(2);
+    });
+
+    it("a non-rising change (release while already released) does not invoke the callback", () => {
+        const { controller } = makeController(false);
+        const hud = vi.fn();
+        controller.setHudToggleCallback(hud);
+
+        const { controller: left, yButton } = makeFakeController("left");
+        (controller as any)._onControllerAdded(left);
+
+        yButton.release(); // was never pressed -> no rising edge
+        expect(hud).not.toHaveBeenCalled();
+    });
+
+    it("the RIGHT Y button does NOT trigger the HudToggle callback (handedness guard)", () => {
+        const { controller } = makeController(false);
+        const hud = vi.fn();
+        controller.setHudToggleCallback(hud);
+
+        // HudToggle defaults to LEFT Y; a right controller's Y must not be wired.
+        const { controller: right, yButton } = makeFakeController("right");
+        (controller as any)._onControllerAdded(right);
+
+        expect(yButton.observable.add).not.toHaveBeenCalled();
+        yButton.press();
+        expect(hud).not.toHaveBeenCalled();
+    });
+
+    it("a throwing consumer callback is swallowed and never breaks the handler", () => {
+        const { controller } = makeController(false);
+        controller.setHudToggleCallback(() => {
+            throw new Error("boom");
+        });
+
+        const { controller: left, yButton } = makeFakeController("left");
+        (controller as any)._onControllerAdded(left);
+
+        expect(() => yButton.press()).not.toThrow();
+    });
+
+    it("a LEFT-Y press with no registered callback is a safe no-op", () => {
+        const { controller } = makeController(false);
+        // No setHudToggleCallback call.
+        const { controller: left, yButton } = makeFakeController("left");
+        (controller as any)._onControllerAdded(left);
+
+        expect(() => yButton.press()).not.toThrow();
+    });
+
+    it("setHudToggleCallback is single-subscriber: the latest registration wins", () => {
+        const { controller } = makeController(false);
+        const first = vi.fn();
+        const second = vi.fn();
+        controller.setHudToggleCallback(first);
+        controller.setHudToggleCallback(second);
+
+        const { controller: left, yButton } = makeFakeController("left");
+        (controller as any)._onControllerAdded(left);
+
+        yButton.press();
+        expect(first).not.toHaveBeenCalled();
+        expect(second).toHaveBeenCalledTimes(1);
     });
 });

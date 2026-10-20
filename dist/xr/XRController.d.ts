@@ -28,6 +28,7 @@ export declare class XRController {
     private _orbitAxesComponent;
     private _fastModifierComponent;
     private _lastToggleController;
+    private _hudToggleCallback;
     private _leftRayHidden;
     private _rightRingRaised;
     private _leftControllerForRay;
@@ -98,6 +99,7 @@ export declare class XRController {
     private _resolveAxesComponent;
     private _wireFastModifier;
     private _wireToggle;
+    setHudToggleCallback(cb: () => void): void;
     handleToggleRequest(): void;
     emitToggleBlockedFeedback(controller: unknown): void;
     private _detachBindingObservers;

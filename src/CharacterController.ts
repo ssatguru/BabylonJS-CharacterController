@@ -3601,6 +3601,18 @@ export class CharacterController {
     }
 
     /**
+     * Register a callback invoked on the rising edge of the controller input
+     * bound to {@link BindableAction.HudToggle} (default: LEFT Y button) during
+     * an XR session. The library manages no HUD itself - this simply surfaces
+     * the press so an application can toggle its own in-headset UI. Single-
+     * subscriber (latest registration wins); the callback persists across
+     * session enter/exit cycles. A safe no-op when XR was never enabled.
+     */
+    public onXRHudToggle(cb: () => void): void {
+        this._xr?.setHudToggleCallback(cb);
+    }
+
+    /**
      * Detect immersive VR / AR support. Returns `{ vrSupported: false,
      * arSupported: false }` when XR was never enabled; otherwise delegates to
      * the XRController's async support probe.

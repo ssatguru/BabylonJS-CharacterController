@@ -26,6 +26,7 @@ export enum BindableAction {
     CameraDollyOut = "CameraDollyOut",
     DollyToAvatarToggle = "DollyToAvatarToggle",
     LocomotionModeToggle = "LocomotionModeToggle",
+    HudToggle = "HudToggle",
     Teleport = "Teleport",
 }
 
@@ -118,6 +119,11 @@ export const DEFAULT_XR_INPUT_MAPPING: XRInputMapping = {
     [BindableAction.CameraDollyOut]: BindableInput.RightAButton,
     [BindableAction.DollyToAvatarToggle]: BindableInput.LeftXButton,
     [BindableAction.LocomotionModeToggle]: BindableInput.LeftAButton,
+    // Application-level HUD toggle. The library does not manage any HUD itself;
+    // it only surfaces the LEFT-Y rising edge to a consumer callback (see
+    // CharacterController.onXRHudToggle). Button action, so it participates in
+    // the standard validation/conflict rules with no axis special-casing.
+    [BindableAction.HudToggle]: BindableInput.LeftYButton,
     [BindableAction.Teleport]: null,
 };
 

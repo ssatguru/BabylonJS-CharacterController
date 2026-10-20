@@ -68,6 +68,7 @@ const DOCUMENTED_ACTIONS = [
     "CameraDollyOut",
     "DollyToAvatarToggle",
     "LocomotionModeToggle",
+    "HudToggle",
     "Teleport",
 ] as const;
 
@@ -94,13 +95,14 @@ const DOCUMENTED_INPUTS = [
 // The documented Default_Mapping bindings (R18.5).
 const DOCUMENTED_DEFAULT: Record<string, string | null> = {
     Move: "left-thumbstick-axes",
-    FastModifier: "left-thumbstick-press",
+    FastModifier: "left-grip",
     Jump: "left-trigger",
     CameraOrbit: "right-thumbstick-axes",
     CameraDollyIn: "right-b-button",
     CameraDollyOut: "right-a-button",
     DollyToAvatarToggle: "left-x-button",
     LocomotionModeToggle: "left-a-button",
+    HudToggle: "left-y-button",
     Teleport: null,
 };
 
@@ -304,5 +306,40 @@ describe("Feature: webxr-support - setXRInputMapping reject keeps previous effec
         });
         expect(result.rejected).toBe(true);
         expect(cc.getEffectiveXRInputMapping()).toEqual(before);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// onXRHudToggle delegate (HUD_Toggle public surface)
+// ---------------------------------------------------------------------------
+
+import { vi } from "vitest";
+
+describe("Feature: webxr-support - onXRHudToggle delegate", () => {
+    it("HudToggle is a documented action bound to the LEFT Y button by default", () => {
+        const cc = makeCC();
+        expect(BindableAction.HudToggle).toBe("HudToggle");
+        expect(cc.getDefaultXRInputMapping()[BindableAction.HudToggle]).toBe(
+            BindableInput.LeftYButton
+        );
+    });
+
+    it("onXRHudToggle is a safe no-op before enableXR (XR never enabled)", () => {
+        const cc = makeCC();
+        // _xr is null; registering a callback must neither throw nor have effect.
+        expect(() => cc.onXRHudToggle(() => {})).not.toThrow();
+    });
+
+    it("onXRHudToggle delegates to the XRController's setHudToggleCallback once enabled", () => {
+        const cc = makeCC();
+        const setHudToggleCallback = vi.fn();
+        // Seed a fake XRController through the internal seam.
+        (cc as unknown as { _xr: unknown })._xr = { setHudToggleCallback };
+
+        const cb = () => {};
+        cc.onXRHudToggle(cb);
+
+        expect(setHudToggleCallback).toHaveBeenCalledTimes(1);
+        expect(setHudToggleCallback).toHaveBeenCalledWith(cb);
     });
 });

@@ -276,6 +276,7 @@ var BindableAction;
     BindableAction["CameraDollyOut"] = "CameraDollyOut";
     BindableAction["DollyToAvatarToggle"] = "DollyToAvatarToggle";
     BindableAction["LocomotionModeToggle"] = "LocomotionModeToggle";
+    BindableAction["HudToggle"] = "HudToggle";
     BindableAction["Teleport"] = "Teleport";
 })(BindableAction || (BindableAction = {}));
 var BindableInput;
@@ -320,6 +321,7 @@ var DEFAULT_XR_INPUT_MAPPING = (_a = {},
     _a[BindableAction.CameraDollyOut] = BindableInput.RightAButton,
     _a[BindableAction.DollyToAvatarToggle] = BindableInput.LeftXButton,
     _a[BindableAction.LocomotionModeToggle] = BindableInput.LeftAButton,
+    _a[BindableAction.HudToggle] = BindableInput.LeftYButton,
     _a[BindableAction.Teleport] = null,
     _a);
 var XR_COMPONENT_THUMBSTICK = "xr-standard-thumbstick";
@@ -590,6 +592,7 @@ var XRController = (function () {
         this._orbitAxesComponent = null;
         this._fastModifierComponent = null;
         this._lastToggleController = null;
+        this._hudToggleCallback = null;
         this._leftRayHidden = false;
         this._rightRingRaised = false;
         this._leftControllerForRay = null;
@@ -1219,6 +1222,7 @@ var XRController = (function () {
             this._wireFastModifier(motionController, handedness);
             this._wireToggle(motionController, handedness, BindableAction.DollyToAvatarToggle);
             this._wireToggle(motionController, handedness, BindableAction.LocomotionModeToggle);
+            this._wireToggle(motionController, handedness, BindableAction.HudToggle);
             try {
                 if (handedness === "left") {
                     this.rememberLeftControllerAndHideRay(controller);
@@ -1339,6 +1343,7 @@ var XRController = (function () {
             }
             var wasPressed_1 = false;
             var observer = observable.add(function (changed) {
+                var _a;
                 try {
                     var pressed = (changed === null || changed === void 0 ? void 0 : changed.pressed) === true;
                     if (pressed && !wasPressed_1) {
@@ -1349,16 +1354,26 @@ var XRController = (function () {
                             _this._lastToggleController = motionController;
                             _this.handleToggleRequest();
                         }
+                        else if (action === BindableAction.HudToggle) {
+                            try {
+                                (_a = _this._hudToggleCallback) === null || _a === void 0 ? void 0 : _a.call(_this);
+                            }
+                            catch (_b) {
+                            }
+                        }
                     }
                     wasPressed_1 = pressed;
                 }
-                catch (_a) {
+                catch (_c) {
                 }
             });
             this._toggleObservers.push({ observable: observable, observer: observer });
         }
         catch (_c) {
         }
+    };
+    XRController.prototype.setHudToggleCallback = function (cb) {
+        this._hudToggleCallback = typeof cb === "function" ? cb : null;
     };
     XRController.prototype.handleToggleRequest = function () {
         try {
@@ -4839,6 +4854,10 @@ var CharacterController = (function () {
             return null;
         }
         return this._xr.getXRCamera();
+    };
+    CharacterController.prototype.onXRHudToggle = function (cb) {
+        var _a;
+        (_a = this._xr) === null || _a === void 0 ? void 0 : _a.setHudToggleCallback(cb);
     };
     CharacterController.prototype.isXRSupported = function () {
         return CharacterController_awaiter(this, void 0, void 0, function () {

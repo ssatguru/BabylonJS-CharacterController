@@ -7,6 +7,7 @@ export declare enum BindableAction {
     CameraDollyOut = "CameraDollyOut",
     DollyToAvatarToggle = "DollyToAvatarToggle",
     LocomotionModeToggle = "LocomotionModeToggle",
+    HudToggle = "HudToggle",
     Teleport = "Teleport"
 }
 export declare enum BindableInput {

@@ -1,3 +1,10 @@
+
+## 10/19/2026 0.5.1
+
+### HUD toggle consumer callback (application-facing)
+- added `CharacterController.onXRHudToggle(cb)` — register a callback invoked on the rising edge of the controller input bound to the new `BindableAction.HudToggle` (default: LEFT Y button) during an XR session. The library manages no HUD itself; this simply surfaces the button press so a consuming application (e.g. an in-headset options panel) can toggle its own UI. Single-subscriber (latest registration wins); the callback persists across session enter/exit cycles; a safe no-op when XR was never enabled. Implemented as a plain callback (not a BabylonJS `Observable`) so no new import-map/bridge entries are required
+- added `BindableAction.HudToggle`, default-bound to `BindableInput.LeftYButton`, wired through the existing data-driven `_wireToggle` rising-edge path and torn down with the other per-session toggle observers. It is a button action and participates in the standard mapping validation/conflict rules; it can be rebound via `setXRInputMapping` or unbound (`null`)
+
 ## 10/19/2026 0.5.0-2
 - In WebXR the left squeeze/grab button rather than the left thumstick press now results in fast action
 - In WebXR turning head when in first person mode , no longer rotates the avatar. Avatar can only be turned using controller thumbstick. This leads to better user experience and prevents other issues. 

@@ -247,6 +247,18 @@ export class XRController {
      */
     private _lastToggleController: unknown = null;
 
+    /**
+     * Optional consumer callback invoked on the rising edge of the input bound
+     * to {@link BindableAction.HudToggle} (default: LEFT Y button). The library
+     * itself has no notion of a HUD - this only surfaces the press so an
+     * application (e.g. Vishva) can toggle its own in-headset UI. Registered via
+     * {@link setHudToggleCallback} / `CharacterController.onXRHudToggle`, it
+     * persists across enter/exit cycles (it is NOT session state); only the
+     * underlying button observer is rebound per session. Null until a consumer
+     * registers one.
+     */
+    private _hudToggleCallback: (() => void) | null = null;
+
     // --- Controller ray-management latch/state (R13) ---
     /**
      * Latched `true` once the LEFT controller's Pointer_Selection laser ray and
@@ -1674,6 +1686,9 @@ export class XRController {
             this._wireFastModifier(motionController, handedness);
             this._wireToggle(motionController, handedness, BindableAction.DollyToAvatarToggle);
             this._wireToggle(motionController, handedness, BindableAction.LocomotionModeToggle);
+            // Application-level HUD toggle (default LEFT Y button). Surfaces the
+            // rising edge to the consumer callback; no library-side behavior.
+            this._wireToggle(motionController, handedness, BindableAction.HudToggle);
             // Teleport is retained but intentionally never wired (design D13).
 
             // R13: remember this controller for pointer-ray management and attempt
@@ -1885,6 +1900,15 @@ export class XRController {
                         } else if (action === BindableAction.LocomotionModeToggle) {
                             this._lastToggleController = motionController;
                             this.handleToggleRequest();
+                        } else if (action === BindableAction.HudToggle) {
+                            // Surface the press to the consumer; the library
+                            // owns no HUD. Guarded so a throwing consumer
+                            // callback never breaks the per-event handler (D9).
+                            try {
+                                this._hudToggleCallback?.();
+                            } catch {
+                                // D9: swallow consumer callback errors.
+                            }
                         }
                     }
                     wasPressed = pressed;
@@ -1896,6 +1920,19 @@ export class XRController {
         } catch {
             // D9: swallow.
         }
+    }
+
+    /**
+     * Register (or replace) the consumer callback invoked on the rising edge of
+     * the input bound to {@link BindableAction.HudToggle} (default: LEFT Y
+     * button). Single-subscriber: the latest registration wins. Passing a value
+     * that is not a function clears the callback. The callback persists across
+     * session enter/exit cycles, so a consumer registers it once (typically
+     * right after `enable`). Exposed to applications via
+     * `CharacterController.onXRHudToggle`.
+     */
+    setHudToggleCallback(cb: () => void): void {
+        this._hudToggleCallback = typeof cb === "function" ? cb : null;
     }
 
     /**

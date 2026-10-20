@@ -301,6 +301,7 @@ export declare class CharacterController {
     exitXR(): Promise<void>;
     isInXR(): boolean;
     getXRCamera(): WebXRCamera | null;
+    onXRHudToggle(cb: () => void): void;
     isXRSupported(): Promise<XRSupportState>;
     setXRStickDeadzone(v: number): void;
     setXROrbitAlphaRate(v: number): void;
