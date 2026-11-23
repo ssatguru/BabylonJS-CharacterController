@@ -1,3 +1,7 @@
+## 11/22/2026 0.5.2
+- upgraded babylonjs from 8.56.2 to 9.37.1
+- documented all WEB XR related new APIs
+- updated "moveTo" so that Aavatr would run if shift is pressed during the moveTo
 
 ## 10/19/2026 0.5.1
 

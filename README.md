@@ -232,7 +232,28 @@ The package exports the following:
 - `MoveToOptions` — interface for `moveTo()` optional parameters (`run`, `arrivalDistance`, `obstructionThreshold`, `onComplete`)
 - `TurnToOptions` — interface for `turnTo()` optional parameters (`fast`, `angularTolerance`, `onComplete`)
 
-## API ( version 0.4.7 )
+### WebXR exports
+
+The following types, enums, and functions support the WebXR API (see [WebXR Support](#webxr-support)):
+
+- `XRSessionType` — type alias `'vr' | 'ar'`, the session kind passed to `enterXR()`
+- `XRSupportState` — interface `{ vrSupported: boolean; arSupported: boolean }` returned by `isXRSupported()`
+- `BindableAction` — enum of controller-driven actions that can be bound (e.g. `BindableAction.Move`, `BindableAction.Jump`)
+- `BindableInput` — enum of XR controller inputs (thumbstick axes/press, triggers, grips, a/b/x/y face buttons per hand)
+- `XRInputMapping` — type mapping every `BindableAction` to a `BindableInput` or `null` (unbound)
+- `MappingResult` — interface `{ applied, rejected, reason? }` returned by `setXRInputMapping()`
+- `DEFAULT_XR_INPUT_MAPPING` — the documented default input mapping
+- `mergeXRInputMapping(partial)` — overlay a partial mapping onto the default (pure, no validation)
+- `validateXRInputMapping(mapping)` — validate a complete mapping (pure)
+- `detectXRSupport()` — async probe returning `XRSupportState` for VR and AR independently
+- `XRLocomotion` — first/third-person locomotion state machine (pure)
+- `mapStickToIntent` — map left-stick axes to a movement intent (pure)
+- `LocomotionMode` — type `'firstPerson' | 'thirdPerson'`
+- `ToggleResult` — interface `{ mode, changed, blocked }` from the locomotion toggle
+- `MoveIntent` — interface `{ walk, walkBack, strafeLeft, strafeRight }` from `mapStickToIntent`
+- `StickInput` — interface `{ leftX, leftY }` raw left-stick axes
+
+## API ( version 0.5.1 )
 
 #### To Instantiate
 
@@ -925,6 +946,198 @@ cc.showEllipsoid(show: boolean);
 cc.getScene(): Scene;
 cc.isAg(): boolean;  // true if using animation groups, false if using animation ranges
 ```
+
+#### WebXR Support
+
+WebXR (immersive VR/AR) is built directly into the controller. When enabled, the
+character controller drives its avatar inside an immersive VR or AR session while
+reusing the existing follow-camera, movement, collision, and animation behavior —
+a consuming application no longer needs its own XR glue.
+
+XR support is **opt-in and fully backward compatible**. With XR never enabled the
+controller behaves exactly as before, and every public XR method is a safe no-op or
+inert query until `enableXR()` is called. None of the XR methods throw.
+
+> WebXR manual testing requires a secure context (HTTPS or `localhost`) and a
+> compatible headset or a WebXR emulator browser extension.
+
+##### Enabling and session lifecycle
+
+```typescript
+// Enable XR — adopt a provided experience/camera, or lazily create a default one.
+// Asynchronous; resolves true on success, false on failure. Never throws.
+await cc.enableXR();                       // create a default WebXR experience
+await cc.enableXR(xrExperience);           // adopt an existing WebXRDefaultExperience
+await cc.enableXR(xrCamera);               // adopt an existing WebXRCamera
+
+// Detect device/browser support independently for VR and AR.
+const support = await cc.isXRSupported();  // { vrSupported, arSupported }
+// Resolves { vrSupported: false, arSupported: false } when navigator.xr is
+// absent or XR was never enabled; never throws.
+
+// Enter an immersive session ('vr' or 'ar') using the local-floor reference space.
+await cc.enterXR("vr");                    // no-op if disabled or unsupported
+
+// Query session state.
+cc.isInXR();                               // true only while a session is active
+cc.getXRCamera();                          // the rendered WebXRCamera, or null
+
+// Exit the active session (idempotent no-op when none is active).
+await cc.exitXR();
+
+// Disable XR — releases the experience/camera and unregisters.
+// Restores desktop ArcRotate mode first if a session is active.
+await cc.disableXR();                      // no-op when XR was never enabled
+```
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `enableXR(xr?)` | `Promise<boolean>` | Enable XR by adopting a provided `WebXRDefaultExperience`/`WebXRCamera`, or creating a default one when omitted. Resolves `true` on success, `false` on failure; never throws |
+| `disableXR()` | `Promise<void>` | Release the XR experience/camera and unregister. Restores desktop ArcRotate mode first if a session is active. No-op when XR was never enabled |
+| `enterXR(type)` | `Promise<void>` | Enter an immersive `'vr'` or `'ar'` session using the `local-floor` reference space. No-op when disabled or unsupported |
+| `exitXR()` | `Promise<void>` | Exit the active session. Idempotent no-op when no session is active |
+| `isInXR()` | `boolean` | `true` only while an XR session is active |
+| `isXRSupported()` | `Promise<XRSupportState>` | Resolves `{ vrSupported, arSupported }`, querying `immersive-vr` and `immersive-ar` independently. Returns `{ false, false }` when `navigator.xr` is absent or XR was never enabled; never throws |
+| `getXRCamera()` | `WebXRCamera \| null` | The rendered `WebXRCamera` for the active session, or `null` when XR was never enabled / no session is active |
+
+##### Locomotion inside a session
+
+Locomotion is **thumbstick-primary** — the thumbsticks drive movement and camera
+through the controller's existing methods, so collision handling, slope limits,
+and animation behavior are untouched.
+
+- **Left thumbstick** moves the avatar (`walk` / `walkBack` / `strafeLeft` /
+  `strafeRight`) with deadzone and dominant-axis gating. At most one of
+  forward/back vs strafe is active per frame; ties resolve to forward/back, so
+  backing up never drifts sideways.
+- Movement is **edge-triggered** — a movement method is called only on the frame
+  a direction's active state changes, not every frame.
+- **Left grip (squeeze)** engages the fast/run variant matching the active
+  direction (`run`, `walkBackFast`, `strafeLeftFast`, `strafeRightFast`).
+  Releasing switches back to the normal variant; the two speeds are never active
+  at once.
+- **Left trigger** jumps on the rising edge (bound only to the left controller).
+- **Right thumbstick** orbits the follow camera (alpha/beta) with dominant-axis
+  gating (ties resolve to alpha). Camera controls never rotate the avatar.
+- **Right B / A face buttons** dolly the camera (radius) in / out.
+- **Left X button** toggles a dolly-to-avatar snap.
+- **Left A button** toggles first/third-person locomotion mode (blocked toggles
+  toward first-person give best-effort haptic feedback).
+- **Left Y button** fires the HUD toggle callback (see `onXRHudToggle` below).
+
+##### Camera follow
+
+During a session the follow `ArcRotateCamera` keeps being driven exactly as on the
+desktop. Each frame its transform is mirrored onto the `WebXRCamera`, so the
+third-person follow carries into the headset without reimplementing follow math.
+
+Desktop state is preserved and restored around a session: keyboard input is
+disabled (controller kept running) on enter and restored on exit, ArcRotate mode is
+restored, and all per-session observers are torn down so repeated enter/exit cycles
+never accumulate handlers.
+
+##### First-person behavior
+
+In WebXR first-person mode, turning the head **does not** rotate the avatar. The
+avatar can only be turned using the controller thumbstick. This gives a better
+experience and prevents disorientation issues.
+
+##### HUD toggle callback
+
+The library manages no HUD itself. `onXRHudToggle()` registers a callback invoked on
+the rising edge of the controller input bound to `BindableAction.HudToggle`
+(default: left Y button) during an XR session, so a consuming application can toggle
+its own in-headset UI.
+
+```typescript
+cc.onXRHudToggle(() => {
+  // toggle your in-headset options panel / UI
+});
+```
+
+Single-subscriber (latest registration wins). The callback persists across session
+enter/exit cycles. A safe no-op when XR was never enabled.
+
+##### Sensitivity and deadzone
+
+```typescript
+cc.setXRStickDeadzone(0.2);    // left-stick deadzone (default 0.15), clamped to [0, 1]
+cc.setXROrbitAlphaRate(0.01);   // orbit horizontal sensitivity, clamped to 0..0.02
+cc.setXROrbitBetaRate(0.01);    // orbit vertical sensitivity, clamped to 0..0.02
+cc.setXRDollyRate(0.05);        // dolly sensitivity, clamped to 0..0.2
+```
+
+Non-finite input leaves the rate unchanged. All setters are no-ops when XR was
+never enabled.
+
+| Method | Default | Clamp range |
+|--------|---------|-------------|
+| `setXRStickDeadzone(v)` | `0.15` | `[0, 1]` |
+| `setXROrbitAlphaRate(v)` | — | `0…0.02` |
+| `setXROrbitBetaRate(v)` | — | `0…0.02` |
+| `setXRDollyRate(v)` | — | `0…0.2` |
+
+##### Configurable input mapping
+
+Which controller input drives which action is **data-driven, not hardcoded**. You
+can supply a partial mapping that is overlaid onto the default; unspecified actions
+keep their defaults. The merged mapping is validated, and only applied when valid —
+an invalid mapping keeps the previous one.
+
+```typescript
+import { BindableAction, BindableInput } from "babylonjs-charactercontroller";
+
+// Rebind jump to the right trigger instead of the left trigger.
+const result = cc.setXRInputMapping({
+  [BindableAction.Jump]: BindableInput.RightTrigger,
+});
+// result: { applied: true, rejected: false }   — mapping replaced
+// result: { applied: false, rejected: true, reason: "..." } — invalid, previous kept
+
+// Unbind an action entirely (pass null).
+cc.setXRInputMapping({ [BindableAction.Teleport]: null });
+
+// Inspect the mappings.
+cc.getDefaultXRInputMapping();     // a copy of the documented default
+cc.getEffectiveXRInputMapping();  // a copy of the current effective mapping
+```
+
+Validation rejects a mapping when:
+- any key/value is outside the `BindableAction` / `BindableInput` enumerations,
+- a single input is bound to two or more conflicting actions,
+- an axis action (`Move`, `CameraOrbit`) is bound to a button input, or a button
+  action is bound to an axis input.
+
+A stored mapping applies on the next session entry; re-applying it rebinds an
+active session.
+
+**Default input mapping:**
+
+| `BindableAction` | Default `BindableInput` | Effect |
+|------------------|------------------------|--------|
+| `Move` | `LeftThumbstickAxes` | Left stick moves the avatar |
+| `FastModifier` | `LeftGrip` | Left squeeze engages run/fast variant |
+| `Jump` | `LeftTrigger` | Left trigger jumps (rising edge) |
+| `CameraOrbit` | `RightThumbstickAxes` | Right stick orbits the follow camera |
+| `CameraDollyIn` | `RightBButton` | Right B button dollies camera in |
+| `CameraDollyOut` | `RightAButton` | Right A button dollies camera out |
+| `DollyToAvatarToggle` | `LeftXButton` | Left X toggles dolly-to-avatar snap |
+| `LocomotionModeToggle` | `LeftAButton` | Left A toggles first/third-person mode |
+| `HudToggle` | `LeftYButton` | Left Y fires the HUD toggle callback |
+| `Teleport` | `null` (unbound) | Teleport is retained but inactive |
+
+**`BindableAction` enum values:** `Move`, `FastModifier`, `Jump`, `CameraOrbit`,
+`CameraDollyIn`, `CameraDollyOut`, `DollyToAvatarToggle`, `LocomotionModeToggle`,
+`HudToggle`, `Teleport`.
+
+**`BindableInput` enum values:** `LeftThumbstickAxes`, `RightThumbstickAxes`,
+`LeftThumbstickPress`, `RightThumbstickPress`, `LeftTrigger`, `RightTrigger`,
+`LeftGrip`, `RightGrip`, `LeftAButton`, `LeftBButton`, `LeftXButton`,
+`LeftYButton`, `RightAButton`, `RightBButton`, `RightXButton`, `RightYButton`.
+
+Only the thumbstick, trigger, grip, and a/b/x/y face buttons are bindable. The
+platform `menu` button is reserved/unreliable in WebXR and is deliberately not
+exposed.
 
 ## Build
 

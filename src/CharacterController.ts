@@ -2616,7 +2616,7 @@ export class CharacterController {
         if (e.repeat) return;
         // Cancel navigation on keyboard press (only if keyboard is enabled)
         if (this._ekb) {
-            if (this._moveToActive || this._turnToActive) {
+            if ((this._moveToActive || this._turnToActive) && (e.key.toLowerCase() != "shift")){
                 this._cancelMoveTo();
                 this._cancelTurnTo();
                 this._act.reset();
@@ -3109,7 +3109,7 @@ export class CharacterController {
         if (this._moveToRun) {
             this.run(true);
         } else {
-            this.walk(true);
+            if (!this._act._walk) this.walk(true);
         }
 
         // 6. Obstruction detection

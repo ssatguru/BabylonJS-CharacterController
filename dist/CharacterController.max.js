@@ -4159,7 +4159,7 @@ var CharacterController = (function () {
         if (e.repeat)
             return;
         if (this._ekb) {
-            if (this._moveToActive || this._turnToActive) {
+            if ((this._moveToActive || this._turnToActive) && (e.key.toLowerCase() != "shift")) {
                 this._cancelMoveTo();
                 this._cancelTurnTo();
                 this._act.reset();
@@ -4555,7 +4555,8 @@ var CharacterController = (function () {
             this.run(true);
         }
         else {
-            this.walk(true);
+            if (!this._act._walk)
+                this.walk(true);
         }
         if (this._moveToLastPos != null) {
             var frameDistance = horizontalDistance(this._moveToLastPos, charPos);
