@@ -3876,6 +3876,25 @@ var CharacterController = (function () {
                     }
                 }
             }
+            if (this._inFP && fpHoldPos !== null) {
+                var distToTarget = babylonjs__WEBPACK_IMPORTED_MODULE_0__.Vector3.Distance(fpHoldPos, this._camera.target);
+                if (distToTarget > this._camera.lowerRadiusLimit) {
+                    if (distToTarget >= this._originalRadius) {
+                        this._originalRadius = null;
+                        this._originalAlpha = null;
+                        this._originalBeta = null;
+                        this._expectedAlpha = null;
+                        this._expectedBeta = null;
+                        this._angleRestorationActive = false;
+                        this._expectedRadius = this._camera.radius;
+                    }
+                    else {
+                        this._camera.position.copyFrom(fpHoldPos);
+                        this._camera.rebuildAnglesAndRadius();
+                        this._expectedRadius = this._camera.radius;
+                    }
+                }
+            }
         }
         else {
             if (this._inFP) {
