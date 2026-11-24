@@ -3240,12 +3240,18 @@ export class CharacterController {
         this._moveToArrivalDist = arrivalDist;
         this._moveToObstructionThreshold = obstructionThreshold;
         this._moveToObstructionCount = 0;
-        this._moveToActive = true;
+        //if already active we donot want to save mode again
+        //as current mode is already saved.
+        //resaving the current mode will override the actual original mode
+        if (!this._moveToActive){
+            this._moveToSaveMode = this.getMode();
+            this.setMode(1);
+            this._moveToActive = true;
+        }
         this._moveToOnComplete = onComplete;
         this._moveToCompleteFired = false;
         this.turnToStop();
-        this._moveToSaveMode = this.getMode();
-        this.setMode(1);
+        
         this._startNavRenderer();
     }
 
