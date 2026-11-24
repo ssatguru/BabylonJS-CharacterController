@@ -158,6 +158,101 @@ const enum JumpStage {
 }
 
 
+// --- Navigation helper functions (pure, standalone) ---
+
+/**
+ * Compute the horizontal (XZ-plane) distance between two Vector3 positions.
+ */
+function horizontalDistance(a: Vector3, b: Vector3): number {
+    const dx = a.x - b.x;
+    const dz = a.z - b.z;
+    return Math.sqrt(dx * dx + dz * dz);
+}
+
+/**
+ * Compute the direction angle (Y rotation) from source to target on the XZ plane.
+ * Returns the angle in radians that the character should face.
+ * @param faceForward true if character's forward is along positive Z (back-facing model)
+ * @param isLHS_RHS true for left-hand/right-hand mismatch (e.g. GLB in LHS scene)
+ */
+function directionAngle(source: Vector3, target: Vector3, faceForward: boolean, isLHS_RHS: boolean): number {
+    const dx = target.x - source.x;
+    const dz = target.z - source.z;
+    // atan2(dx, dz) gives the angle from +Z axis toward +X axis.
+    // This matches the BabylonJS rotation.y convention for a mesh whose face points at +Z (faceForward=true).
+    // When isLHS_RHS is true, the mesh's local Z is flipped relative to the scene,
+    // so the effective facing direction at rotation.y=0 is inverted — we must flip the faceForward logic.
+    let angle = Math.atan2(dx, dz);
+    const effectiveFaceForward = isLHS_RHS ? !faceForward : faceForward;
+    if (!effectiveFaceForward) {
+        angle += Math.PI; // Rotate 180° for front-facing models (or back-facing in LHS_RHS)
+    }
+    // Normalize to [-PI, PI]
+    while (angle > Math.PI) angle -= 2 * Math.PI;
+    while (angle < -Math.PI) angle += 2 * Math.PI;
+    return angle;
+}
+
+/**
+ * Compute shortest-arc delta between current angle and target angle,
+ * normalized to [-PI, PI].
+ */
+function shortestArcDelta(current: number, target: number): number {
+    let delta = target - current;
+    while (delta > Math.PI) delta -= 2 * Math.PI;
+    while (delta < -Math.PI) delta += 2 * Math.PI;
+    return delta;
+}
+
+/**
+ * Determine turn direction based on shortest arc.
+ * Returns 'left' for positive delta (increase rotation.y), 'right' for negative delta.
+ */
+function turnDirection(current: number, target: number): 'left' | 'right' {
+    const delta = shortestArcDelta(current, target);
+    return delta >= 0 ? 'left' : 'right';
+}
+
+/**
+ * Check if distance is within arrival threshold.
+ */
+function isWithinArrival(distance: number, arrivalDistance: number): boolean {
+    return distance <= arrivalDistance;
+}
+
+/**
+ * Check if angular difference is within tolerance.
+ */
+function isWithinAngularTolerance(delta: number, tolerance: number): boolean {
+    return Math.abs(delta) <= tolerance;
+}
+
+/**
+ * Obstruction detection: given per-frame distance and threshold, update counter.
+ * Increments count if frame distance is below threshold, resets to 0 otherwise.
+ */
+function updateObstructionCount(frameDistance: number, threshold: number, currentCount: number): number {
+    return frameDistance < threshold ? currentCount + 1 : 0;
+}
+
+/**
+ * Validate and clamp a parameter to a default value.
+ * If value is <= 0, returns defaultValue.
+ */
+function clampPositive(value: number, defaultValue: number): number {
+    return value > 0 ? value : defaultValue;
+}
+
+// --- End navigation helper functions ---
+
+const enum JumpStage {
+    NONE = 0,
+    PRE_JUMP = 1,
+    JUMP = 2,
+    POST_JUMP = 3
+}
+
+
 export class CharacterController {
 
     private _avatar: Mesh = null;
