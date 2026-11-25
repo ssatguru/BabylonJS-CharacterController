@@ -2,39 +2,27 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { WebXRState } from "babylonjs";
 import { XRController } from "../src/xr/XRController";
 import type { XRSupportState } from "../src/xr/XRSupport";
-import { deriveArcAngles } from "../src/xr/XROrientationSync";
 
 /**
- * Feature: xr-first-person-camera-sync - unit tests for the per-frame XR -> arc
- * orientation sync that REPLACES the legacy arc -> XR follow mirror. Example-
- * based vitest unit tests run entirely against mocks - no real BabylonJS scene,
- * no headset.
+ * Unit tests for the per-frame XR camera follow. Run entirely against mocks - no
+ * real BabylonJS scene, no headset.
  *
- * The orientation coupling direction was intentionally reversed by the
- * `xr-first-person-camera-sync` spec. While XR_First_Person_Coupling holds
- * (`isInXR() && canFirstPerson() && cc.isInFirstPerson()`), the rendered
- * `WebXRCamera` is the SOURCE and the owned `ArcRotateCamera` is the SINK: the
- * render observer reads the headset yaw/pitch and drives the arc camera's
- * `alpha`/`beta` (via the pure `deriveArcAngles` helper). This supersedes the
- * old per-frame `_updateXRCameraFollow()` mirror (arc -> XR full transform) and
- * its D10 entry-blend glide, which are no longer invoked per frame.
+ * Design note: the earlier `xr-first-person-camera-sync` approach (headset ->
+ * arc) was deliberately removed in 0.5.0-2. The
+ * render observer registered in `startStickSampler()` now runs `sampleSticks()`
+ * and then `_updateXRCameraFollow()` (arc -> XR mirror) every frame, in both
+ * first and third person. The headset never writes arc `alpha`/`beta`.
  *
- * The sync lives in the PRIVATE `_syncArcFromXRCamera()` and is driven per-frame
- * by the render observer registered in `startStickSampler()`. That observer runs
- * `sampleSticks()` FIRST, then `_syncArcFromXRCamera()` (R5.3), then the ray
- * retry. Tests fire the observer via the fake `onBeforeRenderObservable` (whose
- * `.add` returns the callback itself, so the returned token IS the per-frame
- * closure), matching the internal-seam testing convention used by the other
- * XRController tests. Session lifecycle is driven by firing the `WebXRState`
- * observer to IN_XR / NOT_IN_XR.
+ * Tests fire the observer via the fake `onBeforeRenderObservable` (whose `.add`
+ * returns the callback itself). Session lifecycle is driven by firing the
+ * `WebXRState` observer to IN_XR / NOT_IN_XR.
  *
  * Behavior covered:
- *  - XR -> arc: while coupling holds, arc `alpha`/`beta` are driven from the
- *    headset pose each frame (R1.1, R1.2, R2.1, R2.2, R2.3).
- *  - Ordering: `sampleSticks()` runs before `_syncArcFromXRCamera()` (R5.3).
- *  - Coupling gate: while first person is inactive the arc is left unchanged
- *    (R4.2).
- *  - The per-frame render observer is detached on session exit (R6.1 teardown).
+ *  - The arc camera is the source: arc alpha/beta are not overwritten from the
+ *    headset pose, and the headset orientation is not read for the arc.
+ *  - `_updateXRCameraFollow()` runs once per frame, after `sampleSticks()`.
+ *  - Arc left unchanged while first person is inactive.
+ *  - The per-frame render observer is detached on session exit.
  */
 
 vi.mock("../src/xr/XRSupport", () => ({
@@ -78,8 +66,7 @@ class FakeObservable<T> {
 /**
  * A fake WebXRCamera exposing the orientation surface the SUT reads: a
  * `rotationQuaternion` whose `toEulerAngles()` returns the mocked head pose
- * (Euler `{ x: pitch, y: yaw, z: roll }`). `_readHeadsetOrientation` reads
- * `euler.y` (yaw) and `euler.x` (pitch). Setting `orientation` updates what the
+ * (Euler `{ x: pitch, y: yaw, z: roll }`). Setting `orientation` updates what the
  * next `toEulerAngles()` call returns, so a test can move the head between
  * frames. `position` is retained (harmless) for parity with the real camera.
  */
@@ -89,10 +76,8 @@ function makeFakeXRCamera(orientation: { yaw: number; pitch: number } = { yaw: 0
         position: { x: 0, y: 0, z: 0 },
         // Mutable head pose the test drives; toEulerAngles reflects it live.
         orientation: { yaw: orientation.yaw, pitch: orientation.pitch },
-        // The orientation surface the XR->arc sync reads: a rotationQuaternion
-        // whose toEulerAngles() returns the mocked head pose (Euler
-        // { x: pitch, y: yaw, z: roll }). _readHeadsetOrientation reads euler.y
-        // (yaw) and euler.x (pitch).
+        // A rotationQuaternion whose toEulerAngles() returns the mocked head pose
+        // (Euler { x: pitch, y: yaw, z: roll }).
         rotationQuaternion: {
             toEulerAngles: vi.fn(() => ({ x: cam.orientation.pitch, y: cam.orientation.yaw, z: 0 })),
         },
@@ -101,8 +86,7 @@ function makeFakeXRCamera(orientation: { yaw: number; pitch: number } = { yaw: 0
 }
 
 /**
- * A fake ArcRotateCamera exposing the orientation sink the SUT writes
- * (`alpha`/`beta`) plus the beta-limit fields `_resolveBetaLimits` reads and the
+ * A fake ArcRotateCamera exposing `alpha`/`beta`, the beta-limit fields and the
  * orbit/dolly surface the guarded per-frame sampler may touch. Defaults leave
  * the orbit/dolly and beta limits absent so the sampler never throws and the
  * pole-avoiding fallback beta range applies.
@@ -211,58 +195,46 @@ afterEach(() => {
 // XR -> arc orientation sync while coupling holds (R1.1, R1.2, R2.1, R2.2, R2.3)
 // ---------------------------------------------------------------------------
 
-describe("Feature: xr-first-person-camera-sync - headset drives the arc camera each render frame (R1, R2)", () => {
-    it("assigns arc alpha/beta from the headset pose every render frame while coupling holds", async () => {
-        const headset = { yaw: 0.7, pitch: 0.2 };
+describe("Feature: xr-camera-follow - arc camera drives the XR camera each render frame", () => {
+    it("does not derive arc alpha/beta from the headset while coupling holds", async () => {
         const { arc, scene, experience } = await makeEnabledController({
-            arcInitial: { alpha: 0, beta: 1 },
-            headset,
+            arcInitial: { alpha: 0.4, beta: 1 },
+            headset: { yaw: 0.7, pitch: 0.2 },
         });
         fireInXR(experience);
 
         fireRenderFrame(scene);
 
-        // The arc is the SINK: alpha/beta reflect the pure derivation from the
-        // headset pose (fallback beta limits apply, so beta is in range).
-        const expected = deriveArcAngles(headset, { lower: 0.05, upper: Math.PI - 0.05 });
-        expect(arc.alpha).toBeCloseTo(expected.alpha, 10);
-        expect(arc.beta).toBeCloseTo(expected.beta, 10);
+        // The arc is the SOURCE: the headset no longer overwrites alpha/beta.
+        expect(arc.alpha).toBe(0.4);
+        expect(arc.beta).toBe(1);
     });
 
-    it("re-derives the arc orientation on the same frame the headset pose changes", async () => {
-        const { arc, scene, xrCamera, experience } = await makeEnabledController({
-            arcInitial: { alpha: 0, beta: 1 },
-            headset: { yaw: 0.1, pitch: 0.1 },
-        });
-        fireInXR(experience);
-
-        fireRenderFrame(scene);
-        const first = deriveArcAngles({ yaw: 0.1, pitch: 0.1 }, { lower: 0.05, upper: Math.PI - 0.05 });
-        expect(arc.alpha).toBeCloseTo(first.alpha, 10);
-        expect(arc.beta).toBeCloseTo(first.beta, 10);
-
-        // Move the head; the next frame reflects the new pose.
-        xrCamera.orientation.yaw = -1.2;
-        xrCamera.orientation.pitch = 0.5;
-        fireRenderFrame(scene);
-        const second = deriveArcAngles({ yaw: -1.2, pitch: 0.5 }, { lower: 0.05, upper: Math.PI - 0.05 });
-        expect(arc.alpha).toBeCloseTo(second.alpha, 10);
-        expect(arc.beta).toBeCloseTo(second.beta, 10);
-    });
-
-    it("runs the sync unconditionally every frame while coupling holds", async () => {
+    it("does not read the headset orientation for the arc each frame", async () => {
         const { xrCamera, scene, experience } = await makeEnabledController({
             headset: { yaw: 0.3, pitch: 0.0 },
         });
         fireInXR(experience);
 
-        // Reading the headset each frame proves the sync executed each frame.
         xrCamera.rotationQuaternion.toEulerAngles.mockClear();
         fireRenderFrame(scene);
         fireRenderFrame(scene);
         fireRenderFrame(scene);
 
-        expect(xrCamera.rotationQuaternion.toEulerAngles).toHaveBeenCalledTimes(3);
+        expect(xrCamera.rotationQuaternion.toEulerAngles).not.toHaveBeenCalled();
+    });
+
+    it("runs _updateXRCameraFollow() once per frame", async () => {
+        const { controller, scene, experience } = await makeEnabledController();
+        fireInXR(experience);
+
+        const followSpy = vi.spyOn(controller as any, "_updateXRCameraFollow").mockImplementation(() => undefined);
+
+        fireRenderFrame(scene);
+        fireRenderFrame(scene);
+        fireRenderFrame(scene);
+
+        expect(followSpy).toHaveBeenCalledTimes(3);
     });
 });
 
@@ -289,28 +261,27 @@ describe("Feature: xr-first-person-camera-sync - coupling gate leaves the arc un
 });
 
 // ---------------------------------------------------------------------------
-// Ordering - sampleSticks() before _syncArcFromXRCamera() (R5.3)
+// Ordering - sampleSticks() before _updateXRCameraFollow()
 // ---------------------------------------------------------------------------
 
-describe("Feature: xr-first-person-camera-sync - sync runs after stick sampling (R5.3)", () => {
-    it("invokes sampleSticks() before _syncArcFromXRCamera() within the render observer", async () => {
+describe("Feature: xr-camera-follow - follow runs after stick sampling", () => {
+    it("invokes sampleSticks() before _updateXRCameraFollow() within the render observer", async () => {
         const { controller, scene, experience } = await makeEnabledController();
         fireInXR(experience);
 
-        // Record ordering by spying both stages after the observer is registered.
         const calls: string[] = [];
         const sampleSpy = vi
             .spyOn(controller as any, "sampleSticks")
             .mockImplementation(() => calls.push("sampleSticks"));
-        const syncSpy = vi
-            .spyOn(controller as any, "_syncArcFromXRCamera")
-            .mockImplementation(() => calls.push("syncArcFromXRCamera"));
+        const followSpy = vi
+            .spyOn(controller as any, "_updateXRCameraFollow")
+            .mockImplementation(() => calls.push("updateXRCameraFollow"));
 
         fireRenderFrame(scene);
 
         expect(sampleSpy).toHaveBeenCalledTimes(1);
-        expect(syncSpy).toHaveBeenCalledTimes(1);
-        expect(calls).toEqual(["sampleSticks", "syncArcFromXRCamera"]);
+        expect(followSpy).toHaveBeenCalledTimes(1);
+        expect(calls).toEqual(["sampleSticks", "updateXRCameraFollow"]);
     });
 });
 

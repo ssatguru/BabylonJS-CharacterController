@@ -61,7 +61,6 @@ import {
 } from "./XRInputMapping";
 import { detectXRSupport } from "./XRSupport";
 import type { XRSessionType } from "./XRSessionType";
-import { deriveArcAngles, HeadsetOrientation, BetaLimits } from "./XROrientationSync";
 import { WebXRAbstractMotionController } from "babylonjs/XR/motionController/webXRAbstractMotionController";
 
 /**
@@ -1146,173 +1145,6 @@ export class XRController {
     }
 
     /**
-     * The XR_First_Person_Coupling gate: `isInXR() && canFirstPerson() &&
-     * _readInFirstPerson()`. This is the single source of truth for whether the
-     * headset drives the arc camera orientation this frame.
-     *
-     * Consulted in two places: `_syncArcFromXRCamera()` uses it as its early-
-     * return gate, and the per-frame render observer branches on it to choose the
-     * headset-driven XR -> arc sync (coupled) vs. the legacy arc -> XR follow
-     * mirror `_updateXRCameraFollow()` (not coupled, i.e. third person).
-     *
-     * Guarded (design D9): if any hop throws, it returns `false` (no coupling) so
-     * the render loop never throws across the XR boundary.
-     *
-     * _Requirements: 4.1, 4.2, 4.5_
-     */
-    private _xrFirstPersonCoupled(): boolean {
-        try {
-            return this.isInXR() && this.canFirstPerson() && this._readInFirstPerson();
-        } catch {
-            return false;
-        }
-    }
-
-    /**
-     * Per-frame XR -> arc synchronization. While XR_First_Person_Coupling holds
-     * (`isInXR() && canFirstPerson() && _readInFirstPerson()`), read the headset
-     * orientation from the rendered `WebXRCamera`, derive `{ alpha, beta }` via
-     * the pure `deriveArcAngles` helper, and assign them to the owned
-     * `ArcRotateCamera`. Otherwise the arc `alpha`/`beta` are left unchanged
-     * (R4.1, R4.2, R4.5).
-     *
-     * This reverses the direction of the legacy `_updateXRCameraFollow` mirror:
-     * the headset is now the SOURCE and the arc camera the SINK for orientation
-     * (R1.3). Only the orientation (`alpha`/`beta`) is sourced here; the
-     * position/height entry-blend concern that `_updateXRCameraFollow` owns is
-     * left intact (this task defines the method only; wiring lands in task 3.2).
-     *
-     * Design D9 ("never throw across the XR boundary"): every access is guarded
-     * and the whole body is wrapped in try/catch, so an absent/mocked/unreadable
-     * XR camera (R5.1) completes without throwing and without changing the arc.
-     *
-     * _Requirements: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 4.1, 4.2, 4.5, 5.1_
-     */
-    private _syncArcFromXRCamera(): void {
-        try {
-            // Coupling gate: only while in XR AND first person is engaged.
-            // R4.1: not in XR -> no change. R4.2/R4.5: FP inactive -> no change.
-            // Single source of truth for the coupling gate (see
-            // `_xrFirstPersonCoupled`), also consulted per-frame by the render
-            // observer to choose the headset-driven sync vs. the arc -> XR follow.
-            if (!this._xrFirstPersonCoupled()) {
-                return;
-            }
-
-            const xr = this._xrCamera;
-            if (xr == null) {
-                return; // R5.1: absent XR camera -> no throw, no change.
-            }
-
-            const orientation = this._readHeadsetOrientation(xr);
-            if (orientation == null) {
-                return; // R5.1: unreadable pose -> no change.
-            }
-
-            const arc = this._camera as unknown as {
-                alpha?: number;
-                beta?: number;
-                lowerBetaLimit?: number | null;
-                upperBetaLimit?: number | null;
-            } | null;
-            if (arc == null) {
-                return;
-            }
-
-            const limits = this._resolveBetaLimits(arc);
-            const { alpha, beta } = deriveArcAngles(orientation, limits); // R1.1, R2.1, R2.3
-
-            arc.alpha = alpha; // R1.2
-            arc.beta = beta; // R2.2
-        } catch {
-            // D9: swallow - never throw across the XR boundary (contributes to R5.1).
-        }
-    }
-
-    /**
-     * Guarded seam reporting whether the owned `CharacterController` is currently
-     * in First_Person_Mode, by reading its lightweight `isInFirstPerson()` query
-     * (added in task 2.1). Combined with `isInXR()` and `canFirstPerson()` this
-     * forms the XR_First_Person_Coupling gate for `_syncArcFromXRCamera`.
-     *
-     * Access is optional-chained and wrapped so a mocked controller that omits
-     * the query yields a safe default (`false`, i.e. no coupling) rather than
-     * throwing (design D9).
-     *
-     * _Requirements: 4.3, 4.5_
-     */
-    private _readInFirstPerson(): boolean {
-        try {
-            return this._cc.isInFirstPerson?.() === true;
-        } catch {
-            return false;
-        }
-    }
-
-    /**
-     * Extract the headset yaw/pitch (radians) from the rendered `WebXRCamera`,
-     * returning a pure `HeadsetOrientation` DTO the `deriveArcAngles` helper
-     * consumes, or `null` when the pose cannot be read.
-     *
-     * The `WebXRCamera` (a `FreeCamera`) expresses head orientation as a
-     * `rotationQuaternion`; its Euler decomposition gives yaw (Y) and pitch (X).
-     * Access is guarded so a mocked camera missing the quaternion (or its
-     * `toEulerAngles`) yields `null` rather than throwing (design D9). No new
-     * BabylonJS import is introduced - only the already-imported `WebXRCamera`
-     * type is referenced and the extraction reads its runtime shape.
-     *
-     * _Requirements: 1.1, 2.1, 5.1_
-     */
-    private _readHeadsetOrientation(xr: WebXRCamera): HeadsetOrientation | null {
-        try {
-            const cam = xr as unknown as {
-                rotationQuaternion?: { toEulerAngles?: () => { x?: number; y?: number } | null } | null;
-            } | null;
-            const quat = cam?.rotationQuaternion;
-            if (quat == null || typeof quat.toEulerAngles !== "function") {
-                return null;
-            }
-            const euler = quat.toEulerAngles();
-            if (euler == null) {
-                return null;
-            }
-            const yaw = euler.y;
-            const pitch = euler.x;
-            if (typeof yaw !== "number" || typeof pitch !== "number") {
-                return null;
-            }
-            return { yaw, pitch };
-        } catch {
-            return null;
-        }
-    }
-
-    /**
-     * Resolve the inclusive `BetaLimits` for the arc camera this frame, reusing
-     * the SAME resolution `clampBeta()` uses: the camera's `lowerBetaLimit` /
-     * `upperBetaLimit` when each is numeric and finite, else the pole-avoiding
-     * fallback `BETA_MIN_FALLBACK (0.05) .. BETA_MAX_FALLBACK (π − 0.05)` for the
-     * missing bound, so the headset-derived beta stays off the gimbal
-     * singularity (R2.3).
-     *
-     * _Requirements: 2.3_
-     */
-    private _resolveBetaLimits(arc: {
-        lowerBetaLimit?: number | null;
-        upperBetaLimit?: number | null;
-    }): BetaLimits {
-        const lower =
-            typeof arc.lowerBetaLimit === "number" && isFinite(arc.lowerBetaLimit)
-                ? arc.lowerBetaLimit
-                : BETA_MIN_FALLBACK;
-        const upper =
-            typeof arc.upperBetaLimit === "number" && isFinite(arc.upperBetaLimit)
-                ? arc.upperBetaLimit
-                : BETA_MAX_FALLBACK;
-        return { lower, upper };
-    }
-
-    /**
      * Apply the Locomotion_Mode camera coupling.
      *
      * Behavior (R4.1-R4.4):
@@ -2132,20 +1964,33 @@ export class XRController {
             return;
         }
 
-        const component = motionController.getComponent(resolution.componentId);
-        if (component == null) {
-            return;
-        }
-
-        //let wasPressed = false;
-        component.onButtonStateChangedObservable.add((changed) => {
-            const pressed = changed.pressed;
-            // if (pressed && !wasPressed) {
-            if (pressed) {
-                this._cc.jump();
+        try {
+            const component = motionController?.getComponent?.(resolution.componentId);
+            const observable = component?.onButtonStateChangedObservable;
+            if (observable == null || typeof observable.add !== "function") {
+                return;
             }
-            //wasPressed = pressed;
-        });
+
+            // Rising-edge detector: fire jump() once on false -> true.
+            let wasPressed = false;
+            const observer = observable.add((changed) => {
+                try {
+                    const pressed = changed?.pressed === true;
+                    if (pressed && !wasPressed) {
+                        // R8.1: rising edge -> exactly one jump().
+                        this._cc.jump?.();
+                    }
+                    wasPressed = pressed;
+                } catch {
+                    // D9: swallow inside the per-event handler.
+                }
+            });
+
+            // Track the observer for teardown (R8.3).
+            this._triggerObservers.push({ observable, observer });
+        } catch {
+            // D9: swallow.
+        }
     }
 
     /**
@@ -2197,29 +2042,11 @@ export class XRController {
      * samples the thumbsticks each frame (R6.1). The observer runs the stick
      * sampler first (movement + camera orbit/dolly), so sampling always runs
      * BEFORE the orientation step and that step sees the same-frame orbit/dolly
-     * state (R5.3). It then arbitrates the orientation step three ways, reading
-     * the same-frame stick activity (`_anyStickActive()`) so exactly one of the
-     * two updates runs per frame (never both):
-     *   - not coupled (third person): run the legacy per-frame arc -> XR follow
-     *     mirror (`_updateXRCameraFollow`), which travels the XR camera onto the
-     *     arc camera pose and reflects right-stick orbit into the headset exactly
-     *     as before this feature.
-     *   - coupled (first person) AND both sticks idle AND no dolly button held:
-     *     run the headset-driven XR -> arc orientation sync
-     *     (`_syncArcFromXRCamera`); the headset is the SOURCE and the arc camera
-     *     the SINK (first-person look).
-     *   - coupled (first person) AND either stick moving OR a dolly button held
-     *     (`_dollyActive()`): run the arc -> XR follow (`_updateXRCameraFollow`)
-     *     exactly like third person, so left-stick travel moves the XR camera
-     *     with the avatar, right-stick orbit takes effect, and — like an active
-     *     stick — a held dolly button routes here so the XR camera follows the
-     *     dollying arc camera (otherwise the orientation-only sync branch would
-     *     freeze the XR camera position during a button-dolly, the dolly-out
-     *     "pause") instead of being overwritten by the headset sync.
-     * Net: `_syncArcFromXRCamera()` runs only when coupled AND both sticks are
-     * idle AND no dolly is held; otherwise `_updateXRCameraFollow()` runs. The
-     * headset orientation and the full arc -> XR mirror therefore never conflict
-     * in the same frame.
+     * state (R5.3). It then runs the per-frame arc -> XR follow mirror
+     * (`_updateXRCameraFollow`) in both first and third person: the arc camera
+     * is the SOURCE and the XR camera mirrors it. The headset orientation never
+     * writes the arc `alpha`/`beta` (the earlier `xr-first-person-camera-sync`
+     * headset -> arc approach was superseded in 0.5.0-2).
      *
      * The observer reference is retained in `_renderObserver` so
      * `stopStickSampler()` can detach it. If a sampler is already running it is
@@ -2247,35 +2074,10 @@ export class XRController {
 
             this._renderObserver =
                 observable.add(() => {
-                    // R6.1: sampling runs before the orientation step.
+                    // R6.1: sampling runs before the follow update.
                     this.sampleSticks();
-                    // Arbitrate the orientation step. `_anyStickActive()` reads
-                    // the same live axes `sampleSticks()` just consumed (via the
-                    // guarded read seams), so it reflects this frame's input.
-                    if (this._xrFirstPersonCoupled() && !this._anyStickActive() && !this._dollyActive()) {
-                        // R5.3 / R1.3: coupled (first person) AND both sticks idle
-                        // AND no dolly button held - the orientation coupling flows
-                        // XR -> arc. `_syncArcFromXRCamera()` reads the same-frame
-                        // headset pose (after `sampleSticks()`) and drives the arc
-                        // camera `alpha`/`beta` (first-person look). The full arc ->
-                        // XR mirror is intentionally NOT run this frame: it would
-                        // fight the headset orientation.
-                        //this._syncArcFromXRCamera();
-                        this._updateXRCameraFollow();
-                    } else {
-                        // Either third person, or first person with a stick
-                        // moving OR a dolly button held: run the arc -> XR position
-                        // + orientation mirror so the XR camera travels to the arc
-                        // pose. In first person this lets left-stick travel move the
-                        // camera with the avatar, right-stick orbit take effect, and
-                        // a held dolly button move the XR camera with the dollying
-                        // arc camera (otherwise the orientation-only sync branch would
-                        // freeze the XR camera position during a button-dolly
-                        // - the dolly-out "pause") instead of being overwritten by
-                        // the headset sync; in third person it behaves exactly as
-                        // before this feature.
-                        this._updateXRCameraFollow();
-                    }
+                    // Arc -> XR follow mirror (first and third person).
+                    this._updateXRCameraFollow();
                     // R13.3: retry the pointer-ray hide (left) / raise (right)
                     // each frame until they succeed, then latch (both no-op once
                     // latched).
@@ -2620,56 +2422,6 @@ export class XRController {
      */
     private _readRightStickInput(): StickInput {
         return this._readAxesComponent(this._orbitAxesComponent);
-    }
-
-    /**
-     * Report whether EITHER thumbstick is active this frame, using the SAME
-     * deadzone the sampler applies (`_stickDeadzone`). A stick is active when the
-     * magnitude of its raw axes exceeds the deadzone
-     * (`Math.hypot(x, y) > _stickDeadzone`). Reads the live axes through the
-     * guarded `_readLeftStickInput()` / `_readRightStickInput()` seams (whose
-     * `leftX`/`leftY` carry each stick's X/Y), so it reflects the same-frame
-     * input the sampler just consumed.
-     *
-     * The per-frame render observer uses this to arbitrate the first-person
-     * orientation source: while coupled, both sticks idle -> the headset drives
-     * the arc (`_syncArcFromXRCamera`); either stick moving -> the arc drives the
-     * XR camera (`_updateXRCameraFollow`) so left-stick travel and right-stick
-     * orbit both take effect. Guarded (design D9): any throw yields "not active".
-     */
-    private _anyStickActive(): boolean {
-        try {
-            const dz = this._stickDeadzone;
-            const dz2 = dz * dz;
-            const left = this._readLeftStickInput();
-            if (left.leftX * left.leftX + left.leftY * left.leftY > dz2) {
-                return true;
-            }
-            const right = this._readRightStickInput();
-            if (right.leftX * right.leftX + right.leftY * right.leftY > dz2) {
-                return true;
-            }
-            return false;
-        } catch {
-            return false;
-        }
-    }
-
-    /**
-     * True while either dolly button (dolly-in / dolly-out) is held. A held dolly
-     * is a camera-radius change that must route the per-frame arbitration to the
-     * arc->XR follow (`_updateXRCameraFollow`) so the XR camera travels with the
-     * dollying arc camera — WITHOUT this, a first-person button-dolly would take
-     * the orientation-only sync branch and the XR camera position would not follow
-     * (the dolly-out "pause"). Reuses the same `_isComponentPressed` check that
-     * `_applyButtonDolly` uses. Guarded (design D9): any throw yields false.
-     */
-    private _dollyActive(): boolean {
-        try {
-            return this._isComponentPressed(this._dollyInComponent) || this._isComponentPressed(this._dollyOutComponent);
-        } catch {
-            return false;
-        }
     }
 
     /**
@@ -3045,7 +2797,7 @@ export class XRController {
 
     /**
      * Per-frame retry seam for pointer-ray management (R13.3), invoked from the
-     * render observer after `sampleSticks()` / `_syncArcFromXRCamera()`.
+     * render observer after `sampleSticks()` / `_updateXRCameraFollow()`.
      *
      * The Pointer_Selection meshes may be created asynchronously after a
      * controller is added, so the left-ray hide and the right-ring raise are
@@ -3412,11 +3164,7 @@ export class XRController {
     /**
      * Per-frame XR camera follow update (design D6, D10, D12).
      *
-     * Runs per frame in THIRD-PERSON (non-coupled) mode: the render observer
-     * calls this whenever `_xrFirstPersonCoupled()` is false. (While first-person
-     * coupling holds the observer instead runs the headset-driven
-     * `_syncArcFromXRCamera()`, and this follow is skipped so the arc -> XR
-     * mirror never fights the headset orientation.) It mirrors the Follow_Camera
+     * Runs every frame (first and third person) from the render observer. It mirrors the Follow_Camera
      * (the owned `ArcRotateCamera`) transform onto the rendered `WebXRCamera` via
      * `setTransformationFromNonVRCamera(arcCamera, true)`, then copies the arc
      * camera's Y onto the XR camera's Y - the mirror forces the XR camera's

@@ -1,3 +1,7 @@
+> **STATUS: PARTIALLY SUPERSEDED (0.5.0-2, 2026-10-19).**
+> - **Superseded / removed:** Requirements 1 and 2 (headset yaw/pitch drives the arc camera `alpha`/`beta`), the R4.1/R4.2/R4.5 and R5.1/R5.3 criteria that apply to that sync, and `deriveArcAngles` (R6.1). Turning the head in first person no longer rotates the avatar or the arc camera; the arc camera drives the XR camera each frame (`_updateXRCameraFollow`) in both first and third person. See `changelog.md` (0.5.0-2). The code (`_syncArcFromXRCamera` and helpers) was removed.
+> - **Still implemented:** Requirement 3 (continuous first-person avatar follow, `_followArcInFirstPerson` + `deriveAvatarYaw`), R4.3/R4.4, R5.2/R5.4 and R6.2.
+> - The text below is kept as a historical record of the original design and is not the current behavior.
 # Implementation Plan: XR First-Person Camera Sync
 
 ## Overview

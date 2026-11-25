@@ -2,6 +2,8 @@
 - upgraded babylonjs from 8.56.2 to 9.37.1
 - documented all WEB XR related new APIs
 - updated "moveTo" so that Aavatr would run if shift is pressed during the moveTo
+- fixed an issue with "moveTo" and "turnTo" wherein if moveTo or turnTo is called while a moveTo or a turnTo is already active the cc mode is again backed-up (from current mode which was already switched to mode 1 in the first call to moveTo or turnTo) and switched to mode 1, thus loosing the original mode.
+- fixed WebXR `bindJump` regression introduced in 0.5.0-2: the left trigger fired `jump()` on every pressed event (so a held trigger re-fired) and its observer was never tracked, so it was not removed at session end and handlers accumulated across enter/exit cycles. Jump again fires once on the rising edge and the observer is detached on session end.
 
 ## 10/19/2026 0.5.1
 
