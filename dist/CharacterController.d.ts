@@ -1,10 +1,21 @@
-import { Skeleton, ArcRotateCamera, Vector3, Mesh, Scene, AnimationGroup, TransformNode, Sound, LinesMesh } from "babylonjs";
+import { Skeleton, ArcRotateCamera, Vector3, Mesh, Scene, AnimationGroup, TransformNode, Sound, LinesMesh, WebXRDefaultExperience, WebXRCamera } from "babylonjs";
+import type { XRSessionType } from "./xr/XRSessionType";
+import type { XRSupportState } from "./xr/XRSupport";
+import { XRInputMapping, MappingResult, DEFAULT_XR_INPUT_MAPPING, mergeXRInputMapping, validateXRInputMapping } from "./xr/XRInputMapping";
+export { XRLocomotion, mapStickToIntent } from "./xr/XRLocomotion";
+export { detectXRSupport } from "./xr/XRSupport";
+export { BindableAction, BindableInput } from "./xr/XRInputMapping";
+export type { LocomotionMode, ToggleResult, MoveIntent, StickInput } from "./xr/XRLocomotion";
+export { DEFAULT_XR_INPUT_MAPPING, mergeXRInputMapping, validateXRInputMapping };
+export type { XRSessionType, XRSupportState, XRInputMapping, MappingResult };
 export declare class CharacterController {
     private _avatar;
     private _skeleton;
     private _camera;
     private _scene;
     getScene(): Scene;
+    private _xr;
+    private _xrEffectiveMapping;
     private _gravity;
     private _minSlopeLimit;
     private _maxSlopeLimit;
@@ -38,6 +49,7 @@ export declare class CharacterController {
     setAnimationGroups(agMap: {}): void;
     setAnimationRanges(arMap: {}): void;
     setActionMap(inActMap: ActionMap): string;
+    getActiveActions(): string[];
     getActionMap(): ActionMap;
     getSettings(): CCSettings;
     setSettings(ccs: CCSettings): void;
@@ -117,6 +129,7 @@ export declare class CharacterController {
     pauseAnim(): void;
     resumeAnim(): void;
     private _prevActData;
+    private _activeActData;
     private _avStartPos;
     private _prevPickY;
     private _grounded;
@@ -173,6 +186,9 @@ export declare class CharacterController {
     private _unGroundIt;
     private _savedCameraCollision;
     private _inFP;
+    private _fpSavedRadius;
+    private _fpSavedLowerRadiusLimit;
+    private _fpExitThreshold;
     private _updateTargetValue;
     private _makeMeshInvisible;
     private _visiblityMap;
@@ -203,6 +219,8 @@ export declare class CharacterController {
     private _onKeyUp;
     private _ekb;
     isKeyBoardEnabled(): boolean;
+    isInFirstPerson(): boolean;
+    private _followArcInFirstPerson;
     enableKeyBoard(b: boolean): void;
     private _addkeylistener;
     private _removekeylistener;
@@ -263,10 +281,13 @@ export declare class CharacterController {
     private _findSkel;
     private _root;
     private _getAbstractMeshChildren;
+    setCharacter(character: Mesh, faceForward?: boolean): boolean;
     setAvatar(avatar: Mesh, faceForward?: boolean): boolean;
     private _ellipsoid;
     showEllipsoid(show: boolean): void;
+    getCharacter(): Mesh;
     getAvatar(): Mesh;
+    setCharacterSkeleton(skeleton: Skeleton): void;
     setAvatarSkeleton(skeleton: Skeleton): void;
     private _skelDrivenByAG;
     getSkeleton(): Skeleton;
@@ -274,6 +295,23 @@ export declare class CharacterController {
     private _hasCam;
     private _avChildren;
     constructor(avatar: Mesh, camera: ArcRotateCamera, scene: Scene, actionMap?: {}, faceForward?: boolean);
+    enableXR(xr?: WebXRDefaultExperience | WebXRCamera): Promise<boolean>;
+    disableXR(): Promise<void>;
+    enterXR(type: XRSessionType): Promise<void>;
+    exitXR(): Promise<void>;
+    isInXR(): boolean;
+    getXRCamera(): WebXRCamera | null;
+    onXRHudToggle(cb: () => void): void;
+    isXRSupported(): Promise<XRSupportState>;
+    setXRStickDeadzone(v: number): void;
+    setXROrbitAlphaRate(v: number): void;
+    setXROrbitBetaRate(v: number): void;
+    setXRDollyRate(v: number): void;
+    setXRInputMapping(mapping: Partial<XRInputMapping>): MappingResult;
+    getDefaultXRInputMapping(): XRInputMapping;
+    getEffectiveXRInputMapping(): XRInputMapping;
+    private _applyXRMappingToController;
+    private _callXRSetter;
 }
 export declare class ActionData {
     id: string;

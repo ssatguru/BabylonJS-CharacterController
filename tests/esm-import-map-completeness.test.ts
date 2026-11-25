@@ -8,17 +8,37 @@ import * as path from "node:path";
  *
  * Property 1: Import map completeness
  *
- * For any named import of a BabylonJS type in the source file
- * `src/CharacterController.ts`, the import map SHALL contain a
- * corresponding entry mapping that type name to a valid
- * `@babylonjs/core` sub-path.
+ * For any named import of a BabylonJS type in ANY library source file
+ * (`src/CharacterController.ts` and every `src/xr/*.ts` feature module),
+ * the import map SHALL contain a corresponding entry mapping that type
+ * name to a valid `@babylonjs/core` sub-path.
  */
 
 // --- Helpers ---
 
-function extractBabylonjsImports(): string[] {
-  const srcPath = path.resolve(__dirname, "../src/CharacterController.ts");
-  const source = fs.readFileSync(srcPath, "utf-8");
+/**
+ * The library source files that webpack bundles from the single entry point.
+ * Any of these may `import { ... } from "babylonjs"`, so all must be covered
+ * by the import map. Pure modules that import no BabylonJS types simply
+ * contribute no names.
+ */
+function librarySourceFiles(): string[] {
+  const files: string[] = [path.resolve(__dirname, "../src/CharacterController.ts")];
+
+  const xrDir = path.resolve(__dirname, "../src/xr");
+  if (fs.existsSync(xrDir)) {
+    for (const entry of fs.readdirSync(xrDir)) {
+      if (entry.endsWith(".ts")) {
+        files.push(path.join(xrDir, entry));
+      }
+    }
+  }
+
+  return files;
+}
+
+function extractBabylonjsImportsFrom(filePath: string): string[] {
+  const source = fs.readFileSync(filePath, "utf-8");
 
   // Match the import block: import { ... } from "babylonjs";
   const importBlockRegex = /import\s*\{([^}]+)\}\s*from\s*["']babylonjs["']/g;
@@ -38,6 +58,16 @@ function extractBabylonjsImports(): string[] {
   return names;
 }
 
+function extractBabylonjsImports(): string[] {
+  const names = new Set<string>();
+  for (const file of librarySourceFiles()) {
+    for (const name of extractBabylonjsImportsFrom(file)) {
+      names.add(name);
+    }
+  }
+  return [...names];
+}
+
 function loadImportMap(): Record<string, string> {
   const mapPath = path.resolve(__dirname, "../webpack.es-externals.js");
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -51,15 +81,16 @@ describe("ESM import map completeness (Property 1)", () => {
   const sourceImports = extractBabylonjsImports();
   const importMap = loadImportMap();
 
-  it("source file has at least one babylonjs import", () => {
+  it("library source files have at least one babylonjs import", () => {
     expect(sourceImports.length).toBeGreaterThan(0);
   });
 
   /**
    * **Validates: Requirements 2.1, 2.2**
    *
-   * For every named import from "babylonjs" in the source,
-   * the import map must contain a corresponding key.
+   * For every named import from "babylonjs" across all library source
+   * files (CharacterController.ts and src/xr/*.ts), the import map must
+   * contain a corresponding key.
    */
   it("every source import has a corresponding entry in the import map", () => {
     fc.assert(

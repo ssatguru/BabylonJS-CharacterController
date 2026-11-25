@@ -10,6 +10,17 @@ module.exports = (env, argv) => {
     entry: "./src/CharacterController.ts",
     devtool: "source-map",
     devServer: {
+      // WebXR requires a secure context; use `npm run dev:https` (which passes
+      // `--server-type https`) so the origin is secure. webpack-dev-server
+      // auto-generates a self-signed certificate, so no cert files are needed
+      // (the browser shows a one-time warning to accept).
+      //
+      // Host is left at the default (localhost) so `--open` launches a friendly
+      // https://localhost:8080 URL that browsers treat as a secure context.
+      // To test on a real headset/phone over the LAN, run `npm run dev:https:lan`
+      // which binds all interfaces (`--host 0.0.0.0`); then browse to
+      // https://<this-machine-LAN-IP>:8080/tst/testXR.html from the device.
+      allowedHosts: "all",
       devMiddleware: {
         publicPath: "/dist/",
       },

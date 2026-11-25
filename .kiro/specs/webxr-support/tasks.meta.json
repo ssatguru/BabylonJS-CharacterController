@@ -1,0 +1,739 @@
+{
+  "pbtResults": {
+    "16.2 Write property test for point-to-move pick guard": {
+      "status": "passed",
+      "lastRunTimestamp": 1790537738408
+    },
+    "7.2 Write property test for the deadzone setter": {
+      "status": "passed",
+      "lastRunTimestamp": 1790537747928
+    }
+  },
+  "executionHistory": {
+    "1.1 Define input-mapping enums, types, defaults, and constants": [
+      {
+        "executionId": "4d9582f9-1454-4bc2-85eb-c1da49e79ad5",
+        "chatSessionId": "sess_0806f667-c20a-4fb9-88da-ef87596b7868",
+        "timestamp": 1790515305032
+      },
+      {
+        "executionId": "4d9582f9-1454-4bc2-85eb-c1da49e79ad5",
+        "chatSessionId": "sess_0806f667-c20a-4fb9-88da-ef87596b7868",
+        "timestamp": 1790515422333
+      }
+    ],
+    "1.2 Implement `mergeXRInputMapping` and `validateXRInputMapping`": [
+      {
+        "executionId": "99cbf38a-a04e-40b1-9af4-304efb6db92d",
+        "chatSessionId": "sess_43cb84ff-3bd1-4d14-b111-5e7a2f13758c",
+        "timestamp": 1790515796987
+      },
+      {
+        "executionId": "99cbf38a-a04e-40b1-9af4-304efb6db92d",
+        "chatSessionId": "sess_43cb84ff-3bd1-4d14-b111-5e7a2f13758c",
+        "timestamp": 1790515905910
+      }
+    ],
+    "1. Create the pure input-mapping module (`src/xr/XRInputMapping.ts`)": [
+      {
+        "executionId": "99cbf38a-a04e-40b1-9af4-304efb6db92d",
+        "chatSessionId": "sess_43cb84ff-3bd1-4d14-b111-5e7a2f13758c",
+        "timestamp": 1790515905969
+      }
+    ],
+    "2.1 Implement `computeXRSupportResult` and `detectXRSupport`": [
+      {
+        "executionId": "e36602bc-da19-4b46-a43a-bfb43375b93b",
+        "chatSessionId": "sess_5749692c-1f76-40ea-b6d3-3baa1498c014",
+        "timestamp": 1790517499986
+      },
+      {
+        "executionId": "e36602bc-da19-4b46-a43a-bfb43375b93b",
+        "chatSessionId": "sess_5749692c-1f76-40ea-b6d3-3baa1498c014",
+        "timestamp": 1790517629205
+      }
+    ],
+    "2. Create the pure XR support-detection module (`src/xr/XRSupport.ts`)": [
+      {
+        "executionId": "e36602bc-da19-4b46-a43a-bfb43375b93b",
+        "chatSessionId": "sess_5749692c-1f76-40ea-b6d3-3baa1498c014",
+        "timestamp": 1790517629328
+      }
+    ],
+    "3.1 Implement the `XRLocomotion` state machine": [
+      {
+        "executionId": "9e791ccd-7947-4154-afd1-a6cdcb2657ba",
+        "chatSessionId": "sess_00955747-e9ef-49cb-a25e-606dcbb2dc23",
+        "timestamp": 1790517952173
+      },
+      {
+        "executionId": "9e791ccd-7947-4154-afd1-a6cdcb2657ba",
+        "chatSessionId": "sess_00955747-e9ef-49cb-a25e-606dcbb2dc23",
+        "timestamp": 1790518007910
+      }
+    ],
+    "3.2 Implement `mapStickToIntent` and `neutralMoveIntent`": [
+      {
+        "executionId": "2f581e1f-9cdd-4f9b-9ca6-b2810895f89b",
+        "chatSessionId": "sess_d7a1472d-54db-4432-b1ed-6a46e415f8f2",
+        "timestamp": 1790518520271
+      },
+      {
+        "executionId": "2f581e1f-9cdd-4f9b-9ca6-b2810895f89b",
+        "chatSessionId": "sess_d7a1472d-54db-4432-b1ed-6a46e415f8f2",
+        "timestamp": 1790518600365
+      }
+    ],
+    "3. Create the pure locomotion module (`src/xr/XRLocomotion.ts`)": [
+      {
+        "executionId": "2f581e1f-9cdd-4f9b-9ca6-b2810895f89b",
+        "chatSessionId": "sess_d7a1472d-54db-4432-b1ed-6a46e415f8f2",
+        "timestamp": 1790518600450
+      }
+    ],
+    "3.3 Write property test for the locomotion guard invariant": [
+      {
+        "executionId": "a8478b22-0e57-48c2-ae2f-589d0586c4c2",
+        "chatSessionId": "sess_55794ff6-225c-4fbc-a0ce-525f5e8d093a",
+        "timestamp": 1790518831388
+      },
+      {
+        "executionId": "a8478b22-0e57-48c2-ae2f-589d0586c4c2",
+        "chatSessionId": "sess_55794ff6-225c-4fbc-a0ce-525f5e8d093a",
+        "timestamp": 1790518876138
+      }
+    ],
+    "4. Checkpoint - pure modules complete": [
+      {
+        "executionId": "398caefe-1021-4e84-9913-e6d68c2ef2f7",
+        "chatSessionId": "sess_84eeb08b-1d22-4200-a1f4-16f03a160d25",
+        "timestamp": 1790525629656
+      },
+      {
+        "executionId": "398caefe-1021-4e84-9913-e6d68c2ef2f7",
+        "chatSessionId": "sess_84eeb08b-1d22-4200-a1f4-16f03a160d25",
+        "timestamp": 1790525642383
+      }
+    ],
+    "5.1 Implement construction and enable/disable": [
+      {
+        "executionId": "f2584af7-47bd-4675-8096-254225769177",
+        "chatSessionId": "sess_767277f3-9009-4fe3-9133-3ce6cc14269f",
+        "timestamp": 1790525703646
+      },
+      {
+        "executionId": "f2584af7-47bd-4675-8096-254225769177",
+        "chatSessionId": "sess_767277f3-9009-4fe3-9133-3ce6cc14269f",
+        "timestamp": 1790525891082
+      }
+    ],
+    "5.2 Implement session enter/exit and lifecycle hooks": [
+      {
+        "executionId": "df40bd45-d2a2-47db-b7d2-3fa392e5559d",
+        "chatSessionId": "sess_a63d99cc-078f-43be-ae9c-4afbe72e3896",
+        "timestamp": 1790531327578
+      }
+    ],
+    "5. Create the `XRController` glue skeleton: lifecycle & enable/disable (`src/xr/XRController.ts`)": [
+      {
+        "executionId": "df40bd45-d2a2-47db-b7d2-3fa392e5559d",
+        "chatSessionId": "sess_a63d99cc-078f-43be-ae9c-4afbe72e3896",
+        "timestamp": 1790531327675
+      }
+    ],
+    "5.3 Write unit tests for lifecycle and enable/disable": [
+      {
+        "executionId": "33851e50-7e6f-4c7f-bd47-0726451b1666",
+        "chatSessionId": "sess_0ad04f70-9787-4894-8deb-8df14b54721d",
+        "timestamp": 1790531598725
+      },
+      {
+        "executionId": "33851e50-7e6f-4c7f-bd47-0726451b1666",
+        "chatSessionId": "sess_0ad04f70-9787-4894-8deb-8df14b54721d",
+        "timestamp": 1790531797559
+      }
+    ],
+    "6.1 Implement `canFirstPerson` and `applyLocomotionMode`": [
+      {
+        "executionId": "3f21cec3-de9e-4da2-ace2-7f69b87e6ec7",
+        "chatSessionId": "sess_63c3a8c1-042b-4949-919a-c4081fdc0dc3",
+        "timestamp": 1790531952607
+      },
+      {
+        "executionId": "3f21cec3-de9e-4da2-ace2-7f69b87e6ec7",
+        "chatSessionId": "sess_63c3a8c1-042b-4949-919a-c4081fdc0dc3",
+        "timestamp": 1790532061157
+      }
+    ],
+    "6.2 Write unit tests for mode → coupling": [
+      {
+        "executionId": "3f21cec3-de9e-4da2-ace2-7f69b87e6ec7",
+        "chatSessionId": "sess_63c3a8c1-042b-4949-919a-c4081fdc0dc3",
+        "timestamp": 1790532063946
+      },
+      {
+        "executionId": "3f21cec3-de9e-4da2-ace2-7f69b87e6ec7",
+        "chatSessionId": "sess_63c3a8c1-042b-4949-919a-c4081fdc0dc3",
+        "timestamp": 1790532156212
+      }
+    ],
+    "6. Implement locomotion mode → camera coupling in `XRController`": [
+      {
+        "executionId": "3f21cec3-de9e-4da2-ace2-7f69b87e6ec7",
+        "chatSessionId": "sess_63c3a8c1-042b-4949-919a-c4081fdc0dc3",
+        "timestamp": 1790532156271
+      }
+    ],
+    "7.1 Implement stick sampler, intent application, and edge-triggered movement": [
+      {
+        "executionId": "96706456-8617-4080-9e9f-ec4e798f06c5",
+        "chatSessionId": "sess_9b86874e-4998-476d-a1c3-095803606c20",
+        "timestamp": 1790532193849
+      },
+      {
+        "executionId": "96706456-8617-4080-9e9f-ec4e798f06c5",
+        "chatSessionId": "sess_9b86874e-4998-476d-a1c3-095803606c20",
+        "timestamp": 1790532367088
+      }
+    ],
+    "8.1 Derive fast flag and switch normal↔fast variants": [
+      {
+        "executionId": "f1baf1d4-12f4-4b46-b3bf-bc4acac3068a",
+        "chatSessionId": "sess_f295d120-778d-4a5a-9ff1-72ff0c59e3f1",
+        "timestamp": 1790532395658
+      },
+      {
+        "executionId": "f1baf1d4-12f4-4b46-b3bf-bc4acac3068a",
+        "chatSessionId": "sess_f295d120-778d-4a5a-9ff1-72ff0c59e3f1",
+        "timestamp": 1790532567468
+      }
+    ],
+    "8.2 Write unit tests for fast movement": [
+      {
+        "executionId": "f1baf1d4-12f4-4b46-b3bf-bc4acac3068a",
+        "chatSessionId": "sess_f295d120-778d-4a5a-9ff1-72ff0c59e3f1",
+        "timestamp": 1790532400108
+      },
+      {
+        "executionId": "f1baf1d4-12f4-4b46-b3bf-bc4acac3068a",
+        "chatSessionId": "sess_f295d120-778d-4a5a-9ff1-72ff0c59e3f1",
+        "timestamp": 1790532568577
+      }
+    ],
+    "8. Implement fast movement (left-stick press) in `XRController`": [
+      {
+        "executionId": "f1baf1d4-12f4-4b46-b3bf-bc4acac3068a",
+        "chatSessionId": "sess_f295d120-778d-4a5a-9ff1-72ff0c59e3f1",
+        "timestamp": 1790532568651
+      }
+    ],
+    "9.1 Wire the left-trigger rising-edge jump handler": [
+      {
+        "executionId": "84f2262a-ef43-466b-8d1b-d0a16f640fb2",
+        "chatSessionId": "sess_08638f46-cc04-42e2-a3b3-67571636e0ca",
+        "timestamp": 1790532626755
+      },
+      {
+        "executionId": "84f2262a-ef43-466b-8d1b-d0a16f640fb2",
+        "chatSessionId": "sess_08638f46-cc04-42e2-a3b3-67571636e0ca",
+        "timestamp": 1790532755623
+      }
+    ],
+    "9.2 Write unit tests for jump": [
+      {
+        "executionId": "84f2262a-ef43-466b-8d1b-d0a16f640fb2",
+        "chatSessionId": "sess_08638f46-cc04-42e2-a3b3-67571636e0ca",
+        "timestamp": 1790532758337
+      },
+      {
+        "executionId": "84f2262a-ef43-466b-8d1b-d0a16f640fb2",
+        "chatSessionId": "sess_08638f46-cc04-42e2-a3b3-67571636e0ca",
+        "timestamp": 1790532874609
+      }
+    ],
+    "9. Implement jump (left trigger) in `XRController`": [
+      {
+        "executionId": "84f2262a-ef43-466b-8d1b-d0a16f640fb2",
+        "chatSessionId": "sess_08638f46-cc04-42e2-a3b3-67571636e0ca",
+        "timestamp": 1790532874701
+      }
+    ],
+    "10.1 Implement `applyCameraOrbit` and `clampBeta`": [
+      {
+        "executionId": "ceb1efa0-0467-485b-8d40-589b4eeeec38",
+        "chatSessionId": "sess_cfc79418-a4f4-4cc5-85f5-1637c24e9f13",
+        "timestamp": 1790532901915
+      },
+      {
+        "executionId": "ceb1efa0-0467-485b-8d40-589b4eeeec38",
+        "chatSessionId": "sess_cfc79418-a4f4-4cc5-85f5-1637c24e9f13",
+        "timestamp": 1790533080974
+      }
+    ],
+    "10.3 Write unit tests for camera orbit": [
+      {
+        "executionId": "ceb1efa0-0467-485b-8d40-589b4eeeec38",
+        "chatSessionId": "sess_cfc79418-a4f4-4cc5-85f5-1637c24e9f13",
+        "timestamp": 1790532904760
+      },
+      {
+        "executionId": "ceb1efa0-0467-485b-8d40-589b4eeeec38",
+        "chatSessionId": "sess_cfc79418-a4f4-4cc5-85f5-1637c24e9f13",
+        "timestamp": 1790533081642
+      }
+    ],
+    "10. Implement camera orbit (right stick) in `XRController`": [
+      {
+        "executionId": "ceb1efa0-0467-485b-8d40-589b4eeeec38",
+        "chatSessionId": "sess_cfc79418-a4f4-4cc5-85f5-1637c24e9f13",
+        "timestamp": 1790533081760
+      }
+    ],
+    "11.1 Implement `applyButtonDolly` and `toggleDollyToAvatar`": [
+      {
+        "executionId": "e2bb19b1-e56f-455b-98f6-95f53c6c454b",
+        "chatSessionId": "sess_31bc2f79-e233-4802-beac-420e2d3e8bce",
+        "timestamp": 1790533238525
+      },
+      {
+        "executionId": "e2bb19b1-e56f-455b-98f6-95f53c6c454b",
+        "chatSessionId": "sess_31bc2f79-e233-4802-beac-420e2d3e8bce",
+        "timestamp": 1790533384892
+      }
+    ],
+    "11.2 Write unit tests for camera dolly": [
+      {
+        "executionId": "e2bb19b1-e56f-455b-98f6-95f53c6c454b",
+        "chatSessionId": "sess_31bc2f79-e233-4802-beac-420e2d3e8bce",
+        "timestamp": 1790533387818
+      },
+      {
+        "executionId": "e2bb19b1-e56f-455b-98f6-95f53c6c454b",
+        "chatSessionId": "sess_31bc2f79-e233-4802-beac-420e2d3e8bce",
+        "timestamp": 1790533585821
+      }
+    ],
+    "11. Implement camera dolly (right B/A + left X) in `XRController`": [
+      {
+        "executionId": "e2bb19b1-e56f-455b-98f6-95f53c6c454b",
+        "chatSessionId": "sess_31bc2f79-e233-4802-beac-420e2d3e8bce",
+        "timestamp": 1790533585894
+      }
+    ],
+    "12.1 Implement `updateXRCameraFollow` and the entry-blend glide": [
+      {
+        "executionId": "073e4309-5b78-4009-93ad-6d70cbef34b6",
+        "chatSessionId": "sess_90672b0b-bff7-4232-b03b-db5624d2abf0",
+        "timestamp": 1790533635531
+      },
+      {
+        "executionId": "073e4309-5b78-4009-93ad-6d70cbef34b6",
+        "chatSessionId": "sess_90672b0b-bff7-4232-b03b-db5624d2abf0",
+        "timestamp": 1790533767371
+      }
+    ],
+    "12.3 Implement the D15 initial-pose hook (seed XR camera onto the follow pose at entry)": [
+      {
+        "executionId": "073e4309-5b78-4009-93ad-6d70cbef34b6",
+        "chatSessionId": "sess_90672b0b-bff7-4232-b03b-db5624d2abf0",
+        "timestamp": 1790533768782
+      },
+      {
+        "executionId": "073e4309-5b78-4009-93ad-6d70cbef34b6",
+        "chatSessionId": "sess_90672b0b-bff7-4232-b03b-db5624d2abf0",
+        "timestamp": 1790533951779
+      }
+    ],
+    "12.2 Write unit tests for follow + entry-blend": [
+      {
+        "executionId": "073e4309-5b78-4009-93ad-6d70cbef34b6",
+        "chatSessionId": "sess_90672b0b-bff7-4232-b03b-db5624d2abf0",
+        "timestamp": 1790533953162
+      },
+      {
+        "executionId": "073e4309-5b78-4009-93ad-6d70cbef34b6",
+        "chatSessionId": "sess_90672b0b-bff7-4232-b03b-db5624d2abf0",
+        "timestamp": 1790534127013
+      }
+    ],
+    "12.4 Write unit tests for the initial-pose hook": [
+      {
+        "executionId": "073e4309-5b78-4009-93ad-6d70cbef34b6",
+        "chatSessionId": "sess_90672b0b-bff7-4232-b03b-db5624d2abf0",
+        "timestamp": 1790533953879
+      },
+      {
+        "executionId": "073e4309-5b78-4009-93ad-6d70cbef34b6",
+        "chatSessionId": "sess_90672b0b-bff7-4232-b03b-db5624d2abf0",
+        "timestamp": 1790534127771
+      }
+    ],
+    "12. Implement XR camera follow with entry-blend glide in `XRController`": [
+      {
+        "executionId": "073e4309-5b78-4009-93ad-6d70cbef34b6",
+        "chatSessionId": "sess_90672b0b-bff7-4232-b03b-db5624d2abf0",
+        "timestamp": 1790534127830
+      }
+    ],
+    "13. Checkpoint - core XR glue movement/camera complete": [
+      {
+        "executionId": "88ea61a4-d09b-4a17-93ff-e5adf4483568",
+        "chatSessionId": "sess_13ba6be8-08a2-4332-b0e5-d585d914b30e",
+        "timestamp": 1790534146308
+      },
+      {
+        "executionId": "88ea61a4-d09b-4a17-93ff-e5adf4483568",
+        "chatSessionId": "sess_13ba6be8-08a2-4332-b0e5-d585d914b30e",
+        "timestamp": 1790534174473
+      }
+    ],
+    "14.1 Implement `bindInputs`, `rebindActiveSession`, and action handlers": [
+      {
+        "executionId": "8a8c62b1-569d-41e9-a475-0411d684aa83",
+        "chatSessionId": "sess_da4b3bc8-138b-44eb-b632-67955105e357",
+        "timestamp": 1790534202283
+      },
+      {
+        "executionId": "8a8c62b1-569d-41e9-a475-0411d684aa83",
+        "chatSessionId": "sess_da4b3bc8-138b-44eb-b632-67955105e357",
+        "timestamp": 1790534423706
+      }
+    ],
+    "14.2 Implement `handleToggleRequest` and blocked-toggle haptic feedback": [
+      {
+        "executionId": "8a8c62b1-569d-41e9-a475-0411d684aa83",
+        "chatSessionId": "sess_da4b3bc8-138b-44eb-b632-67955105e357",
+        "timestamp": 1790534426727
+      },
+      {
+        "executionId": "8a8c62b1-569d-41e9-a475-0411d684aa83",
+        "chatSessionId": "sess_da4b3bc8-138b-44eb-b632-67955105e357",
+        "timestamp": 1790534520498
+      }
+    ],
+    "14.3 Write unit tests for binding and toggle": [
+      {
+        "executionId": "8a8c62b1-569d-41e9-a475-0411d684aa83",
+        "chatSessionId": "sess_da4b3bc8-138b-44eb-b632-67955105e357",
+        "timestamp": 1790534524301
+      },
+      {
+        "executionId": "8a8c62b1-569d-41e9-a475-0411d684aa83",
+        "chatSessionId": "sess_da4b3bc8-138b-44eb-b632-67955105e357",
+        "timestamp": 1790534752985
+      }
+    ],
+    "14. Implement data-driven controller binding & in-session toggle in `XRController`": [
+      {
+        "executionId": "8a8c62b1-569d-41e9-a475-0411d684aa83",
+        "chatSessionId": "sess_da4b3bc8-138b-44eb-b632-67955105e357",
+        "timestamp": 1790534753068
+      }
+    ],
+    "15. Implement controller ray management in `XRController`": [
+      {
+        "executionId": "671382a4-9442-45cf-8879-d93a2fa3a0f4",
+        "chatSessionId": "sess_411a4aa5-2cb9-49ed-a840-90de5768e66e",
+        "timestamp": 1790534842303
+      },
+      {
+        "executionId": "671382a4-9442-45cf-8879-d93a2fa3a0f4",
+        "chatSessionId": "sess_411a4aa5-2cb9-49ed-a840-90de5768e66e",
+        "timestamp": 1790535160074
+      }
+    ],
+    "16. Implement retained teleport / point-to-move in `XRController`": [
+      {
+        "executionId": "412f6651-1841-4f07-af99-dc2e45bc1c89",
+        "chatSessionId": "sess_16c88d80-5094-4c90-b701-e39fde8292b6",
+        "timestamp": 1790535240588
+      },
+      {
+        "executionId": "412f6651-1841-4f07-af99-dc2e45bc1c89",
+        "chatSessionId": "sess_16c88d80-5094-4c90-b701-e39fde8292b6",
+        "timestamp": 1790535387758
+      }
+    ],
+    "17.1 Implement preserve/restore and observer teardown": [
+      {
+        "executionId": "0e14e010-595f-4ef8-be36-9fdbfc7b7f52",
+        "chatSessionId": "sess_3c7c87f7-80b2-4f50-85d4-fa87ee05aedb",
+        "timestamp": 1790535409928
+      },
+      {
+        "executionId": "0e14e010-595f-4ef8-be36-9fdbfc7b7f52",
+        "chatSessionId": "sess_3c7c87f7-80b2-4f50-85d4-fa87ee05aedb",
+        "timestamp": 1790535763568
+      }
+    ],
+    "17.2 Write unit tests for preserve/restore and consistency": [
+      {
+        "executionId": "0e14e010-595f-4ef8-be36-9fdbfc7b7f52",
+        "chatSessionId": "sess_3c7c87f7-80b2-4f50-85d4-fa87ee05aedb",
+        "timestamp": 1790535764569
+      }
+    ],
+    "17. Implement desktop preserve/restore in `XRController`": [
+      {
+        "executionId": "0e14e010-595f-4ef8-be36-9fdbfc7b7f52",
+        "chatSessionId": "sess_3c7c87f7-80b2-4f50-85d4-fa87ee05aedb",
+        "timestamp": 1790535764626
+      }
+    ],
+    "19. Checkpoint - XRController glue complete": [
+      {
+        "executionId": "1d9015b8-adcc-4c58-83b1-a6f78bcc9166",
+        "chatSessionId": "sess_c3df1db6-3fc0-4b68-b506-7f186923f0c4",
+        "timestamp": 1790536287410
+      },
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537299528
+      },
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537848050
+      },
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537861131
+      }
+    ],
+    "20.1 Add the public XR delegate methods to `CharacterController`": [
+      {
+        "executionId": "b4c0dd57-f086-41d7-9cc6-7810e04a47da",
+        "chatSessionId": "sess_a2812b31-9f63-4db2-aa4f-448f0dd4cdac",
+        "timestamp": 1790536416933
+      },
+      {
+        "executionId": "b4c0dd57-f086-41d7-9cc6-7810e04a47da",
+        "chatSessionId": "sess_a2812b31-9f63-4db2-aa4f-448f0dd4cdac",
+        "timestamp": 1790536583204
+      }
+    ],
+    "20.2 Re-export the public XR types/enums/functions from the entry point": [
+      {
+        "executionId": "b4c0dd57-f086-41d7-9cc6-7810e04a47da",
+        "chatSessionId": "sess_a2812b31-9f63-4db2-aa4f-448f0dd4cdac",
+        "timestamp": 1790536586277
+      },
+      {
+        "executionId": "b4c0dd57-f086-41d7-9cc6-7810e04a47da",
+        "chatSessionId": "sess_a2812b31-9f63-4db2-aa4f-448f0dd4cdac",
+        "timestamp": 1790536654789
+      }
+    ],
+    "20.3 Write unit tests for public delegates and support exposure": [
+      {
+        "executionId": "b4c0dd57-f086-41d7-9cc6-7810e04a47da",
+        "chatSessionId": "sess_a2812b31-9f63-4db2-aa4f-448f0dd4cdac",
+        "timestamp": 1790536657625
+      },
+      {
+        "executionId": "b4c0dd57-f086-41d7-9cc6-7810e04a47da",
+        "chatSessionId": "sess_a2812b31-9f63-4db2-aa4f-448f0dd4cdac",
+        "timestamp": 1790536847609
+      }
+    ],
+    "20. Wire the public XR API into `CharacterController` and re-export XR types": [
+      {
+        "executionId": "b4c0dd57-f086-41d7-9cc6-7810e04a47da",
+        "chatSessionId": "sess_a2812b31-9f63-4db2-aa4f-448f0dd4cdac",
+        "timestamp": 1790536847696
+      }
+    ],
+    "21.1 Update `webpack.es-externals.js` and `src/_babylonjs-esm-bridge.js`": [
+      {
+        "executionId": "c2d653e5-e159-4369-9df0-e3e296f80634",
+        "chatSessionId": "sess_6ce2303a-3140-4a0f-b0b7-97b05a18f028",
+        "timestamp": 1790536883992
+      },
+      {
+        "executionId": "c2d653e5-e159-4369-9df0-e3e296f80634",
+        "chatSessionId": "sess_6ce2303a-3140-4a0f-b0b7-97b05a18f028",
+        "timestamp": 1790537117397
+      }
+    ],
+    "21.2 Verify build-integrity tests pass": [
+      {
+        "executionId": "c2d653e5-e159-4369-9df0-e3e296f80634",
+        "chatSessionId": "sess_6ce2303a-3140-4a0f-b0b7-97b05a18f028",
+        "timestamp": 1790537118351
+      }
+    ],
+    "21. Add ESM import-map and bridge entries for new WebXR types": [
+      {
+        "executionId": "c2d653e5-e159-4369-9df0-e3e296f80634",
+        "chatSessionId": "sess_6ce2303a-3140-4a0f-b0b7-97b05a18f028",
+        "timestamp": 1790537118412
+      }
+    ],
+    "22.1 Document the WebXR feature in `changelog.md`": [
+      {
+        "executionId": "31cc4394-c370-4774-8ada-aa95e52fbba6",
+        "chatSessionId": "sess_6a8cac52-479c-4337-ab94-722738ef7aa2",
+        "timestamp": 1790537137933
+      },
+      {
+        "executionId": "31cc4394-c370-4774-8ada-aa95e52fbba6",
+        "chatSessionId": "sess_6a8cac52-479c-4337-ab94-722738ef7aa2",
+        "timestamp": 1790537222519
+      }
+    ],
+    "22. Add a changelog entry": [
+      {
+        "executionId": "31cc4394-c370-4774-8ada-aa95e52fbba6",
+        "chatSessionId": "sess_6a8cac52-479c-4337-ab94-722738ef7aa2",
+        "timestamp": 1790537222593
+      }
+    ],
+    "23. Final checkpoint - full build and test": [
+      {
+        "executionId": "47ebdd77-e657-4159-b725-1da76fcd61b7",
+        "chatSessionId": "sess_850186a0-ab4a-4b7f-ba16-4cf849abe10b",
+        "timestamp": 1790537240826
+      },
+      {
+        "executionId": "47ebdd77-e657-4159-b725-1da76fcd61b7",
+        "chatSessionId": "sess_850186a0-ab4a-4b7f-ba16-4cf849abe10b",
+        "timestamp": 1790537285209
+      }
+    ],
+    "7.2 Write property test for the deadzone setter": [
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537299070
+      },
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537667945
+      },
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537830685
+      }
+    ],
+    "7.3 Write unit tests for stick movement wiring": [
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537299151
+      },
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537668895
+      },
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537832100
+      }
+    ],
+    "15.1 Implement left-ray hide and right-ring raise with retry-until-present": [
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537299215
+      },
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537327870
+      },
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537400165
+      }
+    ],
+    "15.2 Write unit tests for ray management": [
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537299283
+      },
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537669799
+      },
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537832976
+      }
+    ],
+    "16.1 Implement `disableTeleportation` and `handleSelect`": [
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537299341
+      },
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537403296
+      },
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537566604
+      }
+    ],
+    "16.2 Write property test for point-to-move pick guard": [
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537299406
+      },
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537670981
+      },
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537834085
+      }
+    ],
+    "18.1 Add sensitivity-rate instance state and clamped setters": [
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537299465
+      },
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537569437
+      },
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537654046
+      }
+    ],
+    "18. Implement sensitivity-rate state and setters in `XRController`": [
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537654123
+      }
+    ],
+    "7. Implement left-stick movement sampling in `XRController`": [
+      {
+        "executionId": "f5dd4ebd-40a6-4f8f-bac0-9fe9e018e65e",
+        "chatSessionId": "sess_4217dbbd-eb5d-4abb-9d4c-89a04b20a314",
+        "timestamp": 1790537832198
+      }
+    ]
+  }
+}

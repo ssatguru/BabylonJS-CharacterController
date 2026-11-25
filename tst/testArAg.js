@@ -4,7 +4,7 @@ window.onload = function ()
 {
   const queryString = this.document.location.search
   const urlParams = new URLSearchParams(queryString);
-  const animType = urlParams.get("animType"); 
+  const animType = urlParams.get("animType");
   if (animType == "ar") ar = true; else ar=false;
   setUI(ar);
   main(ar);
@@ -21,13 +21,13 @@ function setUI(ar)
 {
   let animType = document.getElementById("animType");
   if (!ar) animType.innerHTML = "Animation Group";
-  let turnToButton = document.getElementById("turnTo"); 
-  let moveToButton = document.getElementById("moveTo"); 
+  let turnToButton = document.getElementById("turnTo");
+  let moveToButton = document.getElementById("moveTo");
   let pauseButton = document.getElementById("pause");
   let ellButton = document.getElementById("ell");
   let helpButton = document.getElementById("help");
   let closeButton = document.getElementById("closehelp");
-  
+
   let el = document.getElementById("overlay");
 
   let canvasElement = document.getElementById("renderCanvas");
@@ -60,7 +60,7 @@ function setUI(ar)
       cc.enableKeyBoard(true);
       pauseButton.innerHTML = "Pause";
       canvasElement.focus();
-    } 
+    }
     else
     {
       cc.pauseAnim();
@@ -100,10 +100,11 @@ async function main(ar)
   }
 
   let player = result.meshes[0];
+  player.rotationQuaternion = BABYLON.Quaternion.Zero();
   setPlayer(player);
 
   //create and set the camera
-  let arcRotateCamera = createCamera(player, scene);
+  let arcRotateCamera = createCamera(player, scene, ar);
   arcRotateCamera.attachControl(canvas, false);
 
   //create a CharacterController and set it
@@ -202,9 +203,6 @@ function setPlayer(player)
   // player position point is the feet
   player.position = new BABYLON.Vector3(-8, 7, 9);
 
-  if (ar) player.rotation.y = (1/2)*Math.PI;
-  else player.rotationQuaternion  = BABYLON.Quaternion.FromEulerAngles(0,-(1/2)*Math.PI,0);
-
   player.checkCollisions = true;
 
   //player's ellipsoid should be the size of the player - thus around 1.75m tall
@@ -220,9 +218,8 @@ function createCamera(player, scene)
 {
   //rotate the camera behind the player
   let alpha;
-  if (ar) alpha = -(Math.PI / 2 + player.rotation.y);
-  else alpha = -(Math.PI / 2 - player.rotationQuaternion.toEulerAngles().y);
-
+  alpha = -Math.PI / 2;
+ 
   var beta = Math.PI / 2.5;
   var target = new BABYLON.Vector3(player.position.x, player.position.y + 1.5, player.position.z);
 

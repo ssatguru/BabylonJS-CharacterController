@@ -23,8 +23,139 @@
     LinesMesh,
     MeshBuilder,
     Color3,
-    Quaternion
+    Quaternion,
+    WebXRDefaultExperience,
+    WebXRCamera
 } from "babylonjs";
+
+import { XRController } from "./xr/XRController";
+import type { XRSessionType } from "./xr/XRSessionType";
+import type { XRSupportState } from "./xr/XRSupport";
+import {
+    XRInputMapping,
+    MappingResult,
+    DEFAULT_XR_INPUT_MAPPING,
+    mergeXRInputMapping,
+    validateXRInputMapping
+} from "./xr/XRInputMapping";
+import { deriveAvatarYaw } from "./xr/XROrientationSync";
+
+// --- Public WebXR API re-exports (task 20.2) ---
+// Re-export the public XR types/enums/functions so consumers import them from
+// the library entry point and they appear in the shared dist/CharacterController.d.ts.
+
+// Values (enums, class, functions, const) not already imported above:
+export { XRLocomotion, mapStickToIntent } from "./xr/XRLocomotion";
+export { detectXRSupport } from "./xr/XRSupport";
+export { BindableAction, BindableInput } from "./xr/XRInputMapping";
+
+// Pure types/interfaces not already imported above:
+export type { LocomotionMode, ToggleResult, MoveIntent, StickInput } from "./xr/XRLocomotion";
+
+// Re-export identifiers already imported above (referencing local names):
+export { DEFAULT_XR_INPUT_MAPPING, mergeXRInputMapping, validateXRInputMapping };
+export type { XRSessionType, XRSupportState, XRInputMapping, MappingResult };
+
+
+// Minimum camera radius used when snapping the eye to the target in first person.
+// ArcRotateCamera degenerates at radius 0 (loses a stable up/orientation frame),
+// so we use a tiny non-zero epsilon to place the eye effectively AT the target.
+const FP_MIN_RADIUS = 0.01;
+
+
+// --- Navigation helper functions (pure, standalone) ---
+
+/**
+ * Compute the horizontal (XZ-plane) distance between two Vector3 positions.
+ */
+function horizontalDistance(a: Vector3, b: Vector3): number {
+    const dx = a.x - b.x;
+    const dz = a.z - b.z;
+    return Math.sqrt(dx * dx + dz * dz);
+}
+
+/**
+ * Compute the direction angle (Y rotation) from source to target on the XZ plane.
+ * Returns the angle in radians that the character should face.
+ * @param faceForward true if character's forward is along positive Z (back-facing model)
+ * @param isLHS_RHS true for left-hand/right-hand mismatch (e.g. GLB in LHS scene)
+ */
+function directionAngle(source: Vector3, target: Vector3, faceForward: boolean, isLHS_RHS: boolean): number {
+    const dx = target.x - source.x;
+    const dz = target.z - source.z;
+    // atan2(dx, dz) gives the angle from +Z axis toward +X axis.
+    // This matches the BabylonJS rotation.y convention for a mesh whose face points at +Z (faceForward=true).
+    // When isLHS_RHS is true, the mesh's local Z is flipped relative to the scene,
+    // so the effective facing direction at rotation.y=0 is inverted — we must flip the faceForward logic.
+    let angle = Math.atan2(dx, dz);
+    const effectiveFaceForward = isLHS_RHS ? !faceForward : faceForward;
+    if (!effectiveFaceForward) {
+        angle += Math.PI; // Rotate 180° for front-facing models (or back-facing in LHS_RHS)
+    }
+    // Normalize to [-PI, PI]
+    while (angle > Math.PI) angle -= 2 * Math.PI;
+    while (angle < -Math.PI) angle += 2 * Math.PI;
+    return angle;
+}
+
+/**
+ * Compute shortest-arc delta between current angle and target angle,
+ * normalized to [-PI, PI].
+ */
+function shortestArcDelta(current: number, target: number): number {
+    let delta = target - current;
+    while (delta > Math.PI) delta -= 2 * Math.PI;
+    while (delta < -Math.PI) delta += 2 * Math.PI;
+    return delta;
+}
+
+/**
+ * Determine turn direction based on shortest arc.
+ * Returns 'left' for positive delta (increase rotation.y), 'right' for negative delta.
+ */
+function turnDirection(current: number, target: number): 'left' | 'right' {
+    const delta = shortestArcDelta(current, target);
+    return delta >= 0 ? 'left' : 'right';
+}
+
+/**
+ * Check if distance is within arrival threshold.
+ */
+function isWithinArrival(distance: number, arrivalDistance: number): boolean {
+    return distance <= arrivalDistance;
+}
+
+/**
+ * Check if angular difference is within tolerance.
+ */
+function isWithinAngularTolerance(delta: number, tolerance: number): boolean {
+    return Math.abs(delta) <= tolerance;
+}
+
+/**
+ * Obstruction detection: given per-frame distance and threshold, update counter.
+ * Increments count if frame distance is below threshold, resets to 0 otherwise.
+ */
+function updateObstructionCount(frameDistance: number, threshold: number, currentCount: number): number {
+    return frameDistance < threshold ? currentCount + 1 : 0;
+}
+
+/**
+ * Validate and clamp a parameter to a default value.
+ * If value is <= 0, returns defaultValue.
+ */
+function clampPositive(value: number, defaultValue: number): number {
+    return value > 0 ? value : defaultValue;
+}
+
+// --- End navigation helper functions ---
+
+const enum JumpStage {
+    NONE = 0,
+    PRE_JUMP = 1,
+    JUMP = 2,
+    POST_JUMP = 3
+}
 
 
 // --- Navigation helper functions (pure, standalone) ---
@@ -131,6 +262,23 @@ export class CharacterController {
     public getScene(): Scene {
         return this._scene;
     }
+
+    /**
+     * The WebXR glue instance, constructed lazily by `enableXR` (design D2). It
+     * stays `null` until the developer opts into XR, so the controller behaves
+     * exactly as it did before the WebXR feature existed - every public XR
+     * delegate below no-ops or resolves safely while `_xr` is null (R1.9, R2.7,
+     * R16.4).
+     */
+    private _xr: XRController | null = null;
+
+    /**
+     * The effective XR input mapping tracked at the CharacterController level.
+     * Seeded to the documented default and updated by `setXRInputMapping` only
+     * when a candidate mapping validates. `getEffectiveXRInputMapping` returns
+     * this (or the live XRController mapping once XR is enabled). (R18.6, R18.14)
+     */
+    private _xrEffectiveMapping: XRInputMapping = { ...DEFAULT_XR_INPUT_MAPPING };
 
 
     private _gravity: number = 9.8;
@@ -359,6 +507,55 @@ export class CharacterController {
         //force to play new anims
         this._prevActData = null;
         if (agMap) return "ag"; else return "ar";
+    }
+
+    /**
+     * Returns the list of actions the character is currently performing.
+     *
+     * Unlike a single "resolved" action (only one animation plays per frame),
+     * the character can be doing several things at once — e.g. walking while
+     * turning left, optionally at fast speed. Each concurrent action is
+     * reported as a separate entry, using the ids from the Actions constant.
+     *
+     * The speed modifier (run/fast) is reflected by returning the fast variant
+     * where one exists (e.g. "run" instead of "walk", "turnLeftFast" instead of
+     * "turnLeft").
+     *
+     * Physics-driven states that are not input flags (fall, slideBack) are
+     * included based on the action resolved for the current frame, since these
+     * cannot be expressed by the input flags alone.
+     *
+     * When the character is doing nothing, returns ["idle"].
+     *
+     * This remains accurate for meshes without animations and while animation
+     * playback is paused via pauseAnim().
+     */
+    public getActiveActions(): string[] {
+        const actions: string[] = [];
+        const fast = this._act._speedMod;
+
+        if (this._act._jump) actions.push(Actions.IDLEJUMP);
+
+        if (this._act._walk) actions.push(fast ? Actions.RUN : Actions.WALK);
+        if (this._act._walkback) actions.push(fast ? Actions.WALKBACKFAST : Actions.WALKBACK);
+
+        if (this._act._turnLeft) actions.push(fast ? Actions.TURNLEFTFAST : Actions.TURNLEFT);
+        if (this._act._turnRight) actions.push(fast ? Actions.TURNRIGHTFAST : Actions.TURNRIGHT);
+
+        if (this._act._stepLeft) actions.push(fast ? Actions.STRAFELEFTFAST : Actions.STRAFELEFT);
+        if (this._act._stepRight) actions.push(fast ? Actions.STRAFERIGHTFAST : Actions.STRAFERIGHT);
+
+        // Fold in physics-driven states that the input flags cannot express.
+        // These come from the action resolved for the current frame.
+        if (this._activeActData != null) {
+            const id = this._activeActData.id;
+            if ((id === Actions.FALL || id === Actions.SLIDEBACK) && actions.indexOf(id) < 0) {
+                actions.push(id);
+            }
+        }
+
+        if (actions.length === 0) actions.push(Actions.IDLE);
+        return actions;
     }
 
     public getActionMap(): ActionMap {
@@ -984,6 +1181,11 @@ export class CharacterController {
     }
 
     private _prevActData: ActionData = null;
+    //tracks the action resolved each frame, independent of animation/sound state.
+    //used by getActiveActions() to surface physics states (fall/slideBack) that
+    //are not represented by the input flags; safe to read even for animation-less
+    //meshes or while paused.
+    private _activeActData: ActionData = null;
     private _avStartPos: Vector3 = Vector3.Zero();
     private _prevPickY: number = 0;
     private _grounded: boolean = false;
@@ -1031,6 +1233,11 @@ export class CharacterController {
             actData = this._doIdle(dt);
         }
 
+        //always mirror the resolved action so getActiveActions() can surface
+        //physics states regardless of _stopAnim/_hasAnims. do not fold this into
+        //_prevActData, which drives animation/sound transition detection.
+        this._activeActData = actData;
+
         if (!this._stopAnim && this._hasAnims && actData != null) {
             // console.log("anim: " + actData.name);
             if (this._prevActData !== actData) {
@@ -1067,6 +1274,10 @@ export class CharacterController {
             }
         }
         this._updateTargetValue();
+        //continuous first-person avatar-follow. runs after _updateTargetValue()
+        //(where _inFP is entered/exited) and after the frame's alpha is settled,
+        //so the follow reads the same-frame alpha (R5.4).
+        this._followArcInFirstPerson();
         return;
     }
 
@@ -1810,11 +2021,22 @@ export class CharacterController {
             } else {
                 a = 1;
                 if (this._act._turnLeft) {
-                    if (this._act._walkback) a = -1;
-                    if (!moving) anim = (this._rhsSign > 0) ? this._actionMap.turnLeft : this._actionMap.turnRight;
+                    if (!moving){
+                        if (this._isAG){
+                            anim = this._actionMap.turnLeft;
+                        }else{
+                            anim = (this._rhsSign > 0 ) ? this._actionMap.turnLeft : this._actionMap.turnRight;
+                        }
+                    }
                 } else {
-                    if (this._act._walk) a = -1;
-                    if (!moving) { a = -1; anim = (this._rhsSign > 0) ? this._actionMap.turnRight : this._actionMap.turnLeft; }
+                    if (!moving){
+                        a = -1;
+                        if (this._isAG){
+                            anim = this._actionMap.turnRight;
+                        }else{
+                            anim = (this._rhsSign > 0 ) ? this._actionMap.turnRight : this._actionMap.turnLeft;
+                        }
+                    }
                 }
                 if (this._hasCam)
                     this._camera.alpha = this._camera.alpha + this._rhsSign * turnAngle * a;
@@ -1914,6 +2136,16 @@ export class CharacterController {
 
     private _savedCameraCollision: boolean = true;
     private _inFP = false;
+    // Radius remembered on first-person entry, so it can be restored on exit if needed.
+    private _fpSavedRadius: number | null = null;
+    // lowerRadiusLimit remembered on first-person entry. ArcRotateCamera clamps radius
+    // to lowerRadiusLimit, so to let the eye reach the target we lower the limit during
+    // FP and restore this original value on exit.
+    private _fpSavedLowerRadiusLimit: number | null = null;
+    // The ORIGINAL lowerRadiusLimit captured on FP entry. FP is exited when the radius
+    // rises back above THIS threshold (a meaningful dolly-out), NOT above the lowered
+    // limit (~FP_MIN_RADIUS) that is active while in FP.
+    private _fpExitThreshold: number | null = null;
     private _updateTargetValue() {
         if (!this._hasCam) return;
 
@@ -2021,10 +2253,17 @@ export class CharacterController {
             // If newDist <= current radius, avatar moved toward camera or sideways — don't adjust
         }
 
-        if (this._camera.radius > this._camera.lowerRadiusLimit) { if (this._cameraElastic || this._makeInvisible) this._handleObstruction(); }
+        // Effective FP entry/exit threshold. While in FP we lower lowerRadiusLimit to
+        // ~FP_MIN_RADIUS (so the small radius is not clamped up), which would make the
+        // raw lowerRadiusLimit comparison trip the exit branch on any tiny dolly-out.
+        // So while in FP compare against the SAVED original limit (_fpExitThreshold);
+        // before FP it equals the real lowerRadiusLimit, preserving entry behavior.
+        const fpThreshold: number = (this._inFP && this._fpExitThreshold !== null) ? this._fpExitThreshold : this._camera.lowerRadiusLimit;
+
+        if (this._camera.radius > fpThreshold) { if (this._cameraElastic || this._makeInvisible) this._handleObstruction(); }
 
         //if user so desire, make the AV invisible if camera comes close to it
-        if (this._camera.radius <= this._camera.lowerRadiusLimit) {
+        if (this._camera.radius <= fpThreshold) {
             if (!this._noFirstPerson && !this._inFP) {
                 this._makeMeshInvisible(this._avatar);
                 this._camera.checkCollisions = false;
@@ -2033,12 +2272,35 @@ export class CharacterController {
                 this._mode = 0;
                 this._smoothTurnSpeed = 0;
                 this._inFP = true;
+                // One-time radius snap on FP entry: place the eye AT the target
+                // (avatar head) instead of leaving it lowerRadiusLimit units away.
+                // This runs only on the entry transition (guarded by !this._inFP
+                // above). While already in FP we must NOT re-snap, otherwise a
+                // dolly-out could never raise the radius past the exit threshold to
+                // trigger the exit path.
+                //
+                // Capture BEFORE mutating: remember both the radius and the original
+                // lowerRadiusLimit (the latter also serves as the FP-exit threshold).
+                this._fpSavedRadius = this._camera.radius;
+                this._fpSavedLowerRadiusLimit = this._camera.lowerRadiusLimit;
+                this._fpExitThreshold = this._camera.lowerRadiusLimit;
+                // Lowering lowerRadiusLimit is REQUIRED: ArcRotateCamera clamps radius
+                // to lowerRadiusLimit, so without this the radius = FP_MIN_RADIUS snap
+                // below would be undone (the eye would stay lowerRadiusLimit units from
+                // the head). Use FP_MIN_RADIUS (not literal 0) to avoid a zero limit.
+                this._camera.lowerRadiusLimit = FP_MIN_RADIUS;
+                this._camera.radius = FP_MIN_RADIUS;
+                // Keep user-scroll/spring detection from misfiring on this
+                // programmatic change (a radius drop vs _expectedRadius is treated
+                // as a user scroll elsewhere), so sync expected to the new radius.
+                this._expectedRadius = this._camera.radius;
             }
             // If we're in first-person due to elastic push-in, hold camera position
             // while avatar moves away. Use the position saved before target update.
             if (this._inFP && fpHoldPos !== null) {
                 const distToTarget: number = Vector3.Distance(fpHoldPos, this._camera.target);
-                if (distToTarget > this._camera.lowerRadiusLimit) {
+                // Compare against the original (saved) limit, not the lowered one active in FP.
+                if (distToTarget > fpThreshold) {
                     // Avatar moved away enough to exit first-person
                     if (distToTarget >= this._originalRadius) {
                         this._originalRadius = null;
@@ -2062,6 +2324,23 @@ export class CharacterController {
                 this._smoothTurnSpeed = this._saveSmoothTurnSpeed;
                 this._restoreVisiblity(this._avatar);
                 this._camera.checkCollisions = this._savedCameraCollision;
+                // Restore the original lowerRadiusLimit that we lowered on FP entry.
+                // The exit was triggered by radius rising above the ORIGINAL threshold
+                // (_fpExitThreshold, e.g. 2), so the radius is already >= the restored
+                // limit — no clamp fights the user's dolly-out.
+                if (this._fpSavedLowerRadiusLimit !== null) {
+                    this._camera.lowerRadiusLimit = this._fpSavedLowerRadiusLimit;
+                }
+                this._fpSavedLowerRadiusLimit = null;
+                this._fpExitThreshold = null;
+                // On entry we snapped radius to ~FP_MIN_RADIUS; the user exits FP by
+                // dollying out, which raised radius past the original threshold (that rise
+                // is exactly what triggered this exit branch). So the radius already
+                // reflects the user's intent — do NOT overwrite it with _fpSavedRadius,
+                // which would undo the dolly-out. We just clear the saved value.
+                // (_fpSavedRadius is retained only in case a future non-dolly exit path
+                // needs it; for now we clear it.)
+                this._fpSavedRadius = null;
                 // Reset expected radius so user-change detection doesn't misfire
                 // after exiting first-person. This preserves _originalRadius for springback.
                 this._expectedRadius = this._camera.radius;
@@ -2432,7 +2711,7 @@ export class CharacterController {
         if (e.repeat) return;
         // Cancel navigation on keyboard press (only if keyboard is enabled)
         if (this._ekb) {
-            if (this._moveToActive || this._turnToActive) {
+            if ((this._moveToActive || this._turnToActive) && (e.key.toLowerCase() != "shift")){
                 this._cancelMoveTo();
                 this._cancelTurnTo();
                 this._act.reset();
@@ -2457,38 +2736,38 @@ export class CharacterController {
             case "arrowup":
             case this._actionMap.walk.key:
                 // console.log("walk");
-                if (this._jumpStage === JumpStage.PRE_JUMP || this._jumpStage === JumpStage.POST_JUMP) break;
+                if (this._act._jump) break;
                 this._act._walk = true;
                 break;
             case "left":
             case "arrowleft":
             case this._actionMap.turnLeft.key:
                 // console.log("turn left");
-                if (this._jumpStage === JumpStage.PRE_JUMP || this._jumpStage === JumpStage.POST_JUMP) break;
+                if (this._act._jump) break;
                 this._act._turnLeft = true;
                 break;
             case "right":
             case "arrowright":
             case this._actionMap.turnRight.key:
                 // console.log("turn right");
-                if (this._jumpStage === JumpStage.PRE_JUMP || this._jumpStage === JumpStage.POST_JUMP) break;
+                if (this._act._jump) break;
                 this._act._turnRight = true;
                 break;
             case "down":
             case "arrowdown":
             case this._actionMap.walkBack.key:
                 // console.log("walk back");
-                if (this._jumpStage === JumpStage.PRE_JUMP || this._jumpStage === JumpStage.POST_JUMP) break;
+                if (this._act._jump) break;
                 this._act._walkback = true;
                 break;
             case this._actionMap.strafeLeft.key:
                 // console.log("strafe left");
-                if (this._jumpStage === JumpStage.PRE_JUMP || this._jumpStage === JumpStage.POST_JUMP) break;
+                if (this._act._jump) break;
                 this._act._stepLeft = true;
                 break;
             case this._actionMap.strafeRight.key:
                 // console.log("strafe right");
-                if (this._jumpStage === JumpStage.PRE_JUMP || this._jumpStage === JumpStage.POST_JUMP) break;
+                if (this._act._jump) break;
                 this._act._stepRight = true;
                 break;
         }
@@ -2536,6 +2815,40 @@ export class CharacterController {
     private _ekb: boolean = true;
     public isKeyBoardEnabled(): boolean {
         return this._ekb;
+    }
+
+    /**
+     * Report whether the controller is currently in first-person mode (`_inFP`).
+     *
+     * Lightweight, side-effect-free query consumed by the XR glue via the guarded
+     * `XRController._readInFirstPerson()` seam. Combined with `isInXR()` and
+     * `XRController.canFirstPerson()` this forms the XR_First_Person_Coupling
+     * condition that gates the XR→arc orientation sync. Kept minimal so it can be
+     * stubbed under mocks.
+     */
+    public isInFirstPerson(): boolean {
+        return this._inFP;
+    }
+
+    /**
+     * Continuous first-person avatar-follow. While `_inFP`, align the avatar's
+     * yaw to the arc camera `alpha` EVERY frame (independent of movement keys),
+     * using the pure `deriveAvatarYaw` helper. Intended to be called after the
+     * frame's `alpha` has been settled (in XR, after the XR->arc sync; in
+     * non-XR, after the camera controls) so the yaw reflects the same-frame
+     * `alpha` (R5.4).
+     *
+     * Guarded so an absent arc camera never throws and leaves the yaw unchanged
+     * (R5.2). While `!_inFP` (or in camera mode 1) this is a no-op, preserving
+     * all non-first-person, third-person, and mode-1 behavior (R4.3, R4.4).
+     *
+     * _Requirements: 3.1, 3.2, 3.3, 3.4, 4.3, 4.4, 5.2_
+     */
+    private _followArcInFirstPerson(): void {
+        if (!this._inFP) return;                            // R4.3, R4.4: gate re-checked each frame.
+        if (this._mode == 1) return;                        // mode-1 unchanged (R4 scope).
+        if (!this._hasCam || this._camera == null) return;  // R5.2: absent arc camera -> no throw, no change.
+        this._setAvatarRotationY(deriveAvatarYaw(this._camera.alpha, this._av2cam)); // R3.1..R3.4
     }
     public enableKeyBoard(b: boolean) {
         this._ekb = b;
@@ -2592,72 +2905,86 @@ export class CharacterController {
 
     // control movement by commands rather than keyboard.
     public walk(b: boolean) {
+        if (b && this._act._jump) return;
         this._act.reset();
         this._act._walk = b;
     }
     public walkBack(b: boolean) {
+        if (b && this._act._jump) return;
         this._act.reset();
         this._act._walkback = b;
     }
     public walkBackFast(b: boolean) {
+        if (b && this._act._jump) return;
         this._act.reset();
         this._act._walkback = b;
         this._act._speedMod = b;
     }
     public run(b: boolean) {
+        if (b && this._act._jump) return;
         this._act.reset();
         this._act._walk = b;
         this._act._speedMod = b;
     }
     public turnLeft(b: boolean) {
-        this._act.reset();
+        if (b && this._act._jump) return;
+        //this._act.reset();
         this._act._turnLeft = b;
         if (!b) this._isTurning = b;
     }
     public turnLeftFast(b: boolean) {
-        this._act.reset();
+        if (b && this._act._jump) return;
+        //this._act.reset();
         this._act._turnLeft = b;
         if (!b) this._isTurning = b;
         this._act._speedMod = b;
     }
     public turnRight(b: boolean) {
-        this._act.reset();
+        if (b && this._act._jump) return;
+        //this._act.reset();
         this._act._turnRight = b;
         if (!b) this._isTurning = b;
     }
     public turnRightFast(b: boolean) {
-        this._act.reset();
+        if (b && this._act._jump) return;
+        //this._act.reset();
         this._act._turnRight = b;
         if (!b) this._isTurning = b;
         this._act._speedMod = b;
     }
     public strafeLeft(b: boolean) {
+        if (b && this._act._jump) return;
         this._act.reset();
         this._act._stepLeft = b;
     }
     public strafeLeftFast(b: boolean) {
+        if (b && this._act._jump) return;
         this._act.reset();
         this._act._stepLeft = b;
         this._act._speedMod = b;
     }
     public strafeRight(b: boolean) {
+        if (b && this._act._jump) return;
         this._act.reset();
         this._act._stepRight = b;
     }
     public strafeRightFast(b: boolean) {
+        if (b && this._act._jump) return;
         this._act.reset();
         this._act._stepRight = b;
         this._act._speedMod = b;
     }
     public jump() {
-        if (this._jumpStage !== JumpStage.NONE) return;
+        console.log(this._jumpStage);
+        if (this._act._jump) return;
+        //if (this._jumpStage !== JumpStage.NONE) return;
         if (this._inFreeFall) return;
-        this._act.reset();
+        //this._act.reset();
         this._act._jump = true;
     }
 
     public fall() {
-        this._act.reset();
+        //this._act.reset();
         this._grounded = false;
     }
 
@@ -2666,6 +2993,7 @@ export class CharacterController {
     }
 
     public turnTo(target: Vector3 | TransformNode | number | null | undefined, options?: TurnToOptions): void {
+        if (this._act._jump) return;
         // 1. Ignore null/undefined
         if (target == null) return;
 
@@ -2876,7 +3204,7 @@ export class CharacterController {
         if (this._moveToRun) {
             this.run(true);
         } else {
-            this.walk(true);
+            if (!this._act._walk) this.walk(true);
         }
 
         // 6. Obstruction detection
@@ -2967,6 +3295,7 @@ export class CharacterController {
      * @param options Optional parameters: run, arrivalDistance, obstructionThreshold
      */
     public moveTo(target: Vector3 | TransformNode, options?: MoveToOptions): void {
+        if (this._act._jump) return;
         // 1. Extract and clamp options
         const run = options?.run ?? false;
         const arrivalDist = clampPositive(options?.arrivalDistance ?? 0.5, 0.5);
@@ -3006,12 +3335,18 @@ export class CharacterController {
         this._moveToArrivalDist = arrivalDist;
         this._moveToObstructionThreshold = obstructionThreshold;
         this._moveToObstructionCount = 0;
-        this._moveToActive = true;
+        //if already active we donot want to save mode again
+        //as current mode is already saved.
+        //resaving the current mode will override the actual original mode
+        if (!this._moveToActive){
+            this._moveToSaveMode = this.getMode();
+            this.setMode(1);
+            this._moveToActive = true;
+        }
         this._moveToOnComplete = onComplete;
         this._moveToCompleteFired = false;
         this.turnToStop();
-        this._moveToSaveMode = this.getMode();
-        this.setMode(1);
+        
         this._startNavRenderer();
     }
 
@@ -3072,9 +3407,15 @@ export class CharacterController {
         return ms;  
     }
 
-    public setAvatar(avatar: Mesh, faceForward: boolean = false): boolean {
+    /**
+     * Sets the character mesh that this controller drives.
+     * @param character the character mesh (or the root of its hierarchy)
+     * @param faceForward true if the character's face points in the positive local Z direction
+     * @returns true if the character was set successfully
+     */
+    public setCharacter(character: Mesh, faceForward: boolean = false): boolean {
 
-        let rootNode = this._root(avatar);
+        let rootNode = this._root(character);
         if (rootNode instanceof Mesh) {
             this._avatar = rootNode;
         } else {
@@ -3082,18 +3423,26 @@ export class CharacterController {
             return false;
         }
         this._avChildren = this._getAbstractMeshChildren(rootNode);
-        this._skeleton = this._findSkel(avatar);
-        this._isAG = this._containsAG(avatar, this._scene.animationGroups, true);
+        this._skeleton = this._findSkel(character);
+        this._isAG = this._containsAG(character, this._scene.animationGroups, true);
 
         this._actionMap.reset();
 
         //animation ranges
         if (!this._isAG && this._skeleton != null) this._checkAnimRanges(this._skeleton);
 
-        this._setRHS(avatar);
+        this._setRHS(character);
         this.setFaceForward(faceForward);
 
         return true;
+    }
+
+    /**
+     * @deprecated Use {@link setCharacter} instead. This alias is kept for
+     * backward compatibility and will be removed in a future release.
+     */
+    public setAvatar(avatar: Mesh, faceForward: boolean = false): boolean {
+        return this.setCharacter(avatar, faceForward);
     }
 
 
@@ -3134,19 +3483,38 @@ export class CharacterController {
         this._ellipsoid= ellipsoid;
     }
 
-    public getAvatar() {
+    /**
+     * Returns the character mesh currently driven by this controller.
+     */
+    public getCharacter() {
         return this._avatar;
     }
 
-    // force a skeleton to be the avatar skeleton
+    /**
+     * @deprecated Use {@link getCharacter} instead. This alias is kept for
+     * backward compatibility and will be removed in a future release.
+     */
+    public getAvatar() {
+        return this.getCharacter();
+    }
+
+    // force a skeleton to be the character skeleton
     // should not be calling this normally
-    public setAvatarSkeleton(skeleton: Skeleton) {
+    public setCharacterSkeleton(skeleton: Skeleton) {
         this._skeleton = skeleton;
 
 
         if (this._skeleton != null && this._skelDrivenByAG(skeleton)) this._isAG = true; else this._isAG = false;
 
         if (!this._isAG && this._skeleton != null) this._checkAnimRanges(this._skeleton);
+    }
+
+    /**
+     * @deprecated Use {@link setCharacterSkeleton} instead. This alias is kept
+     * for backward compatibility and will be removed in a future release.
+     */
+    public setAvatarSkeleton(skeleton: Skeleton) {
+        this.setCharacterSkeleton(skeleton);
     }
 
 
@@ -3198,9 +3566,9 @@ export class CharacterController {
         }
         this._scene = scene;
 
-        let success = this.setAvatar(avatar, faceForward);
+        let success = this.setCharacter(avatar, faceForward);
         if (!success) {
-            console.error("unable to set avatar");
+            console.error("unable to set character");
         }
 
         let dataType: string = null;
@@ -3233,6 +3601,282 @@ export class CharacterController {
         this._renderer = () => { this._moveAVandCamera() };
         this._handleKeyUp = (e) => { this._onKeyUp(e) };
         this._handleKeyDown = (e) => { this._onKeyDown(e) };
+    }
+
+    // =========================================================================
+    // WebXR public API (thin delegates to the lazily-constructed XRController).
+    //
+    // The XRController instance is created on the first `enableXR` call and
+    // owns all WebXR state and behavior. Every method below is safe to call
+    // before XR is enabled: while `_xr` is null the controller behaves exactly
+    // as it did before the WebXR feature existed - queries return the inert
+    // "not supported / not in XR" answer and commands no-op or resolve without
+    // side effects (R1.9, R2.7, R16.4).
+    // =========================================================================
+
+    /**
+     * Enable WebXR support. Lazily constructs the owned {@link XRController} on
+     * the first call (passing this controller, its `ArcRotateCamera`, and the
+     * scene), then delegates to its `enable(xr?)`.
+     *
+     * With a provided {@link WebXRDefaultExperience} or {@link WebXRCamera} the
+     * XRController adopts it; with no argument it creates a default experience.
+     * Resolves `true` on success and `false` on failure; never throws.
+     *
+     * _Requirements: 1.9_
+     */
+    public async enableXR(xr?: WebXRDefaultExperience | WebXRCamera): Promise<boolean> {
+        if (this._xr == null) {
+            this._xr = new XRController(this, this._camera, this._scene);
+            // Seed the freshly-constructed XRController with whatever effective
+            // mapping the developer already configured via `setXRInputMapping`
+            // before enabling XR, so the two stay in sync (best-effort, guarded).
+            this._applyXRMappingToController(this._xrEffectiveMapping);
+        }
+        return this._xr.enable(xr);
+    }
+
+    /**
+     * Disable WebXR support. Delegates to the XRController's `disable()` (which
+     * restores desktop `ArcRotateCamera` mode first when a session is active).
+     * No-op when XR was never enabled. Never throws.
+     *
+     * _Requirements: 1.9_
+     */
+    public async disableXR(): Promise<void> {
+        if (this._xr == null) {
+            return;
+        }
+        await this._xr.disable();
+    }
+
+    /**
+     * Enter an immersive XR session of the given type (`'vr'` or `'ar'`).
+     * No-op (leaving desktop ArcRotate mode intact) when XR is not enabled or
+     * the requested type is unsupported. Never throws.
+     *
+     * _Requirements: 2.7_
+     */
+    public async enterXR(type: XRSessionType): Promise<void> {
+        if (this._xr == null) {
+            return;
+        }
+        await this._xr.enter(type);
+    }
+
+    /**
+     * Exit the active immersive XR session. Idempotent no-op when no session is
+     * active or XR was never enabled. Never throws.
+     *
+     * _Requirements: 2.7_
+     */
+    public async exitXR(): Promise<void> {
+        if (this._xr == null) {
+            return;
+        }
+        await this._xr.exit();
+    }
+
+    /**
+     * True only while an immersive XR session is active. Returns `false` when
+     * XR was never enabled.
+     *
+     * _Requirements: 2.7_
+     */
+    public isInXR(): boolean {
+        if (this._xr == null) {
+            return false;
+        }
+        return this._xr.isInXR();
+    }
+
+    /**
+     * The rendered `WebXRCamera` for the active session, or `null` when XR was
+     * never enabled / no session is active.
+     */
+    public getXRCamera(): WebXRCamera | null {
+        if (this._xr == null) {
+            return null;
+        }
+        return this._xr.getXRCamera();
+    }
+
+    /**
+     * Register a callback invoked on the rising edge of the controller input
+     * bound to {@link BindableAction.HudToggle} (default: LEFT Y button) during
+     * an XR session. The library manages no HUD itself - this simply surfaces
+     * the press so an application can toggle its own in-headset UI. Single-
+     * subscriber (latest registration wins); the callback persists across
+     * session enter/exit cycles. A safe no-op when XR was never enabled.
+     */
+    public onXRHudToggle(cb: () => void): void {
+        this._xr?.setHudToggleCallback(cb);
+    }
+
+    /**
+     * Detect immersive VR / AR support. Returns `{ vrSupported: false,
+     * arSupported: false }` when XR was never enabled; otherwise delegates to
+     * the XRController's async support probe.
+     *
+     * _Requirements: 16.4, 16.5_
+     */
+    public async isXRSupported(): Promise<XRSupportState> {
+        if (this._xr == null) {
+            return { vrSupported: false, arSupported: false };
+        }
+        // The XRController does not currently expose a public support probe
+        // (that surface is owned by a later task); delegate defensively so a
+        // present method is used and an absent one falls back to the pure
+        // detector. Guarded so calling it never throws.
+        const xr = this._xr as unknown as { isXRSupported?: () => Promise<XRSupportState> };
+        try {
+            if (typeof xr.isXRSupported === "function") {
+                return await xr.isXRSupported();
+            }
+        } catch {
+            // fall through to the inert default
+        }
+        return { vrSupported: false, arSupported: false };
+    }
+
+    /**
+     * Set the left-stick deadzone used by XR thumbstick locomotion, clamped to
+     * `[0, 1]` by the XRController. No-op when XR was never enabled.
+     *
+     * _Requirements: 6.8_
+     */
+    public setXRStickDeadzone(v: number): void {
+        if (this._xr == null) {
+            return;
+        }
+        this._xr.setStickDeadzone(v);
+    }
+
+    /**
+     * Set the camera-orbit alpha (horizontal) sensitivity rate for XR right-stick
+     * orbit. The XRController clamps the value; non-finite input leaves it
+     * unchanged. No-op when XR was never enabled. Delegated defensively so it is
+     * a safe no-op if the XRController setter is not present.
+     *
+     * _Requirements: 12.1_
+     */
+    public setXROrbitAlphaRate(v: number): void {
+        this._callXRSetter("setAlphaRate", v);
+    }
+
+    /**
+     * Set the camera-orbit beta (vertical) sensitivity rate for XR right-stick
+     * orbit. The XRController clamps the value; non-finite input leaves it
+     * unchanged. No-op when XR was never enabled. Delegated defensively so it is
+     * a safe no-op if the XRController setter is not present.
+     *
+     * _Requirements: 12.2_
+     */
+    public setXROrbitBetaRate(v: number): void {
+        this._callXRSetter("setBetaRate", v);
+    }
+
+    /**
+     * Set the camera-dolly (radius) sensitivity rate for XR button dolly. The
+     * XRController clamps the value; non-finite input leaves it unchanged. No-op
+     * when XR was never enabled. Delegated defensively so it is a safe no-op if
+     * the XRController setter is not present.
+     *
+     * _Requirements: 12.3, 12.4_
+     */
+    public setXRDollyRate(v: number): void {
+        this._callXRSetter("setRadiusRate", v);
+    }
+
+    /**
+     * Apply a developer XR input mapping (partial).
+     *
+     * The partial is overlaid onto {@link DEFAULT_XR_INPUT_MAPPING} via
+     * `mergeXRInputMapping`, then validated via `validateXRInputMapping`. When
+     * valid, the merged mapping becomes the effective mapping (stored here and
+     * pushed to the XRController) and `{ applied: true, rejected: false }` is
+     * returned. When invalid, the effective mapping is left unchanged and
+     * `{ applied: false, rejected: true, reason }` is returned (R18.14).
+     *
+     * _Requirements: 18.1, 18.6, 18.14_
+     */
+    public setXRInputMapping(mapping: Partial<XRInputMapping>): MappingResult {
+        const merged = mergeXRInputMapping(mapping);
+        const result = validateXRInputMapping(merged);
+        if (result.applied) {
+            // Only a valid mapping replaces the effective one (R18.14).
+            this._xrEffectiveMapping = merged;
+            this._applyXRMappingToController(merged);
+        }
+        return result;
+    }
+
+    /**
+     * Return a copy of the documented default XR input mapping.
+     *
+     * _Requirements: 18.5_
+     */
+    public getDefaultXRInputMapping(): XRInputMapping {
+        return { ...DEFAULT_XR_INPUT_MAPPING };
+    }
+
+    /**
+     * Return a copy of the current effective XR input mapping (the default
+     * overlaid with the last valid developer partial).
+     *
+     * _Requirements: 18.4, 18.6_
+     */
+    public getEffectiveXRInputMapping(): XRInputMapping {
+        return { ...this._xrEffectiveMapping };
+    }
+
+    /**
+     * Push an effective mapping onto the owned XRController, best-effort.
+     *
+     * The XRController stores its effective mapping in a private member and does
+     * not yet expose a public setter (that surface is owned by a later task), so
+     * this tries a public `setInputMapping` if present, then asks the controller
+     * to re-bind an active session if that method is present. Every hop is
+     * guarded so a missing method is a safe no-op and never throws.
+     */
+    private _applyXRMappingToController(mapping: XRInputMapping): void {
+        if (this._xr == null) {
+            return;
+        }
+        const xr = this._xr as unknown as {
+            setInputMapping?: (m: XRInputMapping) => void;
+            rebindActiveSession?: () => void;
+        };
+        try {
+            if (typeof xr.setInputMapping === "function") {
+                xr.setInputMapping(mapping);
+                if (typeof xr.rebindActiveSession === "function") {
+                    xr.rebindActiveSession();
+                }
+            }
+        } catch {
+            // guarded no-op: the XRController mapping setter is not yet present
+        }
+    }
+
+    /**
+     * Invoke a named clamped sensitivity setter on the owned XRController,
+     * best-effort. No-op when XR was never enabled. Guarded so that a setter the
+     * XRController does not yet expose is a safe no-op rather than a throw.
+     */
+    private _callXRSetter(method: "setAlphaRate" | "setBetaRate" | "setRadiusRate", v: number): void {
+        if (this._xr == null) {
+            return;
+        }
+        const xr = this._xr as unknown as Record<string, ((value: number) => void) | undefined>;
+        try {
+            const fn = xr[method];
+            if (typeof fn === "function") {
+                fn.call(this._xr, v);
+            }
+        } catch {
+            // guarded no-op: the XRController sensitivity setter is not yet present
+        }
     }
 }
 
