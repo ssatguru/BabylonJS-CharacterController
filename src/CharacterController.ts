@@ -1,4 +1,4 @@
-import {
+﻿import {
     Skeleton,
     ArcRotateCamera,
     Vector3,
@@ -2944,18 +2944,18 @@ export class CharacterController {
         }
 
         // 7. Check if already within angular tolerance
-        if (this._turnToTargetAngle != null) {
-            const currentY = this._getAvatarRotationY();
-            const delta = shortestArcDelta(currentY, this._turnToTargetAngle);
-            if (isWithinAngularTolerance(delta, angularTolerance)) {
-                // Already facing target, don't activate
-                this._turnToTargetAngle = null;
-                this._turnToTarget = null;
-                this._turnToNode = null;
-                this._turnToAngle = null;
-                return;
-            }
-        }
+        // if (this._turnToTargetAngle != null) {
+        //     const currentY = this._getAvatarRotationY();
+        //     const delta = shortestArcDelta(currentY, this._turnToTargetAngle);
+        //     if (isWithinAngularTolerance(delta, angularTolerance)) {
+        //         // Already facing target, don't activate
+        //         this._turnToTargetAngle = null;
+        //         this._turnToTarget = null;
+        //         this._turnToNode = null;
+        //         this._turnToAngle = null;
+        //         return;
+        //     }
+        // }
 
         // 8. Activate
         this._turnToFast = fast;
@@ -3223,17 +3223,10 @@ export class CharacterController {
             targetPos = target;
         }
 
-        // 3. Check if already within arrival distance
-        const charPos = this._avatar.position;
-        if (isWithinArrival(horizontalDistance(charPos, targetPos), arrivalDist)) {
-            this.idle();
-            return;
-        }
-
-        // 4. Clear previous state if replacing (reset fields without calling idle)
+        // 3. Clear previous state if replacing (reset fields without calling idle)
         // This handles Requirement 10.1: replacing an existing moveTo
 
-        // 5. Set new state
+        // 4. Set new state
         this._moveToTarget = targetPos;
         this._moveToNode = targetNode;
         this._moveToRun = run;

@@ -4331,17 +4331,6 @@ var CharacterController = (function () {
             var charPos = this._avatar.position;
             this._turnToTargetAngle = directionAngle(charPos, target, this.isFaceForward(), this._isLHS_RHS);
         }
-        if (this._turnToTargetAngle != null) {
-            var currentY = this._getAvatarRotationY();
-            var delta = shortestArcDelta(currentY, this._turnToTargetAngle);
-            if (isWithinAngularTolerance(delta, angularTolerance)) {
-                this._turnToTargetAngle = null;
-                this._turnToTarget = null;
-                this._turnToNode = null;
-                this._turnToAngle = null;
-                return;
-            }
-        }
         this._turnToFast = fast;
         this._turnToAngularTolerance = angularTolerance;
         this._turnToOnComplete = onComplete;
@@ -4520,11 +4509,6 @@ var CharacterController = (function () {
         }
         else {
             targetPos = target;
-        }
-        var charPos = this._avatar.position;
-        if (isWithinArrival(horizontalDistance(charPos, targetPos), arrivalDist)) {
-            this.idle();
-            return;
         }
         this._moveToTarget = targetPos;
         this._moveToNode = targetNode;

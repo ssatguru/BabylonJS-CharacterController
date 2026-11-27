@@ -1,17 +1,23 @@
-## 11/22/2026 0.5.2
+# 0.5.2
+## 11/27/2026 
+- fixed issue with moveTo and turnTo wherein if the Avatar was already within the arrival dist or angle of the target node then it would just stop and will not follow the target node if it moved
+
+## 11/22/2026
 - upgraded babylonjs from 8.56.2 to 9.37.1
 - documented all WEB XR related new APIs
-- updated "moveTo" so that Aavatr would run if shift is pressed during the moveTo
+- updated "moveTo" so that Avatar would run if shift is pressed during the moveTo
 - fixed an issue with "moveTo" and "turnTo" wherein if moveTo or turnTo is called while a moveTo or a turnTo is already active the cc mode is again backed-up (from current mode which was already switched to mode 1 in the first call to moveTo or turnTo) and switched to mode 1, thus loosing the original mode.
 - fixed WebXR `bindJump` regression introduced in 0.5.0-2: the left trigger fired `jump()` on every pressed event (so a held trigger re-fired) and its observer was never tracked, so it was not removed at session end and handlers accumulated across enter/exit cycles. Jump again fires once on the rising edge and the observer is detached on session end.
 
-## 10/19/2026 0.5.1
+# 0.5.1
+## 10/19/2026 
 
 ### HUD toggle consumer callback (application-facing)
 - added `CharacterController.onXRHudToggle(cb)` — register a callback invoked on the rising edge of the controller input bound to the new `BindableAction.HudToggle` (default: LEFT Y button) during an XR session. The library manages no HUD itself; this simply surfaces the button press so a consuming application (e.g. an in-headset options panel) can toggle its own UI. Single-subscriber (latest registration wins); the callback persists across session enter/exit cycles; a safe no-op when XR was never enabled. Implemented as a plain callback (not a BabylonJS `Observable`) so no new import-map/bridge entries are required
 - added `BindableAction.HudToggle`, default-bound to `BindableInput.LeftYButton`, wired through the existing data-driven `_wireToggle` rising-edge path and torn down with the other per-session toggle observers. It is a button action and participates in the standard mapping validation/conflict rules; it can be rebound via `setXRInputMapping` or unbound (`null`)
 
-## 10/19/2026 0.5.0-2
+# 0.5.0-2
+## 10/19/2026 
 - In WebXR the left squeeze/grab button rather than the left thumstick press now results in fast action
 - In WebXR turning head when in first person mode , no longer rotates the avatar. Avatar can only be turned using controller thumbstick. This leads to better user experience and prevents other issues. 
 - TODO We still need to center the scene to where the user is lookin. So when user turns their head to look at another direction , we need to provide a controller button, pressing which would instantly rotate the avatar to this direction.
@@ -26,7 +32,8 @@
   - add teleportation in first person mode
   - add rotation in discrete angle rather than continuously
 
-## 09/28/2026 0.5.0
+# 0.5.0
+## 09/28/2026 
 
 ### WebXR support (immersive VR/AR)
 - added WebXR support directly to the library: the character controller can now drive its avatar inside an immersive VR or AR session while reusing the existing follow-camera, movement, collision, and animation behavior — a consuming application no longer needs its own XR glue
